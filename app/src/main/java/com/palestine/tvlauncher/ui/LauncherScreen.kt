@@ -599,3 +599,93 @@ fun LauncherScreen() {
         }
 
         if (showSettingsDrawer) {
+                        SettingsModalDrawer(
+                config = config,
+                prefs = prefs,
+                onOpenLiveEditor = {
+                    showSettingsDrawer = false
+                    isLiveEditMode = true
+                },
+                onOpenScreensaverEditor = {
+                    showSettingsDrawer = false
+                    isScreensaverEditMode = true
+                    isScreensaverMode = true
+                },
+                onDismiss = { showSettingsDrawer = false }
+            )
+        }
+
+        if (showAdhkarDialog) {
+            AlertDialog(
+                onDismissRequest = { showAdhkarDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showAdhkarDialog = false }) { Text("إغلاق") }
+                },
+                title = { Text("أذكار الصباح والمساء", fontWeight = FontWeight.Bold) },
+                text = {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(PalestineData.adhkarList) { dhikr ->
+                            Text("• $dhikr", fontSize = 15.sp)
+                        }
+                    }
+                }
+            )
+        }
+
+        if (showQuranDialog) {
+            val currentSurah = PalestineData.fullQuranSurahs.getOrElse(selectedSurahIdx) {
+                PalestineData.fullQuranSurahs.first()
+            }
+            AlertDialog(
+                onDismissRequest = { showQuranDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showQuranDialog = false }) { Text("إغلاق") }
+                },
+                title = { Text("المصحف الشريف - ${currentSurah.name}", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState())
+                        ) {
+                            PalestineData.fullQuranSurahs.forEachIndexed { idx, surah ->
+                                FilterChip(
+                                    selected = selectedSurahIdx == idx,
+                                    onClick = { selectedSurahIdx = idx },
+                                    label = { Text(surah.name) }
+                                )
+                            }
+                        }
+                        LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                            item {
+                                Text(
+                                    text = currentSurah.verses,
+                                    fontSize = 19.sp,
+                                    lineHeight = 32.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+
+        if (showUpdateDialog && updateInfo != null) {
+            AlertDialog(
+                onDismissRequest = { showUpdateDialog = false },
+                confirmButton = {
+                    Button(onClick = {
+                        LiveRepository.downloadAndInstallApk(context, updateInfo!!.apkDownloadUrl)
+                        showUpdateDialog = false
+                    }) { Text("تحميل وتثبيت الآن") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") }
+                },
+                title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
+                text = { Text(updateInfo!!.releaseNotes) }
+            )
+        }
+    }
+}
+
