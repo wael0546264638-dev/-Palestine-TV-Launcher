@@ -15,9 +15,10 @@ jobs:
       - name: Generate Manifest
         run: |
           python3 -c '
-          a = "android:"
+          a = "".join(chr(c) for c in)
+          x = "".join(chr(c) for c in)
           s = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-          s += "<manifest xmlns:android=\"http://android.com\">\n"
+          s += "<manifest " + x + "=\"http://android.com\">\n"
           s += "  <uses-permission " + a + "name=\"android.permission.INTERNET\" />\n"
           s += "  <uses-permission " + a + "name=\"android.permission.ACCESS_NETWORK_STATE\" />\n"
           s += "  <uses-permission " + a + "name=\"android.permission.QUERY_ALL_PACKAGES\" />\n"
