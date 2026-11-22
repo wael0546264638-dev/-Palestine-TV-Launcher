@@ -15,8 +15,8 @@ jobs:
       - name: Generate Manifest
         run: |
           python3 -c '
-          a = "".join(chr(c) for c in)
-          x = "".join(chr(c) for c in)
+          a = bytes.fromhex("616e64726f69643a").decode()
+          x = bytes.fromhex("786d6c6e733a616e64726f6964").decode()
           s = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
           s += "<manifest " + x + "=\"http://android.com\">\n"
           s += "  <uses-permission " + a + "name=\"android.permission.INTERNET\" />\n"
@@ -25,7 +25,7 @@ jobs:
           s += "  <uses-permission " + a + "name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />\n"
           s += "  <uses-feature " + a + "name=\"android.software.leanback\" " + a + "required=\"true\" />\n"
           s += "  <uses-feature " + a + "name=\"android.hardware.touchscreen\" " + a + "required=\"false\" />\n"
-          s += "  <application " + a + "allowBackup=\"true\" " + a + "label=\"Palestine TV\" " + a + "supportsRtl=\"true\" " + a + "theme=\"@android:style/Theme.NoTitleBar.Fullscreen\">\n"
+          s += "  <application " + a + "allowBackup=\"true\" " + a + "label=\"Palestine TV\" " + a + "supportsRtl=\"true\">\n"
           s += "    <activity " + a + "name=\".MainActivity\" " + a + "exported=\"true\" " + a + "launchMode=\"singleTask\" " + a + "stateNotNeeded=\"true\">\n"
           s += "      <intent-filter>\n"
           s += "        <action " + a + "name=\"android.intent.action.MAIN\" />\n"
