@@ -148,7 +148,7 @@ fun LauncherApp(prefs: LauncherPreferences) {
                 prayerInfo = prayerInfo,
                 config = config,
                 isEditMode = isScreensaverEditMode,
-                onSaveOffsets = { x, y, scale ->
+                onSaveOffsets = { x: Float, y: Float, scale: Float ->
                     scope.launch {
                         prefs.updateConfig {
                             it[LauncherPreferences.SS_CLOCK_X] = x
