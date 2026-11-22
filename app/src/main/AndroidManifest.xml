@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://android.com">
 
@@ -39,4 +38,5 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
+
 </manifest>
