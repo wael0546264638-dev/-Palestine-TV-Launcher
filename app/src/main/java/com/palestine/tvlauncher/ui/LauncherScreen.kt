@@ -35,8 +35,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.*
 import com.palestine.tvlauncher.network.*
-import com.palestine.tvlauncher.util.AppManager
-import com.palestine.tvlauncher.util.TvAppInfo
+import com.palestine.util.AppManager
+import com.palestine.util.TvAppInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
