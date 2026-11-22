@@ -268,3 +268,60 @@ fun BottomTickerBar(
     val tickerLine = buildString {
         config.activeTickerPairs.forEach { pair ->
             val info = liveFeed.prices[pair]
+                        if (info != null) {
+                val arrow = if (info.second) "▲" else "▼"
+                append("   |   $pair: ${info.first} $arrow")
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = config.tickerBgOpacity)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    PalestineData.toArabicDigits("رمضان بعد $daysToRamadan يوم$familyText"),
+                    color = Color.White,
+                    fontSize = 13.sp
+                )
+                Text(liveFeed.matches.firstOrNull()?.name ?: "", color = Color(0xFFFBBF24), fontSize = 13.sp)
+            }
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = config.tickerBgOpacity)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 5.dp)) {
+                Text(
+                    text = "$tickerLine      $tickerLine",
+                    color = Color(0xFF34D399),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                )
+            }
+        }
+    }
+}
+
+fun calculateDaysUntilDate(month: Int, day: Int): Int {
+    val today = Calendar.getInstance()
+    val target = Calendar.getInstance().apply {
+        set(Calendar.MONTH, (month - 1).coerceIn(0, 11))
+        set(Calendar.DAY_OF_MONTH, day.coerceIn(1, 31))
+        if (before(today)) add(Calendar.YEAR, 1)
+    }
+    val diff = target.timeInMillis - today.timeInMillis
+    return (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+}
+
