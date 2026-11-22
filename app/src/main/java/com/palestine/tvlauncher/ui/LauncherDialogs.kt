@@ -107,7 +107,7 @@ fun InteractiveTabsCard(
             }
         )
     }
-
+ 
     Surface(
         modifier = modifier.onFocusChanged { isCardFocused = it.isFocused },
         shape = RoundedCornerShape(24.dp),
