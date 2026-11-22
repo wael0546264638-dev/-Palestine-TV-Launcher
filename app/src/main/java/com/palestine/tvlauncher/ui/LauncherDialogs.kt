@@ -394,6 +394,15 @@ fun InteractiveTabsCard(
                             .clip(CircleShape)
                             .background(
                                 if (idx == selectedTab) Color.White
+                                                                else Color.White.copy(alpha = 0.3f)
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
