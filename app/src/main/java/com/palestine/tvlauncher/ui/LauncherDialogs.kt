@@ -342,7 +342,7 @@ fun ScreensaverView(
         }
     }
 }
-
+                                    }
 @Composable
 private fun SettingOptionPill(
     label: String,
