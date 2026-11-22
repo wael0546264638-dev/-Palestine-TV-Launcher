@@ -22,6 +22,7 @@ data class LauncherConfig(
     val cityLat: Double = 32.0450,
     val cityLon: Double = 35.4580,
     val cityTimeZone: String = "Asia/Hebron",
+    val clockStyle: Int = 0, // 0=رقمي عصري، 1=بطاقة زجاجية، 2=عقارب دائرية، 3=عمودي كبير
     val clockOffsetX: Float = 0f,
     val clockOffsetY: Float = 0f,
     val clockScale: Float = 1.0f,
@@ -68,6 +69,7 @@ class LauncherPreferences(private val context: Context) {
         val CITY_LAT = doublePreferencesKey("city_lat")
         val CITY_LON = doublePreferencesKey("city_lon")
         val CITY_TZ = stringPreferencesKey("city_tz")
+        val CLOCK_STYLE = intPreferencesKey("clock_style")
         val CLOCK_X = floatPreferencesKey("clock_x")
         val CLOCK_Y = floatPreferencesKey("clock_y")
         val CLOCK_SCALE = floatPreferencesKey("clock_scale")
@@ -113,6 +115,7 @@ class LauncherPreferences(private val context: Context) {
             cityLat = p[CITY_LAT] ?: 32.0450,
             cityLon = p[CITY_LON] ?: 35.4580,
             cityTimeZone = p[CITY_TZ] ?: "Asia/Hebron",
+            clockStyle = p[CLOCK_STYLE] ?: 0,
             clockOffsetX = p[CLOCK_X] ?: 0f,
             clockOffsetY = p[CLOCK_Y] ?: 0f,
             clockScale = p[CLOCK_SCALE] ?: 1.0f,
