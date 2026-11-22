@@ -224,4 +224,5 @@ object LiveRepository {
                 DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
             )
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        dm.enqueue(req)
+        dm.enqueue(req)}
+}
