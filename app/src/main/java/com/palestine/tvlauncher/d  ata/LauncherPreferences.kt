@@ -18,7 +18,10 @@ data class FamilyReminder(
 )
 
 data class LauncherConfig(
-    val cityName: String = "أريحا",
+    val cityName: String = "أريحا (الزبيدات)",
+    val cityLat: Double = 32.0450,
+    val cityLon: Double = 35.4580,
+    val cityTimeZone: String = "Asia/Hebron",
     val clockOffsetX: Float = 0f,
     val clockOffsetY: Float = 0f,
     val clockScale: Float = 1.0f,
@@ -45,7 +48,7 @@ data class LauncherConfig(
     val showBottomBar: Boolean = true,
     val tickerBgOpacity: Float = 0.65f,
     val activeTickerPairs: Set<String> = setOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD", "BTC"),
-    val quranPlayMode: Int = 0, // 0=يدوي/دائم، 1=الرئيسية فقط، 2=شاشة التوقف فقط، 3=مجدول
+    val quranPlayMode: Int = 0,
     val quranScheduleStartHour: Int = 6,
     val quranScheduleEndHour: Int = 10,
     val quranStreamUrl: String = "https://radiojar.com",
@@ -62,6 +65,9 @@ class LauncherPreferences(private val context: Context) {
 
     companion object {
         val CITY_NAME = stringPreferencesKey("city_name")
+        val CITY_LAT = doublePreferencesKey("city_lat")
+        val CITY_LON = doublePreferencesKey("city_lon")
+        val CITY_TZ = stringPreferencesKey("city_tz")
         val CLOCK_X = floatPreferencesKey("clock_x")
         val CLOCK_Y = floatPreferencesKey("clock_y")
         val CLOCK_SCALE = floatPreferencesKey("clock_scale")
@@ -103,7 +109,10 @@ class LauncherPreferences(private val context: Context) {
 
     val configFlow: Flow<LauncherConfig> = context.launcherDataStore.data.map { p ->
         LauncherConfig(
-            cityName = p[CITY_NAME] ?: "أريحا",
+            cityName = p[CITY_NAME] ?: "أريحا (الزبيدات)",
+            cityLat = p[CITY_LAT] ?: 32.0450,
+            cityLon = p[CITY_LON] ?: 35.4580,
+            cityTimeZone = p[CITY_TZ] ?: "Asia/Hebron",
             clockOffsetX = p[CLOCK_X] ?: 0f,
             clockOffsetY = p[CLOCK_Y] ?: 0f,
             clockScale = p[CLOCK_SCALE] ?: 1.0f,
@@ -146,6 +155,15 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun updateConfig(block: (MutablePreferences) -> Unit) {
         context.launcherDataStore.edit { block(it) }
+    }
+
+    suspend fun setLocation(city: PalestinianCity) {
+        updateConfig {
+            it[CITY_NAME] = city.name
+            it[CITY_LAT] = city.lat
+            it[CITY_LON] = city.lon
+            it[CITY_TZ] = city.timeZoneId
+        }
     }
 
     suspend fun saveTasks(list: List<String>) {
