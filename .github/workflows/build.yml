@@ -12,17 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Patch Manifest
-        run: |
-          python3 -c '
-          p = "".join([chr(97), chr(110), chr(100), chr(114), chr(111), chr(105), chr(100), chr(58)])
-          t = open("app/src/main/AndroidManifest.xml").read()
-          for k in ["name=", "exported=", "launchMode=", "stateNotNeeded=", "allowBackup=", "label=", "supportsRtl=", "theme=", "authorities=", "grantUriPermissions=", "resource=", "required="]:
-              if p + k not in t:
-                  t = t.replace(" " + k, " " + p + k)
-          open("app/src/main/AndroidManifest.xml", "w").write(t)
-          '
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
