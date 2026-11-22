@@ -212,6 +212,143 @@ fun InteractiveTabsCard(
                                 Row(
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
+                                                                    ) {
+                                    Text(PalestineData.toArabicDigits("اليوم +${idx + 1}"), color = Color.White)
+                                    Text(PalestineData.toArabicDigits("العظمى $maxT° / الصغرى $minT°"), color = Color(0xFFFBBF24))
+                                }
+                            }
+                        }
+                    }
+                    2 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(liveFeed.matches) { m ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(m.name, color = Color.White)
+                                Text(m.status, color = Color(0xFF34D399))
+                            }
+                        }
+                    }
+                    3 -> Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                        Text(hijriDate, color = Color.White, fontSize = 22.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                        Text(gregorianDate, color = Color.White, fontSize = 20.sp)
+                    }
+                    4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
+                    }
+                    5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(PalestineData.dailyHadiths.first(), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
+                    }
+                    6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
+                    }
+                    7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(liveFeed.news) { headline ->
+                            Text("▪ $headline", color = Color.White, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        liveFeed.prices.forEach { (pair, info) ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(pair, color = Color.White)
+                                Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
+                            }
+                        }
+                    }
+                    9 -> {
+                        val daysToRamadan = PalestineData.getDaysUntilRamadan()
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
+                            Text(PalestineData.toArabicDigits("• رمضان المبارك: بعد $daysToRamadan يوم"), color = Color.White)
+                            Text(PalestineData.toArabicDigits("• عيد الفطر: بعد ${daysToRamadan + 30} يوم"), color = Color(0xFFCBD5E1))
+                        }
+                    }
+                    10 -> {
+                        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                        val mi = ActivityManager.MemoryInfo()
+                        am.getMemoryInfo(mi)
+                        val avail = mi.availMem / (1024 * 1024)
+                        val total = mi.totalMem / (1024 * 1024)
+                        val stat = StatFs(Environment.getDataDirectory().path)
+                        val gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
+                            Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
+                            Text(PalestineData.toArabicDigits("المساحة المتبقية: $gb GB"), color = Color.White)
+                        }
+                    }
+                    11 -> {
+                        var taskInput by remember { mutableStateOf("") }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = taskInput,
+                                    onValueChange = { taskInput = it },
+                                    placeholder = { Text("أضف مهمة...", color = Color.Gray) },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                Button(onClick = {
+                                    if (taskInput.isNotBlank()) { onAddTask(taskInput.trim()); taskInput = "" }
+                                }) { Text("إضافة") }
+                            }
+                            LazyColumn {
+                                items(config.tasks) { t ->
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("✓ $t", color = Color.White)
+                                        TextButton(onClick = { onRemoveTask(t) }) { Text("حذف", color = Color(0xFFF87171)) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    12 -> {
+                        var nameIn by remember { mutableStateOf("") }
+                        var dayIn by remember { mutableStateOf("") }
+                        var monthIn by remember { mutableStateOf("") }
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f), singleLine = true)
+                                OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f), singleLine = true)
+                                OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f), singleLine = true)
+                                Button(onClick = {
+                                    val d = dayIn.toIntOrNull(); val m = monthIn.toIntOrNull()
+                                    if (nameIn.isNotBlank() && d != null && m != null) {
+                                        onAddReminder(FamilyReminder(UUID.randomUUID().toString(), nameIn.trim(), m, d))
+                                        nameIn = ""; dayIn = ""; monthIn = ""
+                                    }
+                                }) { Text("حفظ") }
+                            }
+                            LazyColumn {
+                                items(config.reminders) { r ->
+                                    val left = calculateDaysUntilDate(r.month, r.day)
+                                    Text(PalestineData.toArabicDigits("🎂 ${r.name} (${r.day}/${r.month}) - متبقي $left يوم"), color = Color.White, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
+                repeat(tabTitles.size) { idx ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (idx == selectedTab) 8.dp else 5.dp)
+                            .clip(CircleShape)
+                            .background(if (idx == selectedTab) Color.White else Color.White.copy(alpha = 0.3f))
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
