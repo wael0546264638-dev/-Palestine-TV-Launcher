@@ -479,7 +479,7 @@ fun ScreensaverView(
         }
     }
 }
-                                    }
+                                    
 @Composable
 private fun SettingOptionPill(
     label: String,
@@ -882,3 +882,43 @@ fun SettingsModalDrawer(
                             item {
                                 SettingOptionPill("شاشة التوقف", config.showTopScreensaver) {
                                     scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } }
+                                                                item {
+                                SettingOptionPill("VPN", config.showTopVpn) {
+                                    scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } }
+                                }
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) {
+                                scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } }
+                            }
+                            SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) {
+                                scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } }
+                            }
+                        }
+                    }
+                }
+
+                // الفئة 6: شريط الأسعار والتخطيط المباشر
+                item {
+                    SettingsCategoryBox("٦. شريط الأسعار والتخطيط المباشر") {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(allPairs) { pair ->
+                                val active = config.activeTickerPairs.contains(pair)
+                                SettingOptionPill(pair, active) {
+                                    val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
+                                    scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
+                                }
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
+                            SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
