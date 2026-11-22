@@ -277,3 +277,41 @@ fun BottomTickerBar(
                     text = liveFeed.matches.firstOrNull()?.name ?: "",
                     color = Color(0xFFFBBF24),
                     fontSize = 13.sp
+                                    )
+            }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = config.tickerBgOpacity)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "$tickerLine      $tickerLine",
+                    color = Color(0xFF34D399),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                )
+            }
+        }
+    }
+}
+
+fun calculateDaysUntilDate(month: Int, day: Int): Int {
+    val today = Calendar.getInstance()
+    val target = Calendar.getInstance().apply {
+        set(Calendar.MONTH, (month - 1).coerceIn(0, 11))
+        set(Calendar.DAY_OF_MONTH, day.coerceIn(1, 31))
+        if (before(today)) add(Calendar.YEAR, 1)
+    }
+    val diff = target.timeInMillis - today.timeInMillis
+    return (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+}
+
