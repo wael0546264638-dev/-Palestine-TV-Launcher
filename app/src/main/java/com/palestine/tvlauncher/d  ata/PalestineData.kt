@@ -147,3 +147,43 @@ object PalestineData {
         val diff = next.second - nowMins
         val h = diff / 60
         val m = diff % 60
+                val rem = toArabicDigits("متبقي لصلاة ${next.first}: ${h}س و ${m}د")
+        return p.copy(
+            fajr = toArabicDigits(p.fajr),
+            sunrise = toArabicDigits(p.sunrise),
+            dhuhr = toArabicDigits(p.dhuhr),
+            asr = toArabicDigits(p.asr),
+            maghrib = toArabicDigits(p.maghrib),
+            isha = toArabicDigits(p.isha),
+            nextPrayerName = next.first,
+            remainingText = rem
+        )
+    }
+
+    fun getFormattedDates(timeZoneId: String = "Asia/Hebron"): Pair<String, String> {
+        val tz = TimeZone.getTimeZone(timeZoneId)
+        val localeAr = Locale("ar")
+        val sdf = SimpleDateFormat("EEEE، d MMMM yyyy", localeAr).apply { timeZone = tz }
+        val greg = sdf.format(Date())
+        val hijriCal = IslamicCalendar(tz)
+        val hijriMonths = arrayOf(
+            "محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
+            "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"
+        )
+        val d = hijriCal.get(IslamicCalendar.DAY_OF_MONTH)
+        val m = hijriMonths[hijriCal.get(IslamicCalendar.MONTH).coerceIn(0, 11)]
+        val y = hijriCal.get(IslamicCalendar.YEAR)
+        return Pair(toArabicDigits("$d $m $y هـ"), toArabicDigits(greg))
+    }
+
+    fun getDaysUntilRamadan(): Int {
+        val hijri = IslamicCalendar()
+        var days = 0
+        while (hijri.get(IslamicCalendar.MONTH) != IslamicCalendar.RAMADAN && days < 360) {
+            hijri.add(IslamicCalendar.DAY_OF_MONTH, 1)
+            days++
+        }
+        return days
+    }
+}
+
