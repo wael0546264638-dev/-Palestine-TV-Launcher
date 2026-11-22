@@ -259,4 +259,210 @@ fun LauncherApp(prefs: LauncherPreferences) {
                             }
                         }
                     )
+                    Spacer(modifier = Modifier.width(18.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .weight(0.46f)
+                            .graphicsLayer {
+                                translationX = config.clockOffsetX
+                                translationY = config.clockOffsetY
+                                scaleX = config.clockScale
+                                scaleY = config.clockScale
+                            },
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = amPmText,
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF94A3B8),
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = currentTimeText,
+                                fontSize = 86.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                lineHeight = 86.sp
+                            )
+                        }
+
+                        val dateString = when (config.dateDisplayMode) {
+                            0 -> "$hijriDate  |  $gregorianDate"
+                            1 -> hijriDate
+                            2 -> gregorianDate
+                            else -> ""
+                        }
+                        if (dateString.isNotEmpty()) {
+                            Text(
+                                text = dateString,
+                                fontSize = 18.sp,
+                                color = Color(0xFFE2E8F0),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            PillActionButton(
+                                label = "أذكار الصباح والمساء",
+                                icon = Icons.Default.AutoAwesome,
+                                onClick = { showAdhkarDialog = true }
+                            )
+
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.45f),
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    color = Color.White.copy(alpha = 0.15f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(
+                                        horizontal = 14.dp,
+                                        vertical = 8.dp
+                                    ),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.WbSunny,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFBBF24),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "${liveFeed.currentTemp}° ${config.cityName}",
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                AppDockRow(
+                    apps = installedApps,
+                    config = config,
+                    modifier = Modifier.graphicsLayer {
+                        translationX = config.dockOffsetX
+                        translationY = config.dockOffsetY
+                    },
+                    onLaunchApp = { app: TvAppInfo ->
+                        AppManager.launchApp(context, app.packageName)
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (config.showBottomBar) {
+                    BottomTickerBar(
+                        config = config,
+                        prayerInfo = prayerInfo,
+                        liveFeed = liveFeed
+                    )
+                }
+            }
+        }
+
+        if (isLiveEditMode) {
+            LiveLayoutEditorOverlay(
+                config = config,
+                onSave = { cx, cy, cs, kx, ky, ks, ko, dx, dy ->
+                    scope.launch {
+                        prefs.updateConfig {
+                            it[LauncherPreferences.CLOCK_X] = cx
+                            it[LauncherPreferences.CLOCK_Y] = cy
+                            it[LauncherPreferences.CLOCK_SCALE] = cs
+                            it[LauncherPreferences.CARD_X] = kx
+                            it[LauncherPreferences.CARD_Y] = ky
+                            it[LauncherPreferences.CARD_SCALE] = ks
+                            it[LauncherPreferences.CARD_OPACITY] = ko
+                            it[LauncherPreferences.DOCK_X] = dx
+                            it[LauncherPreferences.DOCK_Y] = dy
+                        }
+                    }
+                    isLiveEditMode = false
+                },
+                onCancel = { isLiveEditMode = false }
+            )
+        }
+
+        if (showSettingsDrawer) {
+            SettingsModalDrawer(
+                config = config,
+                prefs = prefs,
+                onOpenLiveEditor = {
+                    showSettingsDrawer = false
+                    isLiveEditMode = true
+                },
+                onOpenScreensaverEditor = {
+                    showSettingsDrawer = false
+                    isScreensaverEditMode = true
+                    isScreensaverMode = true
+                },
+                onDismiss = { showSettingsDrawer = false }
+            )
+        }
+
+        if (showAdhkarDialog) {
+            AlertDialog(
+                onDismissRequest = { showAdhkarDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showAdhkarDialog = false }) { Text("إغلاق") }
+                },
+                title = { Text("أذكار الصباح والمساء", fontWeight = FontWeight.Bold) },
+                text = {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(PalestineData.adhkarList) { dhikr: String ->
+                            Text("• $dhikr", fontSize = 15.sp)
+                        }
+                    }
+                }
+            )
+        }
+
+        if (showQuranDialog) {
+            AlertDialog(
+                onDismissRequest = { showQuranDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showQuranDialog = false }) { Text("إغلاق") }
+                },
+                title = { Text("آيات مختارة من القرآن الكريم", fontWeight = FontWeight.Bold) },
+                text = {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(PalestineData.dailyVerses) { v: String ->
+                            Text(v, fontSize = 17.sp, lineHeight = 26.sp)
+                        }
+                    }
+                }
+            )
+        }
+
+        if (showUpdateDialog && updateInfo != null) {
+            AlertDialog(
+                onDismissRequest = { showUpdateDialog = false },
+                confirmButton = {
+                    Button(onClick = {
+                        LiveRepository.downloadAndInstallApk(context, updateInfo!!.apkDownloadUrl)
+                        showUpdateDialog = false
+                    }) { Text("تحميل وتثبيت الآن") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") }
+                },
+                title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
+                text = { Text(updateInfo!!.releaseNotes) }
+            )
+        }
+    }
+}
 
