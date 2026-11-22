@@ -37,6 +37,7 @@ fun TopControlBar(
     hasUpdate: Boolean,
     onToggleRadio: () -> Unit,
     onOpenScreensaver: () -> Unit,
+    onOpenQuranBook: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenWifi: () -> Unit,
     onOpenUpdate: () -> Unit
@@ -63,6 +64,13 @@ fun TopControlBar(
                     icon = if (isRadioPlaying) Icons.Default.Stop else Icons.Default.Radio,
                     highlight = isRadioPlaying,
                     onClick = onToggleRadio
+                )
+            }
+            if (config.showTopQuranBook) {
+                PillActionButton(
+                    label = "المصحف",
+                    icon = Icons.Default.MenuBook,
+                    onClick = onOpenQuranBook
                 )
             }
             if (config.showTopScreensaver) {
@@ -219,6 +227,7 @@ fun AppDockRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BottomTickerBar(
     config: LauncherConfig,
@@ -232,6 +241,16 @@ fun BottomTickerBar(
     val familyText = nearestFamily?.let {
         " • مناسبة ${it.name} بعد ${calculateDaysUntilDate(it.month, it.day)} يوم"
     } ?: ""
+
+    val tickerLine = buildString {
+        config.activeTickerPairs.forEach { pair ->
+            val info = liveFeed.prices[pair]
+            if (info != null) {
+                val arrow = if (info.second) "▲" else "▼"
+                append("   |   $pair: ${info.first} $arrow")
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Surface(
@@ -258,46 +277,3 @@ fun BottomTickerBar(
                     text = liveFeed.matches.firstOrNull()?.name ?: "",
                     color = Color(0xFFFBBF24),
                     fontSize = 13.sp
-                )
-            }
-        }
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = CircleShape,
-            color = Color.Black.copy(alpha = config.tickerBgOpacity)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                config.activeTickerPairs.forEach { pair ->
-                    val rateInfo = liveFeed.prices[pair]
-                    if (rateInfo != null) {
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("$pair: ", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                            Text(
-                                text = "${rateInfo.first} ${if (rateInfo.second) "▲" else "▼"}",
-                                color = if (rateInfo.second) Color(0xFF34D399) else Color(0xFFF87171),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun calculateDaysUntilDate(month: Int, day: Int): Int {
-    val today = Calendar.getInstance()
-    val target = Calendar.getInstance().apply {
-        set(Calendar.MONTH, (month - 1).coerceIn(0, 11))
-        set(Calendar.DAY_OF_MONTH, day.coerceIn(1, 31))
-        if (before(today)) add(Calendar.YEAR, 1)
-    }
-    val diff = target.timeInMillis - today.timeInMillis
-    return (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
-}
