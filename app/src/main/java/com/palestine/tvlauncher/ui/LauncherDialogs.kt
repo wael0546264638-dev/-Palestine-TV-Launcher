@@ -325,6 +325,122 @@ fun ScreensaverView(
 }
 
 @Composable
+fun LiveLayoutEditorOverlay(
+    config: LauncherConfig,
+    onSave: (Float, Float, Float, Float, Float, Float, Float, Float, Float) -> Unit,
+    onCancel: () -> Unit
+) {
+    var selectedElement by remember { mutableIntStateOf(0) }
+    val names = listOf("الساعة", "البطاقة", "التطبيقات")
+    var cx by remember { mutableFloatStateOf(config.clockOffsetX) }
+    var cy by remember { mutableFloatStateOf(config.clockOffsetY) }
+    var cs by remember { mutableFloatStateOf(config.clockScale) }
+    var kx by remember { mutableFloatStateOf(config.cardOffsetX) }
+    var ky by remember { mutableFloatStateOf(config.cardOffsetY) }
+    var ks by remember { mutableFloatStateOf(config.cardScale) }
+    var ko by remember { mutableFloatStateOf(config.cardBgOpacity) }
+    var dx by remember { mutableFloatStateOf(config.dockOffsetX) }
+    var dy by remember { mutableFloatStateOf(config.dockOffsetY) }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xEE0F172A),
+        border = BorderStroke(2.dp, Color(0xFFFBBF24))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("محرر التخطيط المباشر", color = Color(0xFFFBBF24))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                names.forEachIndexed { idx, title ->
+                    Button(onClick = { selectedElement = idx }) { Text(title) }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    when (selectedElement) { 0 -> cy -= 15f; 1 -> ky -= 15f; 2 -> dy -= 15f }
+                }) { Text("فوق") }
+                Button(onClick = {
+                    when (selectedElement) { 0 -> cy += 15f; 1 -> ky += 15f; 2 -> dy += 15f }
+                }) { Text("تحت") }
+                Button(onClick = {
+                    when (selectedElement) { 0 -> cx += 15f; 1 -> kx += 15f; 2 -> dx += 15f }
+                }) { Text("يمين") }
+                Button(onClick = {
+                    when (selectedElement) { 0 -> cx -= 15f; 1 -> kx -= 15f; 2 -> dx -= 15f }
+                }) { Text("يسار") }
+                Button(onClick = {
+                    if (selectedElement == 0) cs += 0.05f
+                    if (selectedElement == 1) ks += 0.05f
+                }) { Text("تكبير") }
+                Button(onClick = {
+                    if (selectedElement == 0) cs -= 0.05f
+                    if (selectedElement == 1) ks -= 0.05f
+                }) { Text("تصغير") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = { onSave(cx, cy, cs, kx, ky, ks, ko, dx, dy) }) { Text("حفظ") }
+                OutlinedButton(onClick = onCancel) { Text("إلغاء", color = Color.White) }
+            }
+        }
+    }
+}
+
+@Composable
+fun ScreensaverView(
+    timeText: String,
+    amPm: String,
+    hijri: String,
+    gregorian: String,
+    prayerInfo: PalestineData.PrayerDisplay,
+    config: LauncherConfig,
+    isEditMode: Boolean,
+    onSaveOffsets: (Float, Float, Float) -> Unit,
+    onExit: () -> Unit
+) {
+    var ox by remember { mutableFloatStateOf(config.ssClockOffsetX) }
+    var oy by remember { mutableFloatStateOf(config.ssClockOffsetY) }
+    var sc by remember { mutableFloatStateOf(config.ssClockScale) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable { if (!isEditMode) onExit() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.graphicsLayer {
+                translationX = ox
+                translationY = oy
+                scaleX = sc
+                scaleY = sc
+            },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("$timeText $amPm", fontSize = 110.sp, color = Color.White)
+            Text("$hijri  •  $gregorian", fontSize = 20.sp, color = Color(0xFF94A3B8))
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(prayerInfo.remainingText, fontSize = 18.sp, color = Color(0xFF38BDF8))
+        }
+        if (isEditMode) {
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(onClick = { oy -= 20f }) { Text("فوق") }
+                Button(onClick = { oy += 20f }) { Text("تحت") }
+                Button(onClick = { sc += 0.1f }) { Text("تكبير") }
+                Button(onClick = { sc -= 0.1f }) { Text("تصغير") }
+                Button(onClick = { onSaveOffsets(ox, oy, sc) }) { Text("حفظ") }
+            }
+        }
+    }
+}
+
+@Composable
 fun SettingsModalDrawer(
     config: LauncherConfig,
     prefs: LauncherPreferences,
@@ -424,7 +540,11 @@ fun SettingsModalDrawer(
                         item {
                             FilterChip(
                                 selected = config.showTopWifi,
-                                onClick = { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } },
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi }
+                                    }
+                                },
                                 label = { Text("الشبكة") }
                             )
                         }
@@ -433,9 +553,7 @@ fun SettingsModalDrawer(
                                 selected = config.showTopQuranRadio,
                                 onClick = {
                                     scope.launch {
-                                        prefs.updateConfig {
-                                            it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio
-                                        }
+                                        prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio }
                                     }
                                 },
                                 label = { Text("إذاعة القرآن") }
@@ -446,9 +564,7 @@ fun SettingsModalDrawer(
                                 selected = config.showTopQuranBook,
                                 onClick = {
                                     scope.launch {
-                                        prefs.updateConfig {
-                                            it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook
-                                        }
+                                        prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook }
                                     }
                                 },
                                 label = { Text("المصحف") }
@@ -459,9 +575,7 @@ fun SettingsModalDrawer(
                                 selected = config.showTopScreensaver,
                                 onClick = {
                                     scope.launch {
-                                        prefs.updateConfig {
-                                            it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver
-                                        }
+                                        prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver }
                                     }
                                 },
                                 label = { Text("شاشة التوقف") }
@@ -472,9 +586,7 @@ fun SettingsModalDrawer(
                                 selected = config.showTopVpn,
                                 onClick = {
                                     scope.launch {
-                                        prefs.updateConfig {
-                                            it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn
-                                        }
+                                        prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn }
                                     }
                                 },
                                 label = { Text("VPN") }
@@ -543,8 +655,7 @@ fun SettingsModalDrawer(
                                     }
                                 },
                                 label = { Text(pair) }
-                    
-                           )
+                            )
                         }
                     }
                 }
