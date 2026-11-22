@@ -3,466 +3,234 @@ package com.palestine.tvlauncher.ui
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.provider.Settings
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.*
-import com.palestine.tvlauncher.network.GitHubUpdateInfo
-import com.palestine.tvlauncher.network.LiveFeedState
-import com.palestine.tvlauncher.network.LiveRepository
+import com.palestine.tvlauncher.network.*
+import com.palestine.tvlauncher.util.AppManager
+import com.palestine.tvlauncher.util.TvAppInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
-fun LauncherApp(prefs: LauncherPreferences) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val config by prefs.configFlow.collectAsState(initial = LauncherConfig())
-
-    var installedApps by remember { mutableStateOf<List<TvAppInfo>>(emptyList()) }
-    var liveFeed by remember { mutableStateOf(LiveFeedState()) }
-    var updateInfo by remember { mutableStateOf<GitHubUpdateInfo?>(null) }
-
-    var showSettingsDrawer by remember { mutableStateOf(false) }
-    var isLiveEditMode by remember { mutableStateOf(false) }
-    var isScreensaverMode by remember { mutableStateOf(false) }
-    var isScreensaverEditMode by remember { mutableStateOf(false) }
-    var showAdhkarDialog by remember { mutableStateOf(false) }
-    var showQuranDialog by remember { mutableStateOf(false) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
-
-    var isRadioPlaying by remember { mutableStateOf(false) }
-    val mediaPlayer = remember {
-        MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                if (mediaPlayer.isPlaying) mediaPlayer.stop()
-                mediaPlayer.release()
-            } catch (_: Exception) {}
-        }
-    }
-
-    fun toggleQuranRadio() {
-        try {
-            if (isRadioPlaying) {
-                mediaPlayer.pause()
-                isRadioPlaying = false
-            } else {
-                mediaPlayer.reset()
-                mediaPlayer.setDataSource(config.quranStreamUrl)
-                mediaPlayer.prepareAsync()
-                mediaPlayer.setOnPreparedListener {
-                    it.start()
-                    isRadioPlaying = true
-                }
-            }
-        } catch (_: Exception) {
-            isRadioPlaying = false
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        installedApps = AppManager.loadInstalledApps(context)
-        liveFeed = LiveRepository.fetchGitHubFeed()
-        updateInfo = LiveRepository.checkGitHubUpdate("1.0.0")
-    }
-
-    LaunchedEffect(config.cityName) {
-        val city = PalestineData.cities.find {
-            it.name == config.cityName
-        } ?: PalestineData.cities.first()
-        LiveRepository.fetchCityWeather(city.lat, city.lon)?.let { res ->
-            liveFeed = liveFeed.copy(
-                currentTemp = res.first,
-                dailyMax = res.second,
-                dailyMin = res.third
-            )
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            val freshPrices = LiveRepository.fetchInstantPrices()
-            if (freshPrices.isNotEmpty()) {
-                liveFeed = liveFeed.copy(prices = liveFeed.prices + freshPrices)
-            }
-            delay(20_000L)
-        }
-    }
-
-    var currentTimeText by remember { mutableStateOf("") }
+private fun ArabicClockDisplay(timeZoneId: String, clockStyle: Int) {
+    var hourText by remember { mutableStateOf("") }
+    var minuteText by remember { mutableStateOf("") }
     var amPmText by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
+    var hourInt by remember { mutableIntStateOf(12) }
+    var minInt by remember { mutableIntStateOf(0) }
+    var secInt by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(timeZoneId) {
+        val tz = TimeZone.getTimeZone(timeZoneId)
+        val sdfHour = SimpleDateFormat("hh", Locale.US).apply { timeZone = tz }
+        val sdfMin = SimpleDateFormat("mm", Locale.US).apply { timeZone = tz }
+        val sdfAmPm = SimpleDateFormat("a", Locale("ar")).apply { timeZone = tz }
         while (true) {
             val now = Date()
-            currentTimeText = SimpleDateFormat("hh:mm", Locale.ENGLISH).format(now)
-            val ap = SimpleDateFormat("a", Locale.ENGLISH).format(now)
-            amPmText = if (ap == "AM") "ص" else "م"
+            val cal = Calendar.getInstance(tz).apply { time = now }
+            hourText = PalestineData.toArabicDigits(sdfHour.format(now))
+            minuteText = PalestineData.toArabicDigits(sdfMin.format(now))
+            amPmText = sdfAmPm.format(now)
+            hourInt = cal.get(Calendar.HOUR)
+            minInt = cal.get(Calendar.MINUTE)
+            secInt = cal.get(Calendar.SECOND)
             delay(1000L)
         }
     }
 
-    val selectedCity = PalestineData.cities.find {
-        it.name == config.cityName
-    } ?: PalestineData.cities.first()
-    val prayerInfo = remember(config.cityName, currentTimeText) {
-        PalestineData.calculatePrayers(selectedCity)
-    }
-    val (hijriDate, gregorianDate) = remember(currentTimeText) {
-        PalestineData.getFormattedDates()
-    }
-
-    val wallpaperUrl = LiveRepository.natureWallpapers
-        .getOrNull(config.wallpaperIndex)?.second ?: ""
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F172A),
-                        Color(0xFF1E293B),
-                        Color(0xFF0B1120)
-                    )
-                )
-            )
-    ) {
-        if (wallpaperUrl.isNotEmpty()) {
-            AsyncImage(
-                model = wallpaperUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
-            )
-        }
-
-        if (isScreensaverMode) {
-            ScreensaverView(
-                timeText = currentTimeText,
-                amPm = amPmText,
-                hijri = hijriDate,
-                gregorian = gregorianDate,
-                prayerInfo = prayerInfo,
-                config = config,
-                isEditMode = isScreensaverEditMode,
-                onSaveOffsets = { x: Float, y: Float, scale: Float ->
-                    scope.launch {
-                        prefs.updateConfig {
-                            it[LauncherPreferences.SS_CLOCK_X] = x
-                            it[LauncherPreferences.SS_CLOCK_Y] = y
-                            it[LauncherPreferences.SS_CLOCK_SCALE] = scale
-                        }
-                    }
-                    isScreensaverEditMode = false
-                    isScreensaverMode = false
-                },
-                onExit = {
-                    isScreensaverEditMode = false
-                    isScreensaverMode = false
-                }
-            )
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 28.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+    when (clockStyle) {
+        1 -> {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF0F172A).copy(alpha = 0.72f),
+                border = BorderStroke(2.dp, Color(0xFF38BDF8).copy(alpha = 0.65f))
             ) {
-                TopControlBar(
-                    config = config,
-                    isRadioPlaying = isRadioPlaying,
-                    hasUpdate = updateInfo?.hasUpdate == true,
-                    onToggleRadio = { toggleQuranRadio() },
-                    onOpenScreensaver = {
-                        if (config.quranAutoPlayScreensaver && !isRadioPlaying) {
-                            toggleQuranRadio()
-                        }
-                        isScreensaverMode = true
-                    },
-                    onOpenQuranBook = { showQuranDialog = true },
-                    onOpenSettings = { showSettingsDrawer = true },
-                    onOpenWifi = {
-                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                    },
-                    onOpenUpdate = { showUpdateDialog = true }
-                )
-
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    // البطاقة التفاعلية في اليمين (أول عنصر في اتجاه RTL)
-                    InteractiveTabsCard(
-                        modifier = Modifier
-                            .weight(0.52f)
-                            .fillMaxHeight()
-                            .graphicsLayer {
-                                translationX = config.cardOffsetX
-                                translationY = config.cardOffsetY
-                                scaleX = config.cardScale
-                                scaleY = config.cardScale
-                            },
-                        config = config,
-                        prayerInfo = prayerInfo,
-                        liveFeed = liveFeed,
-                        hijriDate = hijriDate,
-                        gregorianDate = gregorianDate,
-                        onAddTask = { newTask: String ->
-                            scope.launch { prefs.saveTasks(config.tasks + newTask) }
-                        },
-                        onRemoveTask = { task: String ->
-                            scope.launch { prefs.saveTasks(config.tasks - task) }
-                        },
-                        onAddReminder = { rem: FamilyReminder ->
-                            scope.launch {
-                                prefs.saveReminders(config.reminders + rem)
-                            }
-                        }
+                    Text(
+                        text = amPmText,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF38BDF8),
+                        modifier = Modifier.padding(bottom = 10.dp)
                     )
-                    Spacer(modifier = Modifier.width(18.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .weight(0.46f)
-                            .graphicsLayer {
-                                translationX = config.clockOffsetX
-                                translationY = config.clockOffsetY
-                                scaleX = config.clockScale
-                                scaleY = config.clockScale
-                            },
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = amPmText,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF94A3B8),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = currentTimeText,
-                                fontSize = 86.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                lineHeight = 86.sp
-                            )
-                        }
-
-                        val dateString = when (config.dateDisplayMode) {
-                            0 -> "$hijriDate  |  $gregorianDate"
-                            1 -> hijriDate
-                            2 -> gregorianDate
-                            else -> ""
-                        }
-                        if (dateString.isNotEmpty()) {
-                            Text(
-                                text = dateString,
-                                fontSize = 18.sp,
-                                color = Color(0xFFE2E8F0),
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            PillActionButton(
-                                label = "أذكار الصباح والمساء",
-                                icon = Icons.Default.AutoAwesome,
-                                onClick = { showAdhkarDialog = true }
-                            )
-
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.Black.copy(alpha = 0.45f),
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = Color.White.copy(alpha = 0.15f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 14.dp,
-                                        vertical = 8.dp
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.WbSunny,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFBBF24),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "${liveFeed.currentTemp}° ${config.cityName}",
-                                        color = Color.White,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                AppDockRow(
-                    apps = installedApps,
-                    config = config,
-                    modifier = Modifier.graphicsLayer {
-                        translationX = config.dockOffsetX
-                        translationY = config.dockOffsetY
-                    },
-                    onLaunchApp = { app: TvAppInfo ->
-                        AppManager.launchApp(context, app.packageName)
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                if (config.showBottomBar) {
-                    BottomTickerBar(
-                        config = config,
-                        prayerInfo = prayerInfo,
-                        liveFeed = liveFeed
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "$hourText:$minuteText",
+                        fontSize = 74.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 74.sp
                     )
                 }
             }
         }
-
-        if (isLiveEditMode) {
-            LiveLayoutEditorOverlay(
-                config = config,
-                onSave = { cx, cy, cs, kx, ky, ks, ko, dx, dy ->
-                    scope.launch {
-                        prefs.updateConfig {
-                            it[LauncherPreferences.CLOCK_X] = cx
-                            it[LauncherPreferences.CLOCK_Y] = cy
-                            it[LauncherPreferences.CLOCK_SCALE] = cs
-                            it[LauncherPreferences.CARD_X] = kx
-                            it[LauncherPreferences.CARD_Y] = ky
-                            it[LauncherPreferences.CARD_SCALE] = ks
-                            it[LauncherPreferences.CARD_OPACITY] = ko
-                            it[LauncherPreferences.DOCK_X] = dx
-                            it[LauncherPreferences.DOCK_Y] = dy
-                        }
+        2 -> {
+            Box(
+                modifier = Modifier.size(164.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val radius = size.minDimension / 2f
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    drawCircle(
+                        color = Color(0xFF0F172A).copy(alpha = 0.78f),
+                        radius = radius,
+                        center = center
+                    )
+                    drawCircle(
+                        color = Color(0xFF38BDF8),
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = 4.dp.toPx())
+                    )
+                    for (i in 0 until 12) {
+                        val angle = Math.toRadians((i * 30 - 90).toDouble())
+                        val startR = radius * 0.82f
+                        val endR = radius * 0.92f
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.75f),
+                            start = Offset(
+                                center.x + (startR * cos(angle)).toFloat(),
+                                center.y + (startR * sin(angle)).toFloat()
+                            ),
+                            end = Offset(
+                                center.x + (endR * cos(angle)).toFloat(),
+                                center.y + (endR * sin(angle)).toFloat()
+                            ),
+                            strokeWidth = if (i % 3 == 0) 3.dp.toPx() else 1.5.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
                     }
-                    isLiveEditMode = false
-                },
-                onCancel = { isLiveEditMode = false }
-            )
-        }
-
-        if (showSettingsDrawer) {
-            SettingsModalDrawer(
-                config = config,
-                prefs = prefs,
-                onOpenLiveEditor = {
-                    showSettingsDrawer = false
-                    isLiveEditMode = true
-                },
-                onOpenScreensaverEditor = {
-                    showSettingsDrawer = false
-                    isScreensaverEditMode = true
-                    isScreensaverMode = true
-                },
-                onDismiss = { showSettingsDrawer = false }
-            )
-        }
-
-        if (showAdhkarDialog) {
-            AlertDialog(
-                onDismissRequest = { showAdhkarDialog = false },
-                confirmButton = {
-                    TextButton(onClick = { showAdhkarDialog = false }) { Text("إغلاق") }
-                },
-                title = { Text("أذكار الصباح والمساء", fontWeight = FontWeight.Bold) },
-                text = {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(PalestineData.adhkarList) { dhikr: String ->
-                            Text("• $dhikr", fontSize = 15.sp)
-                        }
-                    }
+                    val hourAngle = Math.toRadians(((hourInt + minInt / 60.0) * 30.0) - 90.0)
+                    drawLine(
+                        color = Color.White,
+                        start = center,
+                        end = Offset(
+                            center.x + (radius * 0.52f * cos(hourAngle)).toFloat(),
+                            center.y + (radius * 0.52f * sin(hourAngle)).toFloat()
+                        ),
+                        strokeWidth = 5.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    val minAngle = Math.toRadians((minInt * 6.0) - 90.0)
+                    drawLine(
+                        color = Color(0xFF38BDF8),
+                        start = center,
+                        end = Offset(
+                            center.x + (radius * 0.74f * cos(minAngle)).toFloat(),
+                            center.y + (radius * 0.74f * sin(minAngle)).toFloat()
+                        ),
+                        strokeWidth = 3.5.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    val secAngle = Math.toRadians((secInt * 6.0) - 90.0)
+                    drawLine(
+                        color = Color(0xFFFBBF24),
+                        start = center,
+                        end = Offset(
+                            center.x + (radius * 0.82f * cos(secAngle)).toFloat(),
+                            center.y + (radius * 0.82f * sin(secAngle)).toFloat()
+                        ),
+                        strokeWidth = 1.8.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    drawCircle(color = Color(0xFFFBBF24), radius = 4.dp.toPx(), center = center)
                 }
-            )
+            }
         }
-
-        if (showQuranDialog) {
-            AlertDialog(
-                onDismissRequest = { showQuranDialog = false },
-                confirmButton = {
-                    TextButton(onClick = { showQuranDialog = false }) { Text("إغلاق") }
-                },
-                title = { Text("آيات مختارة من القرآن الكريم", fontWeight = FontWeight.Bold) },
-                text = {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(PalestineData.dailyVerses) { v: String ->
-                            Text(v, fontSize = 17.sp, lineHeight = 26.sp)
-                        }
-                    }
+        3 -> {
+            Column(horizontalAlignment = Alignment.End) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = amPmText,
+                        fontSize = 24.sp,
+                        color = Color(0xFF94A3B8),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = hourText,
+                        fontSize = 68.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 68.sp
+                    )
                 }
-            )
+                Text(
+                    text = minuteText,
+                    fontSize = 68.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFBBF24),
+                    lineHeight = 68.sp
+                )
+            }
         }
-
-        if (showUpdateDialog && updateInfo != null) {
-            AlertDialog(
-                onDismissRequest = { showUpdateDialog = false },
-                confirmButton = {
-                    Button(onClick = {
-                        LiveRepository.downloadAndInstallApk(context, updateInfo!!.apkDownloadUrl)
-                        showUpdateDialog = false
-                    }) { Text("تحميل وتثبيت الآن") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") }
-                },
-                title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
-                text = { Text(updateInfo!!.releaseNotes) }
-            )
+        else -> {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = amPmText,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF94A3B8),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "$hourText:$minuteText",
+                    fontSize = 86.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    lineHeight = 86.sp
+                )
+            }
         }
     }
 }
 
+@Composable
+fun LauncherScreen() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val prefs = remember { LauncherPreferences(context) }
+    val config by prefs.configFlow.collectAsState(initial = LauncherConfig())
+    val scope = rememberCoroutineScope()
+
+    var installedApps by remember { mutableStateOf<List<TvAppInfo>>(emptyList()) }
+    var liveFeed by remember { mutableStateOf(LiveFeedState()) }
+    var prayerInfo by remember { mutableStateOf(PalestineData.PrayerDisplay()) }
