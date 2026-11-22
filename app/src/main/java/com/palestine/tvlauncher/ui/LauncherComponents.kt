@@ -1,4 +1,3 @@
-
 package com.palestine.tvlauncher.ui
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -47,9 +46,16 @@ fun TopControlBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             if (config.showTopWifi) {
-                PillActionButton(label = "الشبكة", icon = Icons.Default.Wifi, onClick = onOpenWifi)
+                PillActionButton(
+                    label = "الشبكة",
+                    icon = Icons.Default.Wifi,
+                    onClick = onOpenWifi
+                )
             }
             if (config.showTopQuranRadio) {
                 PillActionButton(
@@ -60,14 +66,25 @@ fun TopControlBar(
                 )
             }
             if (config.showTopScreensaver) {
-                PillActionButton(label = "شاشة التوقف", icon = Icons.Default.Bedtime, onClick = onOpenScreensaver)
+                PillActionButton(
+                    label = "شاشة التوقف",
+                    icon = Icons.Default.Bedtime,
+                    onClick = onOpenScreensaver
+                )
             }
             if (config.showTopVpn) {
-                PillActionButton(label = "VPN", icon = Icons.Default.VpnKey, onClick = {})
+                PillActionButton(
+                    label = "VPN",
+                    icon = Icons.Default.VpnKey,
+                    onClick = {}
+                )
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             if (hasUpdate) {
                 PillActionButton(
                     label = "تحديث جديد متاح",
@@ -76,7 +93,11 @@ fun TopControlBar(
                     onClick = onOpenUpdate
                 )
             }
-            PillActionButton(label = "الإعدادات", icon = Icons.Default.Settings, onClick = onOpenSettings)
+            PillActionButton(
+                label = "الإعدادات",
+                icon = Icons.Default.Settings,
+                onClick = onOpenSettings
+            )
         }
     }
 }
@@ -102,15 +123,18 @@ fun PillActionButton(
             .clickable { onClick() },
         shape = CircleShape,
         color = bg,
-        border = BorderStroke(1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.2f))
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (focused) Color.White else Color.White.copy(alpha = 0.2f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = label, tint = contentColor, modifier = Modifier.size(18.dp))
+            Icon(icon, label, tint = contentColor, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text(text = label, color = contentColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(label, color = contentColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -137,8 +161,13 @@ fun AppDockRow(
         ) {
             items(apps) { app ->
                 var isFocused by remember { mutableStateOf(false) }
+                val targetS = if (isFocused) {
+                    config.appBaseScale * config.appFocusScale
+                } else {
+                    config.appBaseScale
+                }
                 val scale by animateFloatAsState(
-                    targetValue = if (isFocused) config.appBaseScale * config.appFocusScale else config.appBaseScale,
+                    targetValue = targetS,
                     animationSpec = spring(),
                     label = "appScale"
                 )
@@ -197,7 +226,9 @@ fun BottomTickerBar(
     liveFeed: LiveFeedState
 ) {
     val daysToRamadan = PalestineData.getDaysUntilRamadan()
-    val nearestFamily = config.reminders.minByOrNull { calculateDaysUntilDate(it.month, it.day) }
+    val nearestFamily = config.reminders.minByOrNull {
+        calculateDaysUntilDate(it.month, it.day)
+    }
     val familyText = nearestFamily?.let {
         " • مناسبة ${it.name} بعد ${calculateDaysUntilDate(it.month, it.day)} يوم"
     } ?: ""
@@ -212,9 +243,22 @@ fun BottomTickerBar(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                Text("رمضان بعد $daysToRamadan يوم$familyText", color = Color.White, fontSize = 13.sp)
-                Text(liveFeed.matches.firstOrNull()?.name ?: "", color = Color(0xFFFBBF24), fontSize = 13.sp)
+                Text(
+                    text = prayerInfo.remainingText,
+                    color = Color(0xFF38BDF8),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "رمضان بعد $daysToRamadan يوم$familyText",
+                    color = Color.White,
+                    fontSize = 13.sp
+                )
+                Text(
+                    text = liveFeed.matches.firstOrNull()?.name ?: "",
+                    color = Color(0xFFFBBF24),
+                    fontSize = 13.sp
+                )
             }
         }
 
@@ -231,22 +275,3 @@ fun BottomTickerBar(
                     val rateInfo = liveFeed.prices[pair]
                     if (rateInfo != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("$pair: ", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                            Text(
-                                text = "${rateInfo.first} ${if (rateInfo.second) "▲" else "▼"}",
-                                color = if (rateInfo.second) Color(0xFF34D399) else Color(0xFFF87171),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun calculateDaysUntilDate(month: Int, day: Int): Int {
-    val today = Calendar.getInstance()
-    val target = Calendar.getInstance().apply {
-        set(Calendar.MONTH, (month - 1).coerceIn(0, 11))
