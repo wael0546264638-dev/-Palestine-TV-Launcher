@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.palestine.tvlauncher.data.*
 import com.palestine.tvlauncher.network.LiveFeedState
+import com.palestine.tvlauncher.network.LiveRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -48,10 +50,66 @@ fun InteractiveTabsCard(
         "الأسواق", "المناسبات", "حالة الجهاز", "المهام", "التذكيرات"
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+    var expandedTab by remember { mutableStateOf<Int?>(null) }
+    var isCardFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    LaunchedEffect(config.autoRotateTabs, isCardFocused, expandedTab) {
+        if (config.autoRotateTabs && !isCardFocused && expandedTab == null) {
+            while (true) {
+                delay(10_000L)
+                selectedTab = (selectedTab + 1) % tabTitles.size
+            }
+        }
+    }
+
+    if (expandedTab != null) {
+        AlertDialog(
+            onDismissRequest = { expandedTab = null },
+            confirmButton = {
+                TextButton(onClick = { expandedTab = null }) { Text("إغلاق") }
+            },
+            title = {
+                Text(tabTitles[expandedTab!!], fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            },
+            text = {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    when (expandedTab) {
+                        0 -> items(listOf(
+                            "الفجر: ${prayerInfo.fajr}",
+                            "الشروق: ${prayerInfo.sunrise}",
+                            "الظهر: ${prayerInfo.dhuhr}",
+                            "العصر: ${prayerInfo.asr}",
+                            "المغرب: ${prayerInfo.maghrib}",
+                            "العشاء: ${prayerInfo.isha}",
+                            prayerInfo.remainingText
+                        )) { Text(it, fontSize = 18.sp) }
+                        1 -> items(liveFeed.dailyMax.indices.toList()) { idx ->
+                            val mx = liveFeed.dailyMax[idx]
+                            val mn = liveFeed.dailyMin.getOrElse(idx) { 15 }
+                            Text("اليوم +${idx + 1}: العظمى $mx° / الصغرى $mn°", fontSize = 18.sp)
+                        }
+                        2 -> items(liveFeed.matches) {
+                            Text("${it.name}  (${it.status})", fontSize = 17.sp)
+                        }
+                        4 -> items(PalestineData.dailyVerses) { Text(it, fontSize = 18.sp) }
+                        5 -> items(PalestineData.dailyHadiths) { Text(it, fontSize = 17.sp) }
+                        6 -> items(PalestineData.adhkarList) { Text("• $it", fontSize = 16.sp) }
+                        7 -> items(liveFeed.news) { Text("▪ $it", fontSize = 17.sp) }
+                        8 -> items(liveFeed.prices.toList()) { (k, v) ->
+                            Text("$k : ${v.first} ${if (v.second) "▲" else "▼"}", fontSize = 18.sp)
+                        }
+                        else -> item {
+                            Text("$hijriDate  |  $gregorianDate", fontSize = 18.sp)
+                        }
+                    }
+                }
+            }
+        )
+    }
+
     Surface(
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { isCardFocused = it.isFocused },
         shape = RoundedCornerShape(24.dp),
         color = Color(0xFF0F172A).copy(alpha = config.cardBgOpacity),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
@@ -67,7 +125,10 @@ fun InteractiveTabsCard(
                                 isFocused = it.isFocused
                                 if (it.isFocused) selectedTab = index
                             }
-                            .clickable { selectedTab = index },
+                            .clickable {
+                                if (selectedTab == index) expandedTab = index
+                                else selectedTab = index
+                            },
                         shape = CircleShape,
                         color = when {
                             isFocused -> Color.White
@@ -88,7 +149,12 @@ fun InteractiveTabsCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clickable { expandedTab = selectedTab }
+            ) {
                 when (selectedTab) {
                     0 -> {
                         val rows = listOf(
@@ -145,198 +211,6 @@ fun InteractiveTabsCard(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(m.name, color = Color.White)
-                                    Text(m.status, color = Color(0xFF34D399))
-                                }
-                            }
-                        }
-                    }
-                    3 -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
-                            Text(hijriDate, color = Color.White, fontSize = 22.sp)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
-                            Text(gregorianDate, color = Color.White, fontSize = 20.sp)
-                        }
-                    }
-                    4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            PalestineData.dailyVerses.first(),
-                            color = Color.White,
-                            fontSize = 19.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            PalestineData.dailyHadiths.first(),
-                            color = Color.White,
-                            fontSize = 17.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(PalestineData.adhkarList) { item: String ->
-                            Text("• $item", color = Color.White, fontSize = 14.sp)
-                        }
-                    }
-                    7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(liveFeed.news) { headline: String ->
-                            Text(
-                                "▪ $headline",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        liveFeed.prices.forEach { (pair, info) ->
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(pair, color = Color.White)
-                                Text(
-                                    "${info.first} ${if (info.second) "▲" else "▼"}",
-                                                                        color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171)
-                                )
-                            }
-                        }
-                    }
-                    9 -> {
-                        val daysToRamadan = PalestineData.getDaysUntilRamadan()
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
-                            Text("• رمضان المبارك: بعد $daysToRamadan يوم", color = Color.White)
-                            Text("• عيد الفطر: بعد ${daysToRamadan + 30} يوم", color = Color(0xFFCBD5E1))
-                        }
-                    }
-                    10 -> {
-                        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                        val mi = ActivityManager.MemoryInfo()
-                        am.getMemoryInfo(mi)
-                        val avail = mi.availMem / (1024 * 1024)
-                        val total = mi.totalMem / (1024 * 1024)
-                        val stat = StatFs(Environment.getDataDirectory().path)
-                        val gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
-                            Text("الذاكرة المتاحة: $avail MB / $total MB", color = Color.White)
-                            Text("المساحة المتبقية: $gb GB", color = Color.White)
-                        }
-                    }
-                    11 -> {
-                        var taskInput by remember { mutableStateOf("") }
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = taskInput,
-                                    onValueChange = { taskInput = it },
-                                    placeholder = { Text("أضف مهمة...", color = Color.Gray) },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                Button(onClick = {
-                                    if (taskInput.isNotBlank()) {
-                                        onAddTask(taskInput.trim())
-                                        taskInput = ""
-                                    }
-                                }) { Text("إضافة") }
-                            }
-                            LazyColumn {
-                                items(config.tasks) { t: String ->
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("✓ $t", color = Color.White)
-                                        TextButton(onClick = { onRemoveTask(t) }) {
-                                            Text("حذف", color = Color(0xFFF87171))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    12 -> {
-                        var nameIn by remember { mutableStateOf("") }
-                        var dayIn by remember { mutableStateOf("") }
-                        var monthIn by remember { mutableStateOf("") }
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedTextField(
-                                    value = nameIn,
-                                    onValueChange = { nameIn = it },
-                                    placeholder = { Text("الاسم", color = Color.Gray) },
-                                    modifier = Modifier.weight(1.4f),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = dayIn,
-                                    onValueChange = { dayIn = it },
-                                    placeholder = { Text("يوم", color = Color.Gray) },
-                                    modifier = Modifier.weight(0.6f),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = monthIn,
-                                    onValueChange = { monthIn = it },
-                                    placeholder = { Text("شهر", color = Color.Gray) },
-                                    modifier = Modifier.weight(0.6f),
-                                    singleLine = true
-                                )
-                                Button(onClick = {
-                                    val d = dayIn.toIntOrNull()
-                                    val m = monthIn.toIntOrNull()
-                                    if (nameIn.isNotBlank() && d != null && m != null) {
-                                        onAddReminder(
-                                            FamilyReminder(UUID.randomUUID().toString(), nameIn.trim(), m, d)
-                                        )
-                                        nameIn = ""; dayIn = ""; monthIn = ""
-                                    }
-                                }) { Text("حفظ") }
-                            }
-                            LazyColumn {
-                                items(config.reminders) { r: FamilyReminder ->
-                                    val left = calculateDaysUntilDate(r.month, r.day)
-                                    Text(
-                                        "🎂 ${r.name} (${r.day}/${r.month}) - متبقي $left يوم",
-                                        color = Color.White,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(tabTitles.size) { idx ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .size(if (idx == selectedTab) 8.dp else 5.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (idx == selectedTab) Color.White
-                                else Color.White.copy(alpha = 0.3f)
-                            )
-                    )
-                }
-            }
-        }
-    }
-}
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
@@ -462,11 +336,11 @@ fun SettingsModalDrawer(
     val allPairs = listOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD", "BRENT", "BTC", "ETH")
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)),
+        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.75f)),
         contentAlignment = Alignment.CenterEnd
     ) {
         Surface(
-            modifier = Modifier.fillMaxHeight().width(460.dp),
+            modifier = Modifier.fillMaxHeight().width(480.dp),
             color = Color(0xFF0F172A)
         ) {
             LazyColumn(
@@ -475,17 +349,34 @@ fun SettingsModalDrawer(
             ) {
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("إعدادات التخصيص", fontSize = 20.sp, color = Color.White)
+                        Text("إعدادات التخصيص الشاملة", fontSize = 20.sp, color = Color.White)
                         TextButton(onClick = onDismiss) { Text("إغلاق", color = Color(0xFFF87171)) }
                     }
                 }
                 item {
                     Button(onClick = onOpenLiveEditor, modifier = Modifier.fillMaxWidth()) {
-                        Text("تعديل الشاشة الرئيسية")
+                        Text("تعديل الشاشة الرئيسية بالريموت")
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     OutlinedButton(onClick = onOpenScreensaverEditor, modifier = Modifier.fillMaxWidth()) {
-                        Text("تعديل شاشة التوقف", color = Color.White)
+                        Text("تعديل شاشة التوقف بالريموت", color = Color.White)
+                    }
+                }
+                item {
+                    Text("خلفيات الطبيعة:", color = Color(0xFF38BDF8))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(LiveRepository.natureWallpapers.size) { idx ->
+                            val title = LiveRepository.natureWallpapers[idx].first
+                            FilterChip(
+                                selected = config.wallpaperIndex == idx,
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig { it[LauncherPreferences.WALLPAPER_IDX] = idx }
+                                    }
+                                },
+                                label = { Text(title) }
+                            )
+                        }
                     }
                 }
                 item {
@@ -505,69 +396,38 @@ fun SettingsModalDrawer(
                     }
                 }
                 item {
-                    Text("صيغة التاريخ:", color = Color(0xFF38BDF8))
-                    val modes = listOf("معاً", "هجري فقط", "ميلادي فقط", "إخفاء")
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        modes.forEachIndexed { idx, label ->
-                            FilterChip(
-                                selected = config.dateDisplayMode == idx,
-                                onClick = {
-                                    scope.launch {
-                                        prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx }
-                                    }
-                                },
-                                label = { Text(label) }
-                            )
-                        }
+                    Text("تبديل التبويبات التلقائي:", color = Color(0xFF38BDF8))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = config.autoRotateTabs,
+                            onClick = {
+                                scope.launch {
+                                    prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true }
+                                }
+                            },
+                            label = { Text("تلقائي (كل 10 ثوانٍ)") }
+                        )
+                        FilterChip(
+                            selected = !config.autoRotateTabs,
+                            onClick = {
+                                scope.launch {
+                                    prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false }
+                                }
+                            },
+                            label = { Text("يدوي فقط") }
+                        )
                     }
                 }
                 item {
-                    Text("استدارة الحواف: ${config.appCornerRadiusPercent}%", color = Color.White)
-                    Slider(
-                        value = config.appCornerRadiusPercent.toFloat(),
-                        onValueChange = { v ->
-                            scope.launch {
-                                prefs.updateConfig { it[LauncherPreferences.APP_CORNER] = v.toInt() }
-                            }
-                        },
-                        valueRange = 0f..100f
-                    )
-                    Text("حجم التطبيقات: ${(config.appBaseScale * 100).toInt()}%", color = Color.White)
-                    Slider(
-                        value = config.appBaseScale,
-                        onValueChange = { v ->
-                            scope.launch {
-                                prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = v }
-                            }
-                        },
-                        valueRange = 0.7f..1.3f
-                    )
-                }
-                item {
-                    Text("أزواج شريط الأسعار:", color = Color(0xFF38BDF8))
+                    Text("أزرار الشريط العلوي:", color = Color(0xFF38BDF8))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                items(allPairs) { pair: String ->
-                            val active = config.activeTickerPairs.contains(pair)
+                        item {
                             FilterChip(
-                                selected = active,
-                                onClick = {
-                                    val newSet = if (active) {
-                                        config.activeTickerPairs - pair
-                                    } else {
-                                        config.activeTickerPairs + pair
-                                    }
-                                    scope.launch {
-                                        prefs.updateConfig {
-                                            it[LauncherPreferences.TICKER_PAIRS] = newSet
-                                        }
-                                    }
-                                },
-                                label = { Text(pair) }
+                                selected = config.showTopWifi,
+                                onClick = { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } },
+                                label = { Text("الشبكة") }
                             )
                         }
-                    }
-                }
-            }
-        }
-    }
-}
+                        item {
+                            FilterChip(
+                                selected = config.showTopQuranRadio,
