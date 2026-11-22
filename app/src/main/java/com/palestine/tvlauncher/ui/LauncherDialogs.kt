@@ -723,3 +723,24 @@ fun SettingsModalDrawer(
                             FilterChip(
                                 selected = active,
                                 onClick = {
+                                                                        val newSet = if (active) {
+                                        config.activeTickerPairs - pair
+                                    } else {
+                                        config.activeTickerPairs + pair
+                                    }
+                                    scope.launch {
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.TICKER_PAIRS] = newSet
+                                        }
+                                    }
+                                },
+                                label = { Text(pair) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
