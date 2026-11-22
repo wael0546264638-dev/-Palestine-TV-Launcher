@@ -107,7 +107,6 @@ fun InteractiveTabsCard(
             }
         )
     }
- 
     Surface(
         modifier = modifier.onFocusChanged { isCardFocused = it.isFocused },
         shape = RoundedCornerShape(24.dp),
@@ -211,6 +210,190 @@ fun InteractiveTabsCard(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(m.name, color = Color.White)
+                                    Text(m.status, color = Color(0xFF34D399))
+                                }
+                            }
+                        }
+                    }
+                    3 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                            Text(hijriDate, color = Color.White, fontSize = 22.sp)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                            Text(gregorianDate, color = Color.White, fontSize = 20.sp)
+                        }
+                    }
+                    4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            PalestineData.dailyVerses.first(),
+                            color = Color.White,
+                            fontSize = 19.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            PalestineData.dailyHadiths.first(),
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(PalestineData.adhkarList) { item: String ->
+                            Text("• $item", color = Color.White, fontSize = 14.sp)
+                        }
+                    }
+                    7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(liveFeed.news) { headline: String ->
+                            Text(
+                                "▪ $headline",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        liveFeed.prices.forEach { (pair, info) ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(pair, color = Color.White)
+                                Text(
+                                    "${info.first} ${if (info.second) "▲" else "▼"}",
+                                    color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171)
+                                )
+                            }
+                        }
+                    }
+                    9 -> {
+                        val daysToRamadan = PalestineData.getDaysUntilRamadan()
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
+                            Text("• رمضان المبارك: بعد $daysToRamadan يوم", color = Color.White)
+                            Text("• عيد الفطر: بعد ${daysToRamadan + 30} يوم", color = Color(0xFFCBD5E1))
+                        }
+                    }
+                    10 -> {
+                        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                        val mi = ActivityManager.MemoryInfo()
+                        am.getMemoryInfo(mi)
+                        val avail = mi.availMem / (1024 * 1024)
+                        val total = mi.totalMem / (1024 * 1024)
+                        val stat = StatFs(Environment.getDataDirectory().path)
+                        val gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
+                            Text("الذاكرة المتاحة: $avail MB / $total MB", color = Color.White)
+                            Text("المساحة المتبقية: $gb GB", color = Color.White)
+                        }
+                    }
+                    11 -> {
+                        var taskInput by remember { mutableStateOf("") }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = taskInput,
+                                    onValueChange = { taskInput = it },
+                                    placeholder = { Text("أضف مهمة...", color = Color.Gray) },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                Button(onClick = {
+                                    if (taskInput.isNotBlank()) {
+                                        onAddTask(taskInput.trim())
+                                        taskInput = ""
+                                    }
+                                }) { Text("إضافة") }
+                            }
+                            LazyColumn {
+                                items(config.tasks) { t: String ->
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("✓ $t", color = Color.White)
+                                        TextButton(onClick = { onRemoveTask(t) }) {
+                                            Text("حذف", color = Color(0xFFF87171))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    12 -> {
+                        var nameIn by remember { mutableStateOf("") }
+                        var dayIn by remember { mutableStateOf("") }
+                        var monthIn by remember { mutableStateOf("") }
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedTextField(
+                                    value = nameIn,
+                                    onValueChange = { nameIn = it },
+                                    placeholder = { Text("الاسم", color = Color.Gray) },
+                                    modifier = Modifier.weight(1.4f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = dayIn,
+                                    onValueChange = { dayIn = it },
+                                    placeholder = { Text("يوم", color = Color.Gray) },
+                                    modifier = Modifier.weight(0.6f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = monthIn,
+                                    onValueChange = { monthIn = it },
+                                    placeholder = { Text("شهر", color = Color.Gray) },
+                                    modifier = Modifier.weight(0.6f),
+                                    singleLine = true
+                                )
+                                Button(onClick = {
+                                    val d = dayIn.toIntOrNull()
+                                    val m = monthIn.toIntOrNull()
+                                    if (nameIn.isNotBlank() && d != null && m != null) {
+                                        onAddReminder(
+                                            FamilyReminder(UUID.randomUUID().toString(), nameIn.trim(), m, d)
+                                        )
+                                        nameIn = ""; dayIn = ""; monthIn = ""
+                                    }
+                                }) { Text("حفظ") }
+                            }
+                            LazyColumn {
+                                items(config.reminders) { r: FamilyReminder ->
+                                    val left = calculateDaysUntilDate(r.month, r.day)
+                                    Text(
+                                        "🎂 ${r.name} (${r.day}/${r.month}) - متبقي $left يوم",
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(tabTitles.size) { idx ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (idx == selectedTab) 8.dp else 5.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (idx == selectedTab) Color.White
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
@@ -235,7 +418,10 @@ fun LiveLayoutEditorOverlay(
         color = Color(0xEE0F172A),
         border = BorderStroke(2.dp, Color(0xFFFBBF24))
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Text("محرر التخطيط المباشر", color = Color(0xFFFBBF24))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 names.forEachIndexed { idx, title ->
@@ -323,58 +509,6 @@ fun ScreensaverView(
         }
     }
 }
-@Composable
-fun ScreensaverView(
-    timeText: String,
-    amPm: String,
-    hijri: String,
-    gregorian: String,
-    prayerInfo: PalestineData.PrayerDisplay,
-    config: LauncherConfig,
-    isEditMode: Boolean,
-    onSaveOffsets: (Float, Float, Float) -> Unit,
-    onExit: () -> Unit
-) {
-    var ox by remember { mutableFloatStateOf(config.ssClockOffsetX) }
-    var oy by remember { mutableFloatStateOf(config.ssClockOffsetY) }
-    var sc by remember { mutableFloatStateOf(config.ssClockScale) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable { if (!isEditMode) onExit() },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.graphicsLayer {
-                translationX = ox
-                translationY = oy
-                scaleX = sc
-                scaleY = sc
-            },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("$timeText $amPm", fontSize = 110.sp, color = Color.White)
-            Text("$hijri  •  $gregorian", fontSize = 20.sp, color = Color(0xFF94A3B8))
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(prayerInfo.remainingText, fontSize = 18.sp, color = Color(0xFF38BDF8))
-        }
-        if (isEditMode) {
-            Row(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(onClick = { oy -= 20f }) { Text("فوق") }
-                Button(onClick = { oy += 20f }) { Text("تحت") }
-                Button(onClick = { sc += 0.1f }) { Text("تكبير") }
-                Button(onClick = { sc -= 0.1f }) { Text("تصغير") }
-                Button(onClick = { onSaveOffsets(ox, oy, sc) }) { Text("حفظ") }
-            }
-        }
-    }
-}
-
 @Composable
 fun SettingsModalDrawer(
     config: LauncherConfig,
@@ -580,21 +714,3 @@ fun SettingsModalDrawer(
                             FilterChip(
                                 selected = active,
                                 onClick = {
-                                    val newSet = if (active) {
-                                        config.activeTickerPairs - pair
-                                    } else {
-                                        config.activeTickerPairs + pair
-                                    }
-                                    scope.launch {
-                                        prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet }
-                                    }
-                                },
-                                label = { Text(pair) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
