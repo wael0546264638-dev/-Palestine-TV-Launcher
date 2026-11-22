@@ -18,58 +18,65 @@ data class TvAppInfo(
 )
 
 object AppManager {
-    suspend fun loadInstalledApps(context: Context): List<TvAppInfo> = withContext(Dispatchers.IO) {
+    suspend fun loadInstalledApps(
+        context: Context
+    ): List<TvAppInfo> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
-        val appsMap = linkedMapOf<String, TvAppInfo>()
+        val map = linkedMapOf<String, TvAppInfo>()
+        val i1 = Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+        val i2 = Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LAUNCHER)
+        val list = pm.queryIntentActivities(i1, 0) +
+                pm.queryIntentActivities(i2, 0)
 
-        val leanbackIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-        val normalIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-
-        val resolveList = pm.queryIntentActivities(leanbackIntent, 0) +
-                pm.queryIntentActivities(normalIntent, 0)
-
-        for (info in resolveList) {
+        for (info in list) {
             val pkg = info.activityInfo.packageName
-            if (pkg == context.packageName || appsMap.containsKey(pkg)) continue
-
+            if (pkg == context.packageName || map.containsKey(pkg)) {
+                continue
+            }
             val label = info.loadLabel(pm).toString()
-            val drawable = try {
-                pm.getApplicationBanner(pkg) ?: info.loadBanner(pm) ?: info.loadIcon(pm)
-            } catch (e: Exception) {
+            val icon = try {
+                pm.getApplicationBanner(pkg) ?: info.loadIcon(pm)
+            } catch (_: Exception) {
                 info.loadIcon(pm)
             }
-
-            val color = extractDominantColor(drawable)
-            appsMap[pkg] = TvAppInfo(label, pkg, drawable, color)
+            map[pkg] = TvAppInfo(
+                label = label,
+                packageName = pkg,
+                bannerOrIcon = icon,
+                dominantColor = getColor(icon)
+            )
         }
-        appsMap.values.toList()
+        map.values.toList()
     }
 
-    private fun extractDominantColor(drawable: Drawable): Color {
+    private fun getColor(d: Drawable): Color {
         return try {
-            val bitmap = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-            drawable.setBounds(0, 0, canvas.width, canvas.height)
-            drawable.draw(canvas)
-            val palette = Palette.from(bitmap).generate()
-            val intColor = palette.getVibrantColor(
-                palette.getDominantColor(android.graphics.Color.WHITE)
+            val bmp = Bitmap.createBitmap(
+                32, 32, Bitmap.Config.ARGB_8888
             )
-            bitmap.recycle()
-            Color(intColor)
-        } catch (e: Exception) {
+            val canvas = Canvas(bmp)
+            d.setBounds(0, 0, 32, 32)
+            d.draw(canvas)
+            val p = Palette.from(bmp).generate()
+            val c = p.getVibrantColor(
+                p.getDominantColor(android.graphics.Color.WHITE)
+            )
+            bmp.recycle()
+            Color(c)
+        } catch (_: Exception) {
             Color.White
         }
     }
 
-    fun launchApp(context: Context, packageName: String) {
+    fun launchApp(context: Context, pkg: String) {
         val pm = context.packageManager
-        val intent = pm.getLeanbackLaunchIntentForPackage(packageName)
-            ?: pm.getLaunchIntentForPackage(packageName)
+        val intent = pm.getLeanbackLaunchIntentForPackage(pkg)
+            ?: pm.getLaunchIntentForPackage(pkg)
         intent?.let {
             it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(it)
         }
     }
 }
-
