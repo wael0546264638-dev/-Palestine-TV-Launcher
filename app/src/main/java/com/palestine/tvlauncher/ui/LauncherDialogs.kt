@@ -431,3 +431,123 @@ fun SettingsModalDrawer(
                         item {
                             FilterChip(
                                 selected = config.showTopQuranRadio,
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio
+                                        }
+                                    }
+                                },
+                                label = { Text("إذاعة القرآن") }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = config.showTopQuranBook,
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook
+                                        }
+                                    }
+                                },
+                                label = { Text("المصحف") }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = config.showTopScreensaver,
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver
+                                        }
+                                    }
+                                },
+                                label = { Text("شاشة التوقف") }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = config.showTopVpn,
+                                onClick = {
+                                    scope.launch {
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn
+                                        }
+                                    }
+                                },
+                                label = { Text("VPN") }
+                            )
+                        }
+                    }
+                }
+                item {
+                    Text("شريط التطبيقات (الشكل والحجم والشفافية):", color = Color(0xFF38BDF8))
+                    Text("استدارة الحواف: ${config.appCornerRadiusPercent}%", color = Color.White)
+                    Slider(
+                        value = config.appCornerRadiusPercent.toFloat(),
+                        onValueChange = { v ->
+                            scope.launch {
+                                prefs.updateConfig { it[LauncherPreferences.APP_CORNER] = v.toInt() }
+                            }
+                        },
+                        valueRange = 0f..100f
+                    )
+                    Text("حجم التطبيقات: ${(config.appBaseScale * 100).toInt()}%", color = Color.White)
+                    Slider(
+                        value = config.appBaseScale,
+                        onValueChange = { v ->
+                            scope.launch {
+                                prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = v }
+                            }
+                        },
+                        valueRange = 0.7f..1.3f
+                    )
+                    Text("شفافية خلفية الشريط: ${(config.dockBgOpacity * 100).toInt()}%", color = Color.White)
+                    Slider(
+                        value = config.dockBgOpacity,
+                        onValueChange = { v ->
+                            scope.launch {
+                                prefs.updateConfig { it[LauncherPreferences.DOCK_OPACITY] = v }
+                            }
+                        },
+                        valueRange = 0f..1f
+                    )
+                    Text("شفافية البطاقة: ${(config.cardBgOpacity * 100).toInt()}%", color = Color.White)
+                    Slider(
+                        value = config.cardBgOpacity,
+                        onValueChange = { v ->
+                            scope.launch {
+                                prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = v }
+                            }
+                        },
+                        valueRange = 0.1f..1f
+                    )
+                }
+                item {
+                    Text("أزواج شريط الأسعار:", color = Color(0xFF38BDF8))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(allPairs) { pair: String ->
+                            val active = config.activeTickerPairs.contains(pair)
+                            FilterChip(
+                                selected = active,
+                                onClick = {
+                                    val newSet = if (active) {
+                                        config.activeTickerPairs - pair
+                                    } else {
+                                        config.activeTickerPairs + pair
+                                    }
+                                    scope.launch {
+                                        prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet }
+                                    }
+                                },
+                                label = { Text(pair) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
