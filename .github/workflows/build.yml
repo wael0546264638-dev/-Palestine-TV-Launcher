@@ -12,47 +12,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fix Manifest via Python
+      - name: Generate Manifest
         run: |
           python3 -c '
-          p = "android" + chr(58)
-          xml = """<?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns""" + chr(58) + """android="http://android.com">
-              <uses-permission """ + p + """name="android.permission.INTERNET" />
-              <uses-permission """ + p + """name="android.permission.ACCESS_NETWORK_STATE" />
-              <uses-permission """ + p + """name="android.permission.QUERY_ALL_PACKAGES" />
-              <uses-permission """ + p + """name="android.permission.REQUEST_INSTALL_PACKAGES" />
-              <uses-feature """ + p + """name="android.software.leanback" """ + p + """required="true" />
-              <uses-feature """ + p + """name="android.hardware.touchscreen" """ + p + """required="false" />
-              <application
-                  """ + p + """allowBackup="true"
-                  """ + p + """label="Palestine TV Launcher"
-                  """ + p + """supportsRtl="true"
-                  """ + p + """theme="@android""" + chr(58) + """style/Theme.NoTitleBar.Fullscreen">
-                  <activity
-                      """ + p + """name=".MainActivity"
-                      """ + p + """exported="true"
-                      """ + p + """launchMode="singleTask"
-                      """ + p + """stateNotNeeded="true">
-                      <intent-filter>
-                          <action """ + p + """name="android.intent.action.MAIN" />
-                          <category """ + p + """name="android.intent.category.HOME" />
-                          <category """ + p + """name="android.intent.category.DEFAULT" />
-                          <category """ + p + """name="android.intent.category.LEANBACK_LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-                  <provider
-                      """ + p + """name="androidx.core.content.FileProvider"
-                      """ + p + """authorities="${applicationId}.fileprovider"
-                      """ + p + """exported="false"
-                      """ + p + """grantUriPermissions="true">
-                      <meta-data
-                          """ + p + """name="android.support.FILE_PROVIDER_PATHS"
-                          """ + p + """resource="@xml/file_paths" />
-                  </provider>
-              </application>
-          </manifest>"""
-          open("app/src/main/AndroidManifest.xml", "w").write(xml)
+          a = "android:"
+          s = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+          s += "<manifest xmlns:android=\"http://android.com\">\n"
+          s += "  <uses-permission " + a + "name=\"android.permission.INTERNET\" />\n"
+          s += "  <uses-permission " + a + "name=\"android.permission.ACCESS_NETWORK_STATE\" />\n"
+          s += "  <uses-permission " + a + "name=\"android.permission.QUERY_ALL_PACKAGES\" />\n"
+          s += "  <uses-permission " + a + "name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />\n"
+          s += "  <uses-feature " + a + "name=\"android.software.leanback\" " + a + "required=\"true\" />\n"
+          s += "  <uses-feature " + a + "name=\"android.hardware.touchscreen\" " + a + "required=\"false\" />\n"
+          s += "  <application " + a + "allowBackup=\"true\" " + a + "label=\"Palestine TV\" " + a + "supportsRtl=\"true\" " + a + "theme=\"@android:style/Theme.NoTitleBar.Fullscreen\">\n"
+          s += "    <activity " + a + "name=\".MainActivity\" " + a + "exported=\"true\" " + a + "launchMode=\"singleTask\" " + a + "stateNotNeeded=\"true\">\n"
+          s += "      <intent-filter>\n"
+          s += "        <action " + a + "name=\"android.intent.action.MAIN\" />\n"
+          s += "        <category " + a + "name=\"android.intent.category.HOME\" />\n"
+          s += "        <category " + a + "name=\"android.intent.category.DEFAULT\" />\n"
+          s += "        <category " + a + "name=\"android.intent.category.LEANBACK_LAUNCHER\" />\n"
+          s += "      </intent-filter>\n"
+          s += "    </activity>\n"
+          s += "    <provider " + a + "name=\"androidx.core.content.FileProvider\" " + a + "authorities=\"${applicationId}.fileprovider\" " + a + "exported=\"false\" " + a + "grantUriPermissions=\"true\">\n"
+          s += "      <meta-data " + a + "name=\"android.support.FILE_PROVIDER_PATHS\" " + a + "resource=\"@xml/file_paths\" />\n"
+          s += "    </provider>\n"
+          s += "  </application>\n"
+          s += "</manifest>"
+          open("app/src/main/AndroidManifest.xml", "w").write(s)
           '
 
       - name: Set up JDK 17
