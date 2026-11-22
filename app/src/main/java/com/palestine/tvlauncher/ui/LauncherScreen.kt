@@ -95,9 +95,15 @@ fun LauncherApp(prefs: LauncherPreferences) {
     }
 
     LaunchedEffect(config.cityName) {
-        val city = PalestineData.cities.find { it.name == config.cityName } ?: PalestineData.cities.first()
-        LiveRepository.fetchCityWeather(city.lat, city.lon)?.let { (curr, maxL, minL) ->
-            liveFeed = liveFeed.copy(currentTemp = curr, dailyMax = maxL, dailyMin = minL)
+        val city = PalestineData.cities.find {
+            it.name == config.cityName
+        } ?: PalestineData.cities.first()
+        LiveRepository.fetchCityWeather(city.lat, city.lon)?.let { res ->
+            liveFeed = liveFeed.copy(
+                currentTemp = res.first,
+                dailyMax = res.second,
+                dailyMin = res.third
+            )
         }
     }
 
@@ -117,12 +123,15 @@ fun LauncherApp(prefs: LauncherPreferences) {
         while (true) {
             val now = Date()
             currentTimeText = SimpleDateFormat("hh:mm", Locale.ENGLISH).format(now)
-            amPmText = if (SimpleDateFormat("a", Locale.ENGLISH).format(now) == "AM") "ص" else "م"
+            val ap = SimpleDateFormat("a", Locale.ENGLISH).format(now)
+            amPmText = if (ap == "AM") "ص" else "م"
             delay(1000L)
         }
     }
 
-    val selectedCity = PalestineData.cities.find { it.name == config.cityName } ?: PalestineData.cities.first()
+    val selectedCity = PalestineData.cities.find {
+        it.name == config.cityName
+    } ?: PalestineData.cities.first()
     val prayerInfo = remember(config.cityName, currentTimeText) {
         PalestineData.calculatePrayers(selectedCity)
     }
@@ -135,7 +144,11 @@ fun LauncherApp(prefs: LauncherPreferences) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0B1120))
+                    colors = listOf(
+                        Color(0xFF0F172A),
+                        Color(0xFF1E293B),
+                        Color(0xFF0B1120)
+                    )
                 )
             )
     ) {
@@ -177,11 +190,15 @@ fun LauncherApp(prefs: LauncherPreferences) {
                     hasUpdate = updateInfo?.hasUpdate == true,
                     onToggleRadio = { toggleQuranRadio() },
                     onOpenScreensaver = {
-                        if (config.quranAutoPlayScreensaver && !isRadioPlaying) toggleQuranRadio()
+                        if (config.quranAutoPlayScreensaver && !isRadioPlaying) {
+                            toggleQuranRadio()
+                        }
                         isScreensaverMode = true
                     },
                     onOpenSettings = { showSettingsDrawer = true },
-                    onOpenWifi = { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) },
+                    onOpenWifi = {
+                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                    },
                     onOpenUpdate = { showUpdateDialog = true }
                 )
 
@@ -240,9 +257,3 @@ fun LauncherApp(prefs: LauncherPreferences) {
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.Black.copy(alpha = 0.45f),
