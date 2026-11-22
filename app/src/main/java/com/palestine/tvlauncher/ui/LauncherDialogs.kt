@@ -546,7 +546,7 @@ fun SettingsModalDrawer(
                 item {
                     Text("أزواج شريط الأسعار:", color = Color(0xFF38BDF8))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(allPairs) { pair: String ->
+                                                items(allPairs) { pair: String ->
                             val active = config.activeTickerPairs.contains(pair)
                             FilterChip(
                                 selected = active,
@@ -557,4 +557,17 @@ fun SettingsModalDrawer(
                                         config.activeTickerPairs + pair
                                     }
                                     scope.launch {
-
+                                        prefs.updateConfig {
+                                            it[LauncherPreferences.TICKER_PAIRS] = newSet
+                                        }
+                                    }
+                                },
+                                label = { Text(pair) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
