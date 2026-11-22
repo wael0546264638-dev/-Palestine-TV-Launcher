@@ -16,13 +16,19 @@ data class LiveFeedState(
     val currentTemp: Int = 26,
     val dailyMax: List<Int> = listOf(27, 28, 26, 25, 27),
     val dailyMin: List<Int> = listOf(15, 16, 14, 14, 15),
-    val news: List<String> = listOf("جاري تحديث الأخبار..."),
+    val news: List<String> = listOf(
+        "أخبار فلسطين: متابعة مستمرة للأحوال الجوية والأسعار المحلية",
+        "أريحا والأغوار: أجواء مستقرة ومعتدلة خلال ساعات النهار"
+    ),
     val matches: List<MatchInfo> = listOf(
-        MatchInfo("جاري تحميل المباريات...", "")
+        MatchInfo("الدوري الإسباني: ريال مدريد × برشلونة", "22:00"),
+        MatchInfo("الدوري الإنجليزي: ليفربول × أرسنال", "19:30"),
+        MatchInfo("دوري أبطال أوروبا: بايرن ميونخ × إنتر", "22:00")
     ),
     val prices: Map<String, Pair<String, Boolean>> = mapOf(
         "USD/ILS" to Pair("3.35", true),
         "JOD/ILS" to Pair("4.72", true),
+        "EUR/ILS" to Pair("3.65", false),
         "GOLD" to Pair("$2,740", true),
         "BRENT" to Pair("$74.50", false),
         "BTC" to Pair("$91,500", true),
@@ -42,6 +48,14 @@ object LiveRepository {
     private const val OWNER = "wael0546264638-dev"
     private const val REPO = "Palestine-TV-Launcher"
 
+    val natureWallpapers = listOf(
+        "أزرق ليلي فخم" to "",
+        "جبال الضباب" to "https://unsplash.com",
+        "غابات الصنوبر" to "https://unsplash.com",
+        "غروب هادئ" to "https://unsplash.com",
+        "بحيرة الطبيعة" to "https://unsplash.com"
+    )
+
     suspend fun fetchGitHubFeed(): LiveFeedState =
         withContext(Dispatchers.IO) {
             var state = LiveFeedState()
@@ -50,7 +64,7 @@ object LiveRepository {
                 val path = "/$OWNER/$REPO/main/live_data.json"
                 val conn = URL(base + path)
                     .openConnection() as HttpURLConnection
-                conn.connectTimeout = 7000
+                conn.connectTimeout = 6000
                 if (conn.responseCode == 200) {
                     val txt = conn.inputStream.bufferedReader().readText()
                     val json = JSONObject(txt)
@@ -60,19 +74,37 @@ object LiveRepository {
                     val newsA = json.getJSONArray("news")
                     val matchA = json.getJSONArray("matches")
 
+                    val fetchedNews = List(newsA.length()) { newsA.getString(it) }
+                    val fetchedMatches = List(matchA.length()) {
+                        val m = matchA.getJSONObject(it)
+                        MatchInfo(m.optString("name"), m.optString("status"))
+                    }
+
                     state = state.copy(
                         currentTemp = w.optInt("current_temp", 26),
                         dailyMax = List(maxA.length()) { maxA.getInt(it) },
                         dailyMin = List(minA.length()) { minA.getInt(it) },
-                        news = List(newsA.length()) { newsA.getString(it) },
-                        matches = List(matchA.length()) {
-                            val m = matchA.getJSONObject(it)
-                            MatchInfo(
-                                m.optString("name"),
-                                m.optString("status")
-                            )
-                        }
+                        news = if (fetchedNews.isNotEmpty()) fetchedNews else state.news,
+                        matches = if (fetchedMatches.isNotEmpty()) fetchedMatches else state.matches
                     )
+                }
+            } catch (_: Exception) { }
+
+            try {
+                val rssUrl = "https://aljazeera.net"
+                val rc = URL(rssUrl).openConnection() as HttpURLConnection
+                rc.connectTimeout = 5000
+                if (rc.responseCode == 200) {
+                    val xml = rc.inputStream.bufferedReader().readText()
+                    val titles = Regex("<title><!\\[CDATA\\[(.*?)]]></title>|<title>(.*?)</title>")
+                        .findAll(xml)
+                        .map { it.groupValues[1].ifBlank { it.groupValues[2] } }
+                        .filter { it.length > 15 && !it.contains("الجزيرة") }
+                        .take(8)
+                        .toList()
+                    if (titles.isNotEmpty()) {
+                        state = state.copy(news = titles)
+                    }
                 }
             } catch (_: Exception) { }
             state
@@ -193,5 +225,3 @@ object LiveRepository {
             )
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         dm.enqueue(req)
-    }
-}
