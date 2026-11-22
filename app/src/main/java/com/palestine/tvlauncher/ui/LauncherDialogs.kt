@@ -1,4 +1,3 @@
-
 package com.palestine.tvlauncher.ui
 
 import android.app.ActivityManager
@@ -93,32 +92,45 @@ fun InteractiveTabsCard(
                 when (selectedTab) {
                     0 -> {
                         val rows = listOf(
-                            "الفجر" to prayerInfo.fajr, "الشروق" to prayerInfo.sunrise,
-                            "الظهر" to prayerInfo.dhuhr, "العصر" to prayerInfo.asr,
-                            "المغرب" to prayerInfo.maghrib, "العشاء" to prayerInfo.isha
+                            "الفجر" to prayerInfo.fajr,
+                            "الشروق" to prayerInfo.sunrise,
+                            "الظهر" to prayerInfo.dhuhr,
+                            "العصر" to prayerInfo.asr,
+                            "المغرب" to prayerInfo.maghrib,
+                            "العشاء" to prayerInfo.isha
                         )
-                        Column(verticalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxSize()) {
+                        Column(
+                            verticalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
                             rows.forEach { (name, time) ->
                                 val isNext = name == prayerInfo.nextPrayerName
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(if (isNext) Color(0xFF38BDF8).copy(alpha = 0.25f) else Color.Transparent, RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isNext) Color(0xFF38BDF8).copy(alpha = 0.25f)
+                                            else Color.Transparent,
+                                            RoundedCornerShape(8.dp)
+                                        )
                                         .padding(horizontal = 10.dp, vertical = 3.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(name, color = Color.White, fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal)
-                                    Text(time, color = if (isNext) Color(0xFF38BDF8) else Color(0xFFCBD5E1))
+                                    Text(name, color = Color.White)
+                                    Text(time, color = Color(0xFF38BDF8))
                                 }
                             }
                         }
                     }
                     1 -> {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("توقعات الطقس في ${config.cityName}:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                            Text("توقعات الطقس في ${config.cityName}:", color = Color(0xFF38BDF8))
                             liveFeed.dailyMax.forEachIndexed { idx, maxT ->
                                 val minT = liveFeed.dailyMin.getOrElse(idx) { 15 }
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
                                     Text("اليوم +${idx + 1}", color = Color.White)
                                     Text("العظمى $maxT° / الصغرى $minT°", color = Color(0xFFFBBF24))
                                 }
@@ -128,8 +140,11 @@ fun InteractiveTabsCard(
                     2 -> {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(liveFeed.matches) { m ->
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(m.name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(m.name, color = Color.White)
                                     Text(m.status, color = Color(0xFF34D399))
                                 }
                             }
@@ -142,42 +157,50 @@ fun InteractiveTabsCard(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
-                            Text(hijriDate, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            Text(hijriDate, color = Color.White, fontSize = 22.sp)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
                             Text(gregorianDate, color = Color.White, fontSize = 20.sp)
                         }
                     }
                     4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 19.sp, textAlign = TextAlign.Center)
+                        Text(
+                            PalestineData.dailyVerses.first(),
+                            color = Color.White,
+                            fontSize = 19.sp,
+                            textAlign = TextAlign.Center
+                        )
                     }
                     5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(PalestineData.dailyHadiths.first(), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
+                        Text(
+                            PalestineData.dailyHadiths.first(),
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            textAlign = TextAlign.Center
+                        )
                     }
                     6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(PalestineData.adhkarList) { Text("• $it", color = Color.White, fontSize = 14.sp) }
+                        items(PalestineData.adhkarList) { item: String ->
+                            Text("• $item", color = Color.White, fontSize = 14.sp)
+                        }
                     }
                     7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(liveFeed.news) { Text("▪ $it", color = Color.White, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                        items(liveFeed.news) { headline: String ->
+                            Text(
+                                "▪ $headline",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                     8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         liveFeed.prices.forEach { (pair, info) ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(pair, color = Color.White, fontWeight = FontWeight.Bold)
-                                Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
-                            }
-                        }
-                    }
-                    9 -> {
-                        val daysToRamadan = PalestineData.getDaysUntilRamadan()
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("المناسبات الإسلامية القادمة:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
-                            Text("• شهر رمضان المبارك: بعد $daysToRamadan يوم", color = Color.White, fontSize = 16.sp)
-                            Text("• عيد الفطر السعيد: بعد ${daysToRamadan + 30} يوم", color = Color(0xFFCBD5E1))
-                        }
-                    }
-                    10 -> {
-                        val actManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                        val memInfo = ActivityManager.MemoryInfo()
-                        actManager.getMemoryInfo(memInfo)
-                        val availRam = memInfo.availMem / (1024 * 1024)
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(pair, color = Color.White)
+                                Text(
+                                    "${info.first} ${if (info.second) "▲" else "▼"}",
