@@ -12,18 +12,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Auto-fix XML namespaces
+      - name: Fix Manifest via Python
         run: |
           python3 -c '
-          import re
-          path = "app/src/main/AndroidManifest.xml"
-          with open(path, "r") as f:
-              text = f.read()
-          attrs = ["name", "exported", "launchMode", "stateNotNeeded", "allowBackup", "label", "supportsRtl", "theme", "authorities", "grantUriPermissions", "resource", "required"]
-          for a in attrs:
-              text = re.sub(r"(?<!android:)\b" + a + r"=", "android:" + a + "=", text)
-          with open(path, "w") as f:
-              f.write(text)
+          p = "android" + chr(58)
+          xml = """<?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns""" + chr(58) + """android="http://android.com">
+              <uses-permission """ + p + """name="android.permission.INTERNET" />
+              <uses-permission """ + p + """name="android.permission.ACCESS_NETWORK_STATE" />
+              <uses-permission """ + p + """name="android.permission.QUERY_ALL_PACKAGES" />
+              <uses-permission """ + p + """name="android.permission.REQUEST_INSTALL_PACKAGES" />
+              <uses-feature """ + p + """name="android.software.leanback" """ + p + """required="true" />
+              <uses-feature """ + p + """name="android.hardware.touchscreen" """ + p + """required="false" />
+              <application
+                  """ + p + """allowBackup="true"
+                  """ + p + """label="Palestine TV Launcher"
+                  """ + p + """supportsRtl="true"
+                  """ + p + """theme="@android""" + chr(58) + """style/Theme.NoTitleBar.Fullscreen">
+                  <activity
+                      """ + p + """name=".MainActivity"
+                      """ + p + """exported="true"
+                      """ + p + """launchMode="singleTask"
+                      """ + p + """stateNotNeeded="true">
+                      <intent-filter>
+                          <action """ + p + """name="android.intent.action.MAIN" />
+                          <category """ + p + """name="android.intent.category.HOME" />
+                          <category """ + p + """name="android.intent.category.DEFAULT" />
+                          <category """ + p + """name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <provider
+                      """ + p + """name="androidx.core.content.FileProvider"
+                      """ + p + """authorities="${applicationId}.fileprovider"
+                      """ + p + """exported="false"
+                      """ + p + """grantUriPermissions="true">
+                      <meta-data
+                          """ + p + """name="android.support.FILE_PROVIDER_PATHS"
+                          """ + p + """resource="@xml/file_paths" />
+                  </provider>
+              </application>
+          </manifest>"""
+          open("app/src/main/AndroidManifest.xml", "w").write(xml)
           '
 
       - name: Set up JDK 17
