@@ -12,34 +12,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate Manifest
+      - name: Patch Manifest
         run: |
           python3 -c '
-          a = bytes.fromhex("616e64726f69643a").decode()
-          x = bytes.fromhex("786d6c6e733a616e64726f6964").decode()
-          s = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-          s += "<manifest " + x + "=\"http://android.com\">\n"
-          s += "  <uses-permission " + a + "name=\"android.permission.INTERNET\" />\n"
-          s += "  <uses-permission " + a + "name=\"android.permission.ACCESS_NETWORK_STATE\" />\n"
-          s += "  <uses-permission " + a + "name=\"android.permission.QUERY_ALL_PACKAGES\" />\n"
-          s += "  <uses-permission " + a + "name=\"android.permission.REQUEST_INSTALL_PACKAGES\" />\n"
-          s += "  <uses-feature " + a + "name=\"android.software.leanback\" " + a + "required=\"true\" />\n"
-          s += "  <uses-feature " + a + "name=\"android.hardware.touchscreen\" " + a + "required=\"false\" />\n"
-          s += "  <application " + a + "allowBackup=\"true\" " + a + "label=\"Palestine TV\" " + a + "supportsRtl=\"true\">\n"
-          s += "    <activity " + a + "name=\".MainActivity\" " + a + "exported=\"true\" " + a + "launchMode=\"singleTask\" " + a + "stateNotNeeded=\"true\">\n"
-          s += "      <intent-filter>\n"
-          s += "        <action " + a + "name=\"android.intent.action.MAIN\" />\n"
-          s += "        <category " + a + "name=\"android.intent.category.HOME\" />\n"
-          s += "        <category " + a + "name=\"android.intent.category.DEFAULT\" />\n"
-          s += "        <category " + a + "name=\"android.intent.category.LEANBACK_LAUNCHER\" />\n"
-          s += "      </intent-filter>\n"
-          s += "    </activity>\n"
-          s += "    <provider " + a + "name=\"androidx.core.content.FileProvider\" " + a + "authorities=\"${applicationId}.fileprovider\" " + a + "exported=\"false\" " + a + "grantUriPermissions=\"true\">\n"
-          s += "      <meta-data " + a + "name=\"android.support.FILE_PROVIDER_PATHS\" " + a + "resource=\"@xml/file_paths\" />\n"
-          s += "    </provider>\n"
-          s += "  </application>\n"
-          s += "</manifest>"
-          open("app/src/main/AndroidManifest.xml", "w").write(s)
+          p = "".join([chr(97), chr(110), chr(100), chr(114), chr(111), chr(105), chr(100), chr(58)])
+          t = open("app/src/main/AndroidManifest.xml").read()
+          for k in ["name=", "exported=", "launchMode=", "stateNotNeeded=", "allowBackup=", "label=", "supportsRtl=", "theme=", "authorities=", "grantUriPermissions=", "resource=", "required="]:
+              if p + k not in t:
+                  t = t.replace(" " + k, " " + p + k)
+          open("app/src/main/AndroidManifest.xml", "w").write(t)
           '
 
       - name: Set up JDK 17
