@@ -746,3 +746,87 @@ fun SettingsModalDrawer(
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(styles.size) { idx ->
                                         SettingOptionPill(styles[idx], config.clockStyle == idx) {
+                                                                                        scope.launch { prefs.updateConfig { it[LauncherPreferences.CLOCK_STYLE] = idx } }
+                                        }
+                                    }
+                                }
+                                val dateModes = listOf("هجري وميلادي", "هجري فقط", "ميلادي فقط", "إخفاء التاريخ")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(dateModes.size) { idx ->
+                                        SettingOptionPill(dateModes[idx], config.dateDisplayMode == idx) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            SettingsCategoryBox("٤. إذاعة القرآن الكريم") {
+                                val modes = listOf("يدوي / دائم", "الشاشة الرئيسية فقط", "شاشة التوقف فقط", "تشغيل مجدول")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(modes.size) { idx ->
+                                        SettingOptionPill(modes[idx], config.quranPlayMode == idx) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_PLAY_MODE] = idx } }
+                                        }
+                                    }
+                                }
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(LiveRepository.verifiedQuranRadios) { (title, url) ->
+                                        SettingOptionPill(title, config.quranStreamUrl == url) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = url } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            SettingsCategoryBox("٥. الشفافية والأحجام والشريط العلوي") {
+                                StepAdjustRow(
+                                    title = "شفافية البطاقة",
+                                    valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
+                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+                                )
+                                StepAdjustRow(
+                                    title = "حجم أيقونات التطبيقات",
+                                    valueLabel = PalestineData.toArabicDigits("${(config.appBaseScale * 100).toInt()}%"),
+                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale - 0.05f).coerceIn(0.75f, 1.3f) } } },
+                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale + 0.05f).coerceIn(0.75f, 1.3f) } } }
+                                )
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    item { SettingOptionPill("الشبكة", config.showTopWifi) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } } }
+                                    item { SettingOptionPill("إذاعة القرآن", config.showTopQuranRadio) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio } } } }
+                                    item { SettingOptionPill("المصحف", config.showTopQuranBook) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook } } } }
+                                    item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
+                                    item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
+                                    SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
+                                }
+                            }
+                        }
+
+                        item {
+                            SettingsCategoryBox("٦. شريط الأسعار والتخطيط المباشر") {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(allPairs) { pair ->
+                                        val active = config.activeTickerPairs.contains(pair)
+                                        SettingOptionPill(pair, active) {
+                                            val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
+                                        }
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
+                                    SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        
