@@ -519,7 +519,7 @@ fun ScreensaverView(
         }
     }
 }
-
+}
 @Composable
 fun SettingOptionPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
