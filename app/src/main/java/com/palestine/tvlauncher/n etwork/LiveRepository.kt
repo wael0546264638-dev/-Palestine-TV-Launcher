@@ -2,7 +2,6 @@ package com.palestine.tvlauncher.network
 
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
-import com.palestine.tvlauncher.data.PrayerTimesModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -170,23 +169,61 @@ object LiveRepository {
         }
     }
 
-    suspend fun fetchExactPrayers(lat: Double, lon: Double, timeZoneId: String): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
+        suspend fun fetchExactPrayers(lat: Double, lon: Double, timeZoneId: String): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
         try {
-            val dateStr = SimpleDateFormat("dd-MM-yyyy", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone(timeZoneId)
-            }.format(Date())
+            val tz = TimeZone.getTimeZone(timeZoneId)
+            val dateStr = SimpleDateFormat("dd-MM-yyyy", Locale.US).apply { timeZone = tz }.format(Date())
             val raw = httpGet("https://aladhan.com")
                 ?: return@withContext PalestineData.PrayerDisplay()
             val timings = JSONObject(raw).getJSONObject("data").getJSONObject("timings")
-            val model = PrayerTimesModel(
-                fajr = timings.getString("Fajr").take(5),
-                sunrise = timings.getString("Sunrise").take(5),
-                dhuhr = timings.getString("Dhuhr").take(5),
-                asr = timings.getString("Asr").take(5),
-                maghrib = timings.getString("Maghrib").take(5),
-                isha = timings.getString("Isha").take(5)
+            val fajr = timings.getString("Fajr").take(5)
+            val sunrise = timings.getString("Sunrise").take(5)
+            val dhuhr = timings.getString("Dhuhr").take(5)
+            val asr = timings.getString("Asr").take(5)
+            val maghrib = timings.getString("Maghrib").take(5)
+            val isha = timings.getString("Isha").take(5)
+
+            val nowCal = Calendar.getInstance(tz)
+            val nowMins = nowCal.get(Calendar.HOUR_OF_DAY) * 60 + nowCal.get(Calendar.MINUTE)
+            val list = listOf(
+                "الفجر" to fajr,
+                "الظهر" to dhuhr,
+                "العصر" to asr,
+                "المغرب" to maghrib,
+                "العشاء" to isha
             )
-                        PalestineData.calculateNextPrayer(model, timeZoneId)
+            var nextName = "الفجر"
+            var diffMins = -1
+            for ((name, tStr) in list) {
+                val p = tStr.split(":")
+                if (p.size == 2) {
+                    val m = (p[0].toIntOrNull() ?: 0) * 60 + (p[1].toIntOrNull() ?: 0)
+                    if (m > nowMins) {
+                        nextName = name
+                        diffMins = m - nowMins
+                        break
+                    }
+                }
+            }
+            if (diffMins < 0) {
+                val p = fajr.split(":")
+                val m = (p.getOrNull(0)?.toIntOrNull() ?: 5) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0)
+                diffMins = (24 * 60 - nowMins) + m
+            }
+            val remH = diffMins / 60
+            val remM = diffMins % 60
+            val remText = PalestineData.toArabicDigits("متبقي لصلاة $nextName: $remH س و $remM د")
+
+            PalestineData.PrayerDisplay(
+                fajr = PalestineData.toArabicDigits(fajr),
+                sunrise = PalestineData.toArabicDigits(sunrise),
+                dhuhr = PalestineData.toArabicDigits(dhuhr),
+                asr = PalestineData.toArabicDigits(asr),
+                maghrib = PalestineData.toArabicDigits(maghrib),
+                isha = PalestineData.toArabicDigits(isha),
+                nextPrayerName = nextName,
+                remainingText = remText
+            )
         } catch (_: Exception) {
             PalestineData.PrayerDisplay()
         }
