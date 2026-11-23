@@ -325,6 +325,7 @@ private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Uni
         )
     }
 }
+@OptIn(ExperimentalFoundationApi::class)
 
 @Composable
 fun BottomTickerBar(
