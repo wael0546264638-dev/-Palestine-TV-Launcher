@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.*
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
@@ -428,4 +428,134 @@ fun LauncherScreen() {
                         horizontalAlignment = Alignment.End
                     ) {
                         ArabicClockDisplay(timeZoneId = config.cityTimeZone, clockStyle = config.clockStyle)
+                        val dateString = when (config.dateDisplayMode) {
+                            0 -> "$hijriDate  |  $gregorianDate"
+                            1 -> hijriDate
+                            2 -> gregorianDate
+                            else -> ""
+                        }
+                        if (dateString.isNotEmpty()) {
+                            Text(
+                                text = dateString,
+                                fontSize = 18.sp,
+                                color = Color(0xFFE2E8F0),
+                                modifier = Modifier.padding(top = 6.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            PillActionButton(
+                                label = "أذكار الصباح والمساء",
+                                icon = Icons.Default.AutoAwesome,
+                                onClick = { showAdhkarDialog = true }
+                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.50f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.WbSunny, contentDescription = null, tint = Color(0xFFFBBF24), modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = PalestineData.toArabicDigits("${liveFeed.currentTemp}° ${config.cityName}"),
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AppDockRow(
+                    apps = installedApps,
+                    config = config,
+                    modifier = Modifier.graphicsLayer {
+                        translationX = config.dockOffsetX
+                        translationY = config.dockOffsetY
+                    },
+                    onLaunchApp = { app -> AppManager.launchApp(context, app.packageName) }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (config.showBottomBar) {
+                    BottomTickerBar(config = config, prayerInfo = prayerInfo, liveFeed = liveFeed)
+                }
+            }
+        }
+
+        if (isLiveEditMode) {
+            LiveLayoutEditorOverlay(
+                config = config,
+                onSave = { cx, cy, cs, kx, ky, ks, ko, dx, dy ->
+                    scope.launch {
+                        prefs.updateConfig {
+                            it[LauncherPreferences.CLOCK_X] = cx
+                            it[LauncherPreferences.CLOCK_Y] = cy
+                            it[LauncherPreferences.CLOCK_SCALE] = cs
+                            it[LauncherPreferences.CARD_X] = kx
+                            it[LauncherPreferences.CARD_Y] = ky
+                            it[LauncherPreferences.CARD_SCALE] = ks
+                            it[LauncherPreferences.CARD_OPACITY] = ko
+                            it[LauncherPreferences.DOCK_X] = dx
+                            it[LauncherPreferences.DOCK_Y] = dy
+                        }
+                    }
+                    isLiveEditMode = false
+                },
+                onCancel = { isLiveEditMode = false }
+            )
+        }
+
+        if (showSettingsDrawer) {
+            SettingsModalDrawer(
+                config = config,
+                prefs = prefs,
+                onPickDeviceImage = { imagePickerLauncher.launch(arrayOf("image/*")) },
+                onOpenLiveEditor = { showSettingsDrawer = false; isLiveEditMode = true },
+                onOpenScreensaverEditor = { showSettingsDrawer = false; isScreensaverEditMode = true; isScreensaverMode = true },
+                onDismiss = { showSettingsDrawer = false }
+            )
+        }
+
+        if (showAdhkarDialog) {
+            AlertDialog(
+                onDismissRequest = { showAdhkarDialog = false },
+                confirmButton = { TextButton(onClick = { showAdhkarDialog = false }) { Text("إغلاق") } },
+                title = { Text("أذكار الصباح والمساء", fontWeight = FontWeight.Bold) },
+                text = {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(PalestineData.adhkarList) { dhikr -> Text("• $dhikr", fontSize = 15.sp) }
+                    }
+                }
+            )
+        }
+
+        if (showQuranDialog) {
+            FullQuranDialog(onDismiss = { showQuranDialog = false })
+        }
+
+        if (showUpdateDialog && updateInfo != null) {
+            AlertDialog(
+                onDismissRequest = { showUpdateDialog = false },
+                confirmButton = {
+                    Button(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo!!.apkDownloadUrl)))
+                        showUpdateDialog = false
+                    }) { Text("تحميل وتثبيت الآن") }
+                },
+                dismissButton = { TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") } },
+                title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
+                text = { Text(updateInfo!!.releaseNotes) }
+            )
+        }
+    }
+}
 
