@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
@@ -221,7 +220,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier
                 .fillMaxSize(0.92f)
-                .focusGroup(),
             shape = RoundedCornerShape(24.dp),
             color = Color(0xFF0B1324),
             border = BorderStroke(1.5.dp, Color(0xFFFBBF24).copy(alpha = 0.5f))
@@ -524,14 +522,12 @@ fun SettingsModalDrawer(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.72f))
-                .focusGroup(),
             contentAlignment = Alignment.CenterEnd
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(0.56f)
-                    .focusGroup(),
                 shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
                 color = Color(0xFF0B1324),
                 border = BorderStroke(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.45f))
@@ -593,4 +589,165 @@ fun SettingsModalDrawer(
                                 }
                                 if (searchResults.isNotEmpty()) {
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                                                items(searchResults) { res ->
+                                            SettingOptionPill("${res.name} (${res.country})", false) {
+                                                scope.launch {
+                                                    prefs.setLocation(res)
+                                                    locationStatus = "تم اختيار: ${res.name}"
+                                                    searchResults = emptyList()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Text("مدن وقرى فلسطين:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(PalestineData.palestineCities) { city ->
+                                        SettingOptionPill(city.name, config.cityName == city.name) {
+                                            scope.launch { prefs.setLocation(city); locationStatus = "الموقع: ${city.name}" }
+                                        }
+                                    }
+                                }
+                                Text("البلدان والعواصم العالمية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(PalestineData.worldCapitals) { city ->
+                                        SettingOptionPill("${city.name} (${city.country})", config.cityName == city.name) {
+                                            scope.launch { prefs.setLocation(city); locationStatus = "الموقع: ${city.name}" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // الفئة 2: الخلفيات والمؤقت التلقائي وصور الجهاز
+                        item {
+                            SettingsCategoryBox("٢. الخلفيات والمؤقت التلقائي وصور الجهاز") {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SettingOptionPill("اختر صورة من الجهاز", config.customWallpaperUri.isNotEmpty(), onClick = onPickDeviceImage)
+                                    if (config.customWallpaperUri.isNotEmpty()) {
+                                        SettingOptionPill("إلغاء صورة الجهاز", false) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = "" } }
+                                        }
+                                    }
+                                }
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(LiveRepository.natureWallpapers.size) { idx ->
+                                        val title = LiveRepository.natureWallpapers[idx].first
+                                        SettingOptionPill(title, config.customWallpaperUri.isEmpty() && config.wallpaperIndex == idx) {
+                                            scope.launch {
+                                                prefs.updateConfig {
+                                                    it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                                                    it[LauncherPreferences.WALLPAPER_IDX] = idx
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Text("مؤقت تغيير الخلفية تلقائياً:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                val intervals = listOf(0 to "إيقاف", 1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 15 to "كل ١٥ دقيقة", 30 to "كل ٣٠ دقيقة")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(intervals) { (mins, label) ->
+                                        SettingOptionPill(label, config.wallpaperIntervalMinutes == mins) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                                                // الفئة 3: أشكال الساعة والتاريخ
+                        item {
+                            SettingsCategoryBox("٣. أشكال الساعة والتاريخ") {
+                                val styles = listOf("رقمي عصري", "بطاقة زجاجية", "عقارب دائرية", "عمودي كبير")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(styles.size) { idx ->
+                                        SettingOptionPill(styles[idx], config.clockStyle == idx) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CLOCK_STYLE] = idx } }
+                                        }
+                                    }
+                                }
+                                val dateModes = listOf("هجري وميلادي", "هجري فقط", "ميلادي فقط", "إخفاء التاريخ")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(dateModes.size) { idx ->
+                                        SettingOptionPill(dateModes[idx], config.dateDisplayMode == idx) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // الفئة 4: إذاعة القرآن الكريم (mp3quran.net)
+                        item {
+                            SettingsCategoryBox("٤. إذاعة القرآن الكريم") {
+                                val modes = listOf("يدوي / دائم", "الشاشة الرئيسية فقط", "شاشة التوقف فقط", "تشغيل مجدول")
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(modes.size) { idx ->
+                                        SettingOptionPill(modes[idx], config.quranPlayMode == idx) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_PLAY_MODE] = idx } }
+                                        }
+                                    }
+                                }
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(LiveRepository.verifiedQuranRadios) { (title, url) ->
+                                        SettingOptionPill(title, config.quranStreamUrl == url) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = url } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // الفئة 5: الشفافية والأحجام والشريط العلوي
+                        item {
+                            SettingsCategoryBox("٥. الشفافية والأحجام والشريط العلوي") {
+                                StepAdjustRow(
+                                    title = "شفافية البطاقة",
+                                    valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
+                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+                                )
+                                StepAdjustRow(
+                                    title = "حجم أيقونات التطبيقات",
+                                    valueLabel = PalestineData.toArabicDigits("${(config.appBaseScale * 100).toInt()}%"),
+                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale - 0.05f).coerceIn(0.75f, 1.3f) } } },
+                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale + 0.05f).coerceIn(0.75f, 1.3f) } } }
+                                )
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    item { SettingOptionPill("الشبكة", config.showTopWifi) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } } }
+                                    item { SettingOptionPill("إذاعة القرآن", config.showTopQuranRadio) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio } } } }
+                                    item { SettingOptionPill("المصحف", config.showTopQuranBook) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook } } } }
+                                    item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
+                                    item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
+                                    SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
+                                }
+                            }
+                        }
+
+                        // الفئة 6: شريط الأسعار والتخطيط المباشر
+                        item {
+                            SettingsCategoryBox("٦. شريط الأسعار والتخطيط المباشر") {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(allPairs) { pair ->
+                                        val active = config.activeTickerPairs.contains(pair)
+                                        SettingOptionPill(pair, active) {
+                                            val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
+                                        }
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
+                                    SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    
+
+
 
