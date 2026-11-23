@@ -882,7 +882,9 @@ fun SettingsModalDrawer(
                             item {
                                 SettingOptionPill("شاشة التوقف", config.showTopScreensaver) {
                                     scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } }
-                                                                item {
+                                }                         
+                                }
+                                    item {
                                 SettingOptionPill("VPN", config.showTopVpn) {
                                     scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } }
                                 }
