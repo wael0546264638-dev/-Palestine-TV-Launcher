@@ -528,12 +528,12 @@ fun SettingsModalDrawer(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(0.56f)
-                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
+                                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
                 color = Color(0xFF0B1324),
                 border = BorderStroke(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.45f))
             ) {
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-                    Row(
+
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
