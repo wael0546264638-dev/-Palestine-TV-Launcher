@@ -830,3 +830,5 @@ fun SettingsModalDrawer(
                 }
             }
         }      
+    }
+}
