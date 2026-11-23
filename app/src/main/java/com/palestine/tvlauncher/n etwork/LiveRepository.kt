@@ -186,7 +186,7 @@ object LiveRepository {
                 maghrib = timings.getString("Maghrib").take(5),
                 isha = timings.getString("Isha").take(5)
             )
-            PalestineData.buildPrayerDisplay(model, timeZoneId)
+                        PalestineData.calculateNextPrayer(model, timeZoneId)
         } catch (_: Exception) {
             PalestineData.PrayerDisplay()
         }
