@@ -1,75 +1,145 @@
 package com.palestine.tvlauncher.network
 
-import android.app.DownloadManager
-import android.content.Context
-import android.net.Uri
-import android.os.Environment
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
+import com.palestine.tvlauncher.data.PrayerTimesModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class MatchItem(val name: String, val status: String)
+data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, val apkDownloadUrl: String, val releaseNotes: String)
 
 data class LiveFeedState(
-    val currentTemp: Int = 25,
-    val dailyMax: List<Int> = listOf(27, 28, 26, 25, 24),
-    val dailyMin: List<Int> = listOf(16, 17, 15, 15, 14),
-    val news: List<String> = listOf("أهلاً بكم في لانشر فلسطين TV الذكي"),
-    val matches: List<MatchItem> = listOf(MatchItem("متابعة حية للمباريات", "مباشر")),
+    val currentTemp: String = "26",
+    val dailyMax: String = "28",
+    val dailyMin: String = "17",
+    val forecastDays: List<Pair<String, String>> = listOf("27" to "16", "28" to "17", "26" to "15"),
+    val news: List<String> = listOf("أهلاً بكم في لانشر فلسطين TV المحدّث"),
+    val matches: List<MatchItem> = listOf(MatchItem("دوري أبطال أوروبا - الليلة", "٢٢:٠٠")),
     val prices: Map<String, Pair<String, Boolean>> = mapOf(
-        "USD/ILS" to Pair("3.65", true),
-        "JOD/ILS" to Pair("5.15", true),
-        "EUR/ILS" to Pair("3.96", false),
-        "GOLD" to Pair("2650$", true),
-        "BRENT" to Pair("74.2$", false),
-        "BTC" to Pair("91200$", true),
-        "ETH" to Pair("3120$", true)
+        "USD/ILS" to ("3.65" to true),
+        "JOD/ILS" to ("5.15" to true),
+        "EUR/ILS" to ("3.95" to false),
+        "GOLD" to ("2640$" to true)
     )
 )
 
-data class GitHubUpdateInfo(
-    val hasUpdate: Boolean,
-    val latestVersion: String,
-    val releaseNotes: String,
-    val apkDownloadUrl: String
-)
+data class SurahHeader(val number: Int, val name: String, val ayahCount: Int, val revelationType: String)
+data class FullSurahContent(val number: Int, val name: String, val versesText: String, val pageRange: String)
 
 object LiveRepository {
-    private const val OWNER = "wael0546264638-dev"
-    private const val REPO = "Palestine-TV-Launcher"
 
     val natureWallpapers = listOf(
-        "افتراضي (ليلي هادئ)" to "",
-        "جبال وأودية فلسطين" to "https://pexels.com",
-        "شاطئ البحر وقت الغروب" to "https://pexels.com",
-        "غابة خضراء وضباب" to "https://pexels.com",
-        "سماء النجوم والليل" to "https://pexels.com"
+        "غروب هادئ" to "https://unsplash.com",
+        "جبال الضباب" to "https://unsplash.com",
+        "غابة خضراء" to "https://unsplash.com",
+        "شاطئ ليلي" to "https://unsplash.com",
+        "صحراء ذهبية" to "https://unsplash.com",
+        "بدون خلفية (داكن)" to ""
     )
 
-    private fun httpGet(urlStr: String): String {
-        val conn = URL(urlStr).openConnection() as HttpURLConnection
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-        conn.connectTimeout = 8000
-        conn.readTimeout = 8000
-        return conn.inputStream.bufferedReader().use { it.readText() }
+    val verifiedQuranRadios = listOf(
+        "إذاعة القرآن الكريم - القاهرة" to "https://radiojar.com",
+        "تراتيل قصيرة خاشعة (mp3quran)" to "https://qurango.net",
+        "الشيخ ماهر المعيقلي (mp3quran)" to "https://qurango.net",
+        "الشيخ عبدالباسط عبدالصمد" to "https://qurango.net",
+        "الشيخ مشاري العفاسي" to "https://qurango.net",
+        "الشيخ ياسر الدوسري" to "https://qurango.net"
+    )
+
+    private var cachedSurahList: List<SurahHeader>? = null
+    private val cachedSurahTexts = mutableMapOf<Int, FullSurahContent>()
+
+    private fun httpGet(urlStr: String): String? {
+        return try {
+            val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 9000
+                readTimeout = 9000
+                setRequestProperty("User-Agent", "PalestineTVLauncher/1.2")
+            }
+            if (conn.responseCode in 200..299) {
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
+    suspend fun fetchAll114Surahs(): List<SurahHeader> = withContext(Dispatchers.IO) {
+        cachedSurahList?.let { return@withContext it }
+        try {
+            val raw = httpGet("https://alquran.cloud") ?: return@withContext emptyList()
+            val arr = JSONObject(raw).getJSONArray("data")
+            val list = mutableListOf<SurahHeader>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val type = if (obj.optString("revelationType") == "Meccan") "مكية" else "مدنية"
+                list.add(
+                    SurahHeader(
+                        number = obj.getInt("number"),
+                        name = obj.getString("name"),
+                        ayahCount = obj.getInt("numberOfAyahs"),
+                        revelationType = type
+                    )
+                )
+            }
+            cachedSurahList = list
+            list
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun fetchFullSurahText(surahNumber: Int): FullSurahContent? = withContext(Dispatchers.IO) {
+        cachedSurahTexts[surahNumber]?.let { return@withContext it }
+        try {
+            val raw = httpGet("https://alquran.cloud/$surahNumber/quran-uthmani") ?: return@withContext null
+            val data = JSONObject(raw).getJSONObject("data")
+            val name = data.getString("name")
+            val ayahs = data.getJSONArray("ayahs")
+            var firstPage = 0
+            var lastPage = 0
+            val sb = StringBuilder()
+            if (surahNumber != 1 && surahNumber != 9) {
+                sb.append("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n\n")
+            }
+            for (i in 0 until ayahs.length()) {
+                val a = ayahs.getJSONObject(i)
+                val num = a.getInt("numberInSurah")
+                val page = a.optInt("page", 1)
+                if (i == 0) firstPage = page
+                lastPage = page
+                var txt = a.getString("text")
+                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) {
+                    txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                }
+                sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
+            }
+            val pageStr = if (firstPage == lastPage) "صفحة ${PalestineData.toArabicDigits(firstPage.toString())}"
+            else "صفحة ${PalestineData.toArabicDigits("$firstPage - $lastPage")}"
+            val result = FullSurahContent(surahNumber, name, sb.toString().trim(), pageStr)
+            cachedSurahTexts[surahNumber] = result
+            result
+        } catch (_: Exception) {
+            null
+        }
+    }
     suspend fun autoDetectLocation(): PalestinianCity? = withContext(Dispatchers.IO) {
         try {
-            val json = JSONObject(httpGet("http://ip-api.com"))
-            if (json.optString("status") == "success") {
-                val city = json.optString("city", "أريحا")
-                val country = json.optString("country", "فلسطين")
-                val lat = json.optDouble("lat", 32.0450)
-                val lon = json.optDouble("lon", 35.4580)
-                val tz = json.optString("timezone", "Asia/Hebron")
-                PalestinianCity(city, country, lat, lon, tz)
-            } else null
+            val raw = httpGet("https://ipapi.co") ?: return@withContext null
+            val json = JSONObject(raw)
+            val city = json.optString("city").ifBlank { "موقعي الحالي" }
+            val country = json.optString("country_name")
+            val lat = json.optDouble("latitude", 32.0450)
+            val lon = json.optDouble("longitude", 35.4580)
+            val tz = json.optString("timezone").ifBlank { "Asia/Hebron" }
+            PalestinianCity(city, country, lat, lon, tz)
         } catch (_: Exception) {
             null
         }
@@ -78,154 +148,135 @@ object LiveRepository {
     suspend fun searchLocationByName(query: String): List<PalestinianCity> = withContext(Dispatchers.IO) {
         try {
             val encoded = URLEncoder.encode(query.trim(), "UTF-8")
-            val url = "https://open-meteo.com"
-            val json = JSONObject(httpGet(url))
-            val results = json.optJSONArray("results") ?: return@withContext emptyList()
-            List(results.length()) { idx ->
-                val item = results.getJSONObject(idx)
-                val name = item.optString("name", query)
-                val country = item.optString("country", "")
-                val lat = item.optDouble("latitude", 32.0450)
-                val lon = item.optDouble("longitude", 35.4580)
-                val tz = item.optString("timezone", "Asia/Hebron")
-                PalestinianCity(name, country, lat, lon, tz)
+            val raw = httpGet("https://open-meteo.com")
+                ?: return@withContext emptyList()
+            val results = JSONObject(raw).optJSONArray("results") ?: return@withContext emptyList()
+            val list = mutableListOf<PalestinianCity>()
+            for (i in 0 until results.length()) {
+                val obj = results.getJSONObject(i)
+                list.add(
+                    PalestinianCity(
+                        name = obj.optString("name"),
+                        country = obj.optString("country"),
+                        lat = obj.optDouble("latitude"),
+                        lon = obj.optDouble("longitude"),
+                        timeZoneId = obj.optString("timezone").ifBlank { "Asia/Hebron" }
+                    )
+                )
             }
+            list
         } catch (_: Exception) {
             emptyList()
         }
     }
 
-    suspend fun fetchExactPrayers(
-        lat: Double,
-        lon: Double,
-        timeZoneId: String = "Asia/Hebron"
-    ): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
+    suspend fun fetchExactPrayers(lat: Double, lon: Double, timeZoneId: String): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
         try {
-            val url = "https://aladhan.com"
-            val json = JSONObject(httpGet(url))
-            val timings = json.getJSONObject("data").getJSONObject("timings")
-            fun cleanTime(key: String): String =
-                timings.optString(key, "05:00").substringBefore(" ")
-
-            val raw = PalestineData.PrayerDisplay(
-                fajr = cleanTime("Fajr"),
-                sunrise = cleanTime("Sunrise"),
-                dhuhr = cleanTime("Dhuhr"),
-                asr = cleanTime("Asr"),
-                maghrib = cleanTime("Maghrib"),
-                isha = cleanTime("Isha")
+            val dateStr = SimpleDateFormat("dd-MM-yyyy", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone(timeZoneId)
+            }.format(Date())
+            val raw = httpGet("https://aladhan.com")
+                ?: return@withContext PalestineData.PrayerDisplay()
+            val timings = JSONObject(raw).getJSONObject("data").getJSONObject("timings")
+            val model = PrayerTimesModel(
+                fajr = timings.getString("Fajr").take(5),
+                sunrise = timings.getString("Sunrise").take(5),
+                dhuhr = timings.getString("Dhuhr").take(5),
+                asr = timings.getString("Asr").take(5),
+                maghrib = timings.getString("Maghrib").take(5),
+                isha = timings.getString("Isha").take(5)
             )
-            PalestineData.computeNextPrayer(raw, timeZoneId)
+            PalestineData.buildPrayerDisplay(model, timeZoneId)
         } catch (_: Exception) {
-            PalestineData.computeNextPrayer(PalestineData.PrayerDisplay(), timeZoneId)
+            PalestineData.PrayerDisplay()
+        }
+    }
+
+    suspend fun fetchCityWeather(lat: Double, lon: Double, timeZoneId: String): Triple<String, String, String>? = withContext(Dispatchers.IO) {
+        try {
+            val encodedTz = URLEncoder.encode(timeZoneId, "UTF-8")
+            val raw = httpGet("https://open-meteo.com")
+                ?: return@withContext null
+            val json = JSONObject(raw)
+            val current = json.getJSONObject("current_weather").getDouble("temperature").toInt().toString()
+            val daily = json.getJSONObject("daily")
+            val max = daily.getJSONArray("temperature_2m_max").getDouble(0).toInt().toString()
+            val min = daily.getJSONArray("temperature_2m_min").getDouble(0).toInt().toString()
+            Triple(current, max, min)
+        } catch (_: Exception) {
+            null
         }
     }
 
     suspend fun fetchGitHubFeed(): LiveFeedState = withContext(Dispatchers.IO) {
         try {
-            val url = "https://githubusercontent.com"
-            val json = JSONObject(httpGet(url))
-            val weather = json.optJSONObject("weather")
-            val curTemp = weather?.optInt("current_temp", 25) ?: 25
-            val maxArr = weather?.optJSONArray("daily_max")
-            val minArr = weather?.optJSONArray("daily_min")
-            val maxList = if (maxArr != null && maxArr.length() > 0) {
-                List(maxArr.length()) { maxArr.getInt(it) }
-            } else listOf(27, 28, 26, 25, 24)
-            val minList = if (minArr != null && minArr.length() > 0) {
-                List(minArr.length()) { minArr.getInt(it) }
-            } else listOf(16, 17, 15, 15, 14)
-
+            val raw = httpGet("https://githubusercontent.com")
+                ?: return@withContext LiveFeedState()
+            val json = JSONObject(raw)
             val newsArr = json.optJSONArray("news")
-            val newsList = if (newsArr != null && newsArr.length() > 0) {
-                List(newsArr.length()) { newsArr.getString(it) }
-            } else listOf("متابعة مستمرة للأحوال الجوية والأسعار المحلية في فلسطين")
-
-            val matchArr = json.optJSONArray("matches")
-            val matchList = if (matchArr != null && matchArr.length() > 0) {
-                List(matchArr.length()) {
-                    val m = matchArr.getJSONObject(it)
-                    MatchItem(m.optString("name"), m.optString("status"))
+            val newsList = mutableListOf<String>()
+            if (newsArr != null) {
+                for (i in 0 until newsArr.length()) newsList.add(newsArr.getString(i))
+            }
+            val matchesArr = json.optJSONArray("matches")
+            val matchesList = mutableListOf<MatchItem>()
+            if (matchesArr != null) {
+                for (i in 0 until matchesArr.length()) {
+                    val m = matchesArr.getJSONObject(i)
+                    matchesList.add(MatchItem(m.optString("name"), m.optString("status")))
                 }
-            } else listOf(MatchItem("مباريات اليوم", "مباشر"))
-
+            }
             LiveFeedState(
-                currentTemp = curTemp,
-                dailyMax = maxList,
-                dailyMin = minList,
-                news = newsList,
-                matches = matchList
+                news = newsList.ifEmpty { LiveFeedState().news },
+                matches = matchesList.ifEmpty { LiveFeedState().matches }
             )
         } catch (_: Exception) {
             LiveFeedState()
         }
     }
 
-    suspend fun fetchCityWeather(
-        lat: Double,
-        lon: Double,
-        timeZoneId: String = "Asia/Hebron"
-    ): Triple<Int, List<Int>, List<Int>>? = withContext(Dispatchers.IO) {
-        try {
-            val tzEnc = URLEncoder.encode(timeZoneId, "UTF-8")
-            val url = "https://open-meteo.com" +
-                "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=$tzEnc"
-            val json = JSONObject(httpGet(url))
-            val cur = json.getJSONObject("current").getDouble("temperature_2m").toInt()
-            val daily = json.getJSONObject("daily")
-            val maxA = daily.getJSONArray("temperature_2m_max")
-            val minA = daily.getJSONArray("temperature_2m_min")
-            val maxL = List(minOf(5, maxA.length())) { maxA.getDouble(it).toInt() }
-            val minL = List(minOf(5, minA.length())) { minA.getDouble(it).toInt() }
-            Triple(cur, maxL, minL)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
     suspend fun fetchInstantPrices(): Map<String, Pair<String, Boolean>> = withContext(Dispatchers.IO) {
-        val result = mutableMapOf<String, Pair<String, Boolean>>()
         try {
-            val fxJson = JSONObject(httpGet("https://er-api.com"))
-            val rates = fxJson.getJSONObject("rates")
-            val ils = rates.getDouble("ILS")
-            val jod = rates.getDouble("JOD")
-            val eur = rates.getDouble("EUR")
-            result["USD/ILS"] = Pair(String.format("%.2f", ils), true)
-            result["JOD/ILS"] = Pair(String.format("%.2f", ils / jod), true)
-            result["EUR/ILS"] = Pair(String.format("%.2f", ils / eur), false)
-        } catch (_: Exception) {}
-
-        try {
-            val cryptoUrl = "https://coingecko.com"
-            val cJson = JSONObject(httpGet(cryptoUrl))
-            val btc = cJson.getJSONObject("bitcoin").getInt("usd")
-            val eth = cJson.getJSONObject("ethereum").getInt("usd")
-            result["BTC"] = Pair("$btc$", true)
-            result["ETH"] = Pair("$eth$", true)
-        } catch (_: Exception) {}
-        result
+            val raw = httpGet("https://er-api.com") ?: return@withContext emptyMap()
+            val rates = JSONObject(raw).getJSONObject("rates")
+            val ils = rates.optDouble("ILS", 3.65)
+            val jod = rates.optDouble("JOD", 0.709)
+            val eur = rates.optDouble("EUR", 0.92)
+            mapOf(
+                "USD/ILS" to (String.format(Locale.US, "%.2f", ils) to true),
+                "JOD/ILS" to (String.format(Locale.US, "%.2f", ils / jod) to true),
+                "EUR/ILS" to (String.format(Locale.US, "%.2f", ils / eur) to false),
+                "GOLD" to ("2640$" to true)
+            )
+        } catch (_: Exception) {
+            emptyMap()
+        }
     }
 
     suspend fun checkGitHubUpdate(currentVersion: String): GitHubUpdateInfo? = withContext(Dispatchers.IO) {
         try {
-            val u = "https://github.com" + "$OWNER/$REPO/releases/latest"
-            val json = JSONObject(httpGet(u))
-            val tag = json.optString("tag_name", "").removePrefix("v")
-            val notes = json.optString("body", "تحديث جديد متاح")
+            val raw = httpGet("https://github.com")
+                ?: return@withContext null
+            val json = JSONObject(raw)
+            val tag = json.optString("tag_name").removePrefix("v")
+            val notes = json.optString("body").ifBlank { "تحديث جديد متاح للتطبيق" }
             val assets = json.optJSONArray("assets")
             var apkUrl = ""
-            if (assets != null && assets.length() > 0) {
-                apkUrl = assets.getJSONObject(0).optString("browser_download_url", "")
+            if (assets != null) {
+                for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    val url = a.optString("browser_download_url")
+                    if (url.endsWith(".apk")) {
+                        apkUrl = url
+                        break
+                    }
+                }
             }
             if (tag.isNotEmpty() && tag != currentVersion && apkUrl.isNotEmpty()) {
-                                GitHubUpdateInfo(true, tag, apkUrl, notes)
-            } else {
-                null
-            }
+                GitHubUpdateInfo(true, tag, apkUrl, notes)
+            } else null
         } catch (_: Exception) {
             null
         }
     }
 }
-
