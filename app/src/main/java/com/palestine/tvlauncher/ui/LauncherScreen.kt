@@ -340,7 +340,8 @@ fun LauncherScreen() {
     }
 
     LaunchedEffect(Unit) {
-                installedApps = AppManager.getInstalledTvApps(context)
+     installedApps = AppManager.loadInstalledApps(context)
+
         val feed = LiveRepository.fetchGitHubFeed()
         val instantPrices = LiveRepository.fetchInstantPrices()
         liveFeed = feed.copy(prices = feed.prices + instantPrices)
