@@ -30,7 +30,7 @@ import com.palestine.tvlauncher.data.LauncherConfig
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
-import com.palestine.tvlauncher.util.TvAppInfo
+import com.palestine.tvlauncher.data.TvAppInfo
 import java.util.Calendar
 
 @Composable
@@ -187,10 +187,8 @@ fun AppDockRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            items(
-                items = apps,
-                key = { it.packageName }
-            ) { app ->
+                        items(apps) { app ->
+
                 var isFocused by remember { mutableStateOf(false) }
                 val targetS = if (isFocused) {
                     config.appBaseScale * config.appFocusScale
