@@ -340,7 +340,7 @@ fun LauncherScreen() {
     }
 
     LaunchedEffect(Unit) {
-        installedApps = AppManager.loadTvApps(context)
+                installedApps = AppManager.getInstalledTvApps(context)
         val feed = LiveRepository.fetchGitHubFeed()
         val instantPrices = LiveRepository.fetchInstantPrices()
         liveFeed = feed.copy(prices = feed.prices + instantPrices)
@@ -670,19 +670,23 @@ fun LauncherScreen() {
             )
         }
 
-        if (showUpdateDialog && updateInfo != null) {
+                if (showUpdateDialog && updateInfo != null) {
             AlertDialog(
                 onDismissRequest = { showUpdateDialog = false },
                 confirmButton = {
-                    Button(onClick = 
-                            
-                            context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(updateInfo!!.apkDownloadUrl)))
-
+                    Button(onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(updateInfo!!.apkDownloadUrl))
+                        )
                         showUpdateDialog = false
-                    }) { Text("تحميل وتثبيت الآن") }
+                    }) {
+                        Text("تحميل وتثبيت الآن")
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") }
+                    TextButton(onClick = { showUpdateDialog = false }) {
+                        Text("لاحقاً")
+                    }
                 },
                 title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
                 text = { Text(updateInfo!!.releaseNotes) }
@@ -690,4 +694,3 @@ fun LauncherScreen() {
         }
     }
 }
-
