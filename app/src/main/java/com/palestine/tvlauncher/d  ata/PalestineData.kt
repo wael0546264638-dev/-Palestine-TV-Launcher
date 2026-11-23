@@ -165,7 +165,7 @@ object PalestineData {
         val localeAr = Locale("ar")
         val sdf = SimpleDateFormat("EEEE، d MMMM yyyy", localeAr).apply { timeZone = tz }
         val greg = sdf.format(Date())
-        val hijriCal = IslamicCalendar(tz)
+        val hijriCal = IslamicCalendar().apply { timeZone = tz }
         val hijriMonths = arrayOf(
             "محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
             "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"
