@@ -3,6 +3,8 @@ package com.palestine.tvlauncher.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -15,8 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,16 +31,17 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.palestine.tvlauncher.data.LauncherConfig
 import com.palestine.tvlauncher.data.PalestineData
+import com.palestine.tvlauncher.data.TvAppInfo
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
-import com.palestine.tvlauncher.data.TvAppInfo
-import java.util.Calendar
+import java.util.*
 
 @Composable
 fun TopControlBar(
     config: LauncherConfig,
     isWifiConnected: Boolean,
     isQuranPlaying: Boolean,
+    isQuranBuffering: Boolean,
     isVpnActive: Boolean,
     updateInfo: GitHubUpdateInfo?,
     onOpenWifi: () -> Unit,
@@ -58,93 +62,116 @@ fun TopControlBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (config.showTopWifi) {
-                PillActionButton(
-                    label = if (isWifiConnected) "متصل" else "غير متصل",
+                TopPillButton(
                     icon = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                    tint = if (isWifiConnected) Color(0xFF34D399) else Color(0xFFF87171),
+                    label = if (isWifiConnected) "متصل" else "غير متصل",
+                    activeColor = if (isWifiConnected) Color(0xFF34D399) else Color(0xFFF87171),
+                    isHighlighted = isWifiConnected,
                     onClick = onOpenWifi
                 )
             }
             if (config.showTopQuranRadio) {
-                PillActionButton(
-                    label = if (isQuranPlaying) "إيقاف القرآن" else "إذاعة القرآن",
-                    icon = if (isQuranPlaying) Icons.Default.StopCircle else Icons.Default.Radio,
-                    tint = if (isQuranPlaying) Color(0xFFFBBF24) else Color.White,
+                val radioLabel = when {
+                    isQuranBuffering -> "جاري الاتصال..."
+                    isQuranPlaying -> "إذاعة القرآن (يعمل)"
+                    else -> "إذاعة القرآن"
+                }
+                val radioColor = when {
+                    isQuranBuffering -> Color(0xFFFBBF24)
+                    isQuranPlaying -> Color(0xFF10B981)
+                    else -> Color.White
+                }
+                TopPillButton(
+                    icon = if (isQuranPlaying) Icons.Default.GraphicEq else Icons.Default.Radio,
+                    label = radioLabel,
+                    activeColor = radioColor,
+                    isHighlighted = isQuranPlaying || isQuranBuffering,
                     onClick = onToggleQuran
                 )
             }
             if (config.showTopQuranBook) {
-                PillActionButton(
-                    label = "المصحف الشريف",
+                TopPillButton(
                     icon = Icons.Default.MenuBook,
+                    label = "المصحف الشريف",
+                    activeColor = Color(0xFFFBBF24),
+                    isHighlighted = false,
                     onClick = onOpenQuranBook
                 )
             }
             if (config.showTopScreensaver) {
-                PillActionButton(
-                    label = "شاشة التوقف",
+                TopPillButton(
                     icon = Icons.Default.Bedtime,
+                    label = "شاشة التوقف",
+                    activeColor = Color(0xFF38BDF8),
+                    isHighlighted = false,
                     onClick = onOpenScreensaver
                 )
             }
             if (config.showTopVpn) {
-                PillActionButton(
-                    label = if (isVpnActive) "VPN نشط" else "VPN",
+                TopPillButton(
                     icon = Icons.Default.VpnLock,
-                    tint = if (isVpnActive) Color(0xFF38BDF8) else Color.White,
+                    label = if (isVpnActive) "VPN نشط" else "VPN",
+                    activeColor = if (isVpnActive) Color(0xFF38BDF8) else Color(0xFFCBD5E1),
+                    isHighlighted = isVpnActive,
                     onClick = onOpenVpn
+                )
+            }
+            if (updateInfo?.hasUpdate == true) {
+                TopPillButton(
+                    icon = Icons.Default.SystemUpdate,
+                    label = "تحديث ${updateInfo.latestVersion}",
+                    activeColor = Color(0xFFF59E0B),
+                    isHighlighted = true,
+                    onClick = onTriggerUpdate
                 )
             }
         }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (updateInfo != null && updateInfo.hasUpdate) {
-                PillActionButton(
-                    label = "تحديث (${updateInfo.latestVersion})",
-                    icon = Icons.Default.SystemUpdate,
-                    tint = Color(0xFF34D399),
-                    onClick = onTriggerUpdate
-                )
-            }
-            if (config.showTopSettings) {
-                PillActionButton(
-                    label = "الإعدادات",
-                    icon = Icons.Default.Settings,
-                    onClick = onOpenSettings
-                )
-            }
-        }
+        TopPillButton(
+            icon = Icons.Default.Settings,
+            label = "الإعدادات",
+            activeColor = Color.White,
+            isHighlighted = false,
+            onClick = onOpenSettings
+        )
     }
 }
 
 @Composable
-fun PillActionButton(
-    label: String,
+fun TopPillButton(
     icon: ImageVector,
-    tint: Color = Color.White,
+    label: String,
+    activeColor: Color,
+    isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.07f else 1f,
+        targetValue = if (isFocused) 1.08f else 1f,
         animationSpec = tween(70),
-        label = "pillScale"
+        label = "pill_scale"
     )
+
+    val bgColor = when {
+        isFocused -> Color.White
+        isHighlighted -> activeColor.copy(alpha = 0.28f)
+        else -> Color.Black.copy(alpha = 0.55f)
+    }
+    val borderColor = when {
+        isFocused -> Color.White
+        isHighlighted -> activeColor
+        else -> Color.White.copy(alpha = 0.22f)
+    }
 
     Surface(
         modifier = Modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .onFocusChanged { isFocused = it.isFocused }
-            .clickable { onClick() },
+            .clip(CircleShape)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = CircleShape,
-        color = if (isFocused) Color.White else Color.Black.copy(alpha = 0.52f),
-        border = BorderStroke(
-            width = if (isFocused) 2.5.dp else 1.dp,
-            color = if (isFocused) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.18f)
-        )
+        color = bgColor,
+        border = BorderStroke(if (isHighlighted || isFocused) 1.5.dp else 1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -153,15 +180,54 @@ fun PillActionButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = label,
-                tint = if (isFocused) Color.Black else tint,
+                contentDescription = null,
+                tint = if (isFocused) Color(0xFF0F172A) else activeColor,
                 modifier = Modifier.size(18.dp)
             )
             Text(
                 text = label,
-                color = if (isFocused) Color.Black else Color.White,
+                color = if (isFocused) Color(0xFF0F172A) else Color.White,
+                fontSize = 13.sp,
+                fontWeight = if (isFocused || isHighlighted) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+    }
+}
+@Composable
+fun PillActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1f,
+        animationSpec = tween(70),
+        label = "action_scale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        shape = CircleShape,
+        color = if (isFocused) Color.White else Color.Black.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, if (isFocused) Color.White else Color.White.copy(alpha = 0.22f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isFocused) Color(0xFF0F172A) else Color(0xFFFBBF24),
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = label,
+                color = if (isFocused) Color(0xFF0F172A) else Color.White,
                 fontSize = 14.sp,
-                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -174,101 +240,115 @@ fun AppDockRow(
     modifier: Modifier = Modifier,
     onLaunchApp: (TvAppInfo) -> Unit
 ) {
-    val cornerDp = (config.appCornerRadiusPercent * 0.45f).dp
-    val shape = RoundedCornerShape(cornerDp)
-
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        color = Color.Black.copy(alpha = config.dockBgOpacity)
+        color = Color.Black.copy(alpha = config.dockBgOpacity),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f))
     ) {
         LazyRow(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-                        items(apps) { app ->
-
-                var isFocused by remember { mutableStateOf(false) }
-                val targetS = if (isFocused) {
-                    config.appBaseScale * config.appFocusScale
-                } else {
-                    config.appBaseScale
-                }
-                val scale by animateFloatAsState(
-                    targetValue = targetS,
-                    animationSpec = tween(durationMillis = 70),
-                    label = "appScale"
-                )
-
-                val glowColor = remember(config.appGlowMode, config.appCustomGlowHex, app.dominantColor) {
-                    when (config.appGlowMode) {
-                        0 -> app.dominantColor
-                        1 -> try {
-                            Color(android.graphics.Color.parseColor(config.appCustomGlowHex))
-                        } catch (_: Exception) {
-                            Color(0xFF38BDF8)
-                        }
-                        else -> Color.White
-                    }
-                }
-
-                val bitmap = remember(app.packageName) {
-                    app.bannerOrIcon.toBitmap(150, 86).asImageBitmap()
-                }
-
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .width(136.dp)
-                        .height(78.dp)
-                        .clip(shape)
-                        .background(Color(0xFF1E293B).copy(alpha = config.appCardOpacity))
-                        .border(
-                            width = if (isFocused) 3.dp else 1.dp,
-                            color = if (isFocused) glowColor else Color.White.copy(alpha = 0.15f),
-                            shape = shape
-                        )
-                        .onFocusChanged { isFocused = it.isFocused }
-                        .clickable { onLaunchApp(app) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = app.label,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+            items(apps, key = { it.packageName }) { app ->
+                TvAppTile(app = app, config = config, onClick = { onLaunchApp(app) })
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val focusScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.10f else 1.0f,
+        animationSpec = tween(70),
+        label = "app_tile_scale"
+    )
+    val tileW = (116 * config.appBaseScale).dp
+    val tileH = (74 * config.appBaseScale).dp
+    val shape = RoundedCornerShape(config.appCornerRadiusPercent.dp)
+
+    val cachedBitmap: ImageBitmap? = remember(app.packageName) {
+        try {
+            app.bannerOrIcon.toBitmap(width = 160, height = 100).asImageBitmap()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(tileW)
+            .graphicsLayer {
+                scaleX = focusScale
+                scaleY = focusScale
+            }
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(tileW, tileH)
+                .clip(shape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(app.dominantColor.copy(alpha = 0.45f), Color(0xFF0F172A))
+                    )
+                )
+                .border(
+                    width = if (isFocused) 2.5.dp else 1.dp,
+                    color = if (isFocused) Color.White else Color.White.copy(alpha = 0.2f),
+                    shape = shape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (cachedBitmap != null) {
+                Image(
+                    bitmap = cachedBitmap,
+                    contentDescription = app.label,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(5.dp))
+        Text(
+            text = app.label,
+            color = if (isFocused) Color.White else Color(0xFFCBD5E1),
+            fontSize = 12.sp,
+            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
 @Composable
 fun BottomTickerBar(
     config: LauncherConfig,
     prayerInfo: PalestineData.PrayerDisplay,
     liveFeed: LiveFeedState
 ) {
-    val daysToRamadan = PalestineData.getDaysUntilRamadan()
-    val nearestFamily = config.reminders.minByOrNull {
-        calculateDaysUntilDate(it.month, it.day)
+    val daysToRamadan = remember { PalestineData.getDaysUntilRamadan() }
+    val nearestFamily = remember(config.reminders) {
+        config.reminders.minByOrNull { calculateDaysUntilDate(it.month, it.day) }
     }
     val familyText = nearestFamily?.let {
-        " • مناسبة ${it.name} بعد ${calculateDaysUntilDate(it.month, it.day)} يوم"
+        val d = calculateDaysUntilDate(it.month, it.day)
+        "   •   مناسبة ${it.name} بعد $d يوم"
     } ?: ""
 
-    val tickerLine = buildString {
-        config.activeTickerPairs.forEach { pair ->
-            val info = liveFeed.prices[pair]
-                        if (info != null) {
-                val arrow = if (info.second) "▲" else "▼"
-                append("   |   $pair: ${info.first} $arrow")
+    val tickerLine = remember(config.activeTickerPairs, liveFeed.prices) {
+        buildString {
+            config.activeTickerPairs.forEach { pair ->
+                val info = liveFeed.prices[pair]
+                if (info != null) {
+                    val arrow = if (info.second) "▲" else "▼"
+                    append("   |   $pair: ${info.first} $arrow")
+                }
             }
         }
     }
@@ -322,4 +402,3 @@ fun calculateDaysUntilDate(month: Int, day: Int): Int {
     val diff = target.timeInMillis - today.timeInMillis
     return (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
 }
-
