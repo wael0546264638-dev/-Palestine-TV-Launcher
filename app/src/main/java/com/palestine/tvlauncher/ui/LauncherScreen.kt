@@ -35,8 +35,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.*
 import com.palestine.tvlauncher.network.*
-import com.palestine.tvlauncher.util.AppManager
-import com.palestine.tvlauncher.util.TvAppInfo
+import com.palestine.tvlauncher.data.AppManager
+import com.palestine.tvlauncher.data.TvAppInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -674,8 +674,10 @@ fun LauncherScreen() {
             AlertDialog(
                 onDismissRequest = { showUpdateDialog = false },
                 confirmButton = {
-                    Button(onClick = {
-                        LiveRepository.downloadAndInstallApk(context, updateInfo!!.apkDownloadUrl)
+                    Button(onClick = 
+                            
+                            context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(updateInfo!!.apkDownloadUrl)))
+
                         showUpdateDialog = false
                     }) { Text("تحميل وتثبيت الآن") }
                 },
