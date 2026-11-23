@@ -219,3 +219,13 @@ object LiveRepository {
                 apkUrl = assets.getJSONObject(0).optString("browser_download_url", "")
             }
             if (tag.isNotEmpty() && tag != currentVersion && apkUrl.isNotEmpty()) {
+                                GitHubUpdateInfo(true, tag, apkUrl, notes)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
