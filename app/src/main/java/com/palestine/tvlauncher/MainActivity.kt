@@ -1,23 +1,15 @@
-
 package com.palestine.tvlauncher
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
-import com.palestine.tvlauncher.data.LauncherPreferences
-import com.palestine.tvlauncher.ui.LauncherApp
+import com.palestine.tvlauncher.ui.LauncherScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val prefs = LauncherPreferences(applicationContext)
         setContent {
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                LauncherApp(prefs = prefs)
-            }
+            LauncherScreen()
         }
     }
 }
