@@ -192,7 +192,7 @@ fun InteractiveTabsCard(
                     8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         liveFeed.prices.forEach { (pair, info) ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                                Text(pair, color = Color.White)
+                                Text(pair, color = Color.White)
                                 Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
                             }
                         }
@@ -274,7 +274,6 @@ fun InteractiveTabsCard(
         }
     }
 }
-
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
@@ -301,8 +300,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxSize(0.92f)
+            modifier = Modifier.fillMaxSize(0.92f),
             shape = RoundedCornerShape(24.dp),
             color = Color(0xFF0B1324),
             border = BorderStroke(1.5.dp, Color(0xFFFBBF24).copy(alpha = 0.5f))
@@ -323,12 +321,8 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SettingOptionPill("تصغير الخط -", false) {
-                            fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(16f)
-                        }
-                        SettingOptionPill("تكبير الخط +", false) {
-                            fontSizeSp = (fontSizeSp + 2f).coerceAtMost(34f)
-                        }
+                        SettingOptionPill("تصغير الخط -", false) { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(16f) }
+                        SettingOptionPill("تكبير الخط +", false) { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(34f) }
                         SettingOptionPill("إغلاق", false, onClick = onDismiss)
                     }
                 }
@@ -336,7 +330,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // قائمة السور الـ 114 على اليمين
                     LazyColumn(
                         modifier = Modifier
                             .weight(0.28f)
@@ -355,9 +348,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .clickable(interactionSource = interaction, indication = null) {
-                                        selectedSurahNum = s.number
-                                    },
+                                    .clickable(interactionSource = interaction, indication = null) { selectedSurahNum = s.number },
                                 shape = RoundedCornerShape(12.dp),
                                 color = when {
                                     focused -> Color.White
@@ -386,7 +377,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                         }
                     }
 
-                    // منطقة قراءة الآيات على اليسار
                     Surface(
                         modifier = Modifier.weight(0.72f).fillMaxHeight(),
                         shape = RoundedCornerShape(16.dp),
@@ -401,10 +391,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                             val scrollState = rememberScrollState()
                             LaunchedEffect(selectedSurahNum) { scrollState.scrollTo(0) }
                             Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(scrollState)
-                                    .padding(24.dp),
+                                modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -444,7 +431,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
@@ -461,6 +447,51 @@ fun LiveLayoutEditorOverlay(
     var ko by remember { mutableFloatStateOf(config.cardBgOpacity) }
     var dx by remember { mutableFloatStateOf(config.dockOffsetX) }
     var dy by remember { mutableFloatStateOf(config.dockOffsetY) }
+
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionLeft -> { when (target) { 0 -> cx -= 12f; 1 -> kx -= 12f; 2 -> dx -= 12f }; true }
+                        Key.DirectionRight -> { when (target) { 0 -> cx += 12f; 1 -> kx += 12f; 2 -> dx += 12f }; true }
+                        Key.DirectionUp -> { when (target) { 0 -> cy -= 12f; 1 -> ky -= 12f; 2 -> dy -= 12f }; true }
+                        Key.DirectionDown -> { when (target) { 0 -> cy += 12f; 1 -> ky += 12f; 2 -> dy += 12f }; true }
+                        Key.DirectionCenter, Key.Enter -> { target = (target + 1) % 3; true }
+                        Key.Back -> { onSave(cx, cy, cs, kx, ky, ks, ko, dx, dy); true }
+                        else -> false
+                    }
+                } else false
+            },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            modifier = Modifier.padding(top = 18.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF0F172A).copy(alpha = 0.92f),
+            border = BorderStroke(1.5.dp, Color(0xFF38BDF8))
+        ) {
+            val names = listOf("الساعة والتاريخ", "البطاقة التفاعلية", "شريط التطبيقات")
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("العنصر المحدد: ${names[target]}", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                Text("الأسهم: تحريك  |  OK: تبديل العنصر  |  رجوع: حفظ", color = Color.White, fontSize = 13.sp)
+                TextButton(onClick = { onSave(cx, cy, cs, kx, ky, ks, ko, dx, dy) }) { Text("حفظ", color = Color(0xFF34D399)) }
+                TextButton(onClick = onCancel) { Text("إلغاء", color = Color(0xFFF87171)) }
+            }
+        }
+    }
+}
+
 @Composable
 fun ScreensaverView(
     timeZoneId: String,
@@ -495,18 +526,12 @@ fun ScreensaverView(
                             Key.DirectionCenter, Key.Enter, Key.Back -> { onSaveOffsets(ox, oy, sc); true }
                             else -> false
                         }
-                    } else {
-                        onExit()
-                        true
-                    }
+                    } else { onExit(); true }
                 } else false
             },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.offset(x = ox.dp, y = oy.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(modifier = Modifier.offset(x = ox.dp, y = oy.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             ArabicClockDisplay(timeZoneId = timeZoneId, clockStyle = 0)
             Spacer(modifier = Modifier.height(8.dp))
             Text("$hijri  |  $gregorian", color = Color(0xFFCBD5E1), fontSize = 20.sp)
@@ -519,21 +544,15 @@ fun ScreensaverView(
         }
     }
 }
-}
+
 @Composable
 fun SettingOptionPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     Surface(
-        modifier = Modifier
-            .clip(CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        modifier = Modifier.clip(CircleShape).clickable(interactionSource = interaction, indication = null, onClick = onClick),
         shape = CircleShape,
-        color = when {
-            focused -> Color.White
-            selected -> Color(0xFF38BDF8)
-            else -> Color.White.copy(alpha = 0.12f)
-        },
+        color = when { focused -> Color.White; selected -> Color(0xFF38BDF8); else -> Color.White.copy(alpha = 0.12f) },
         border = BorderStroke(if (focused) 2.dp else 1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.22f))
     ) {
         Text(
@@ -563,11 +582,7 @@ private fun SettingsCategoryBox(title: String, content: @Composable ColumnScope.
 
 @Composable
 private fun StepAdjustRow(title: String, valueLabel: String, onDecrease: () -> Unit, onIncrease: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(title, color = Color.White, fontSize = 14.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             SettingOptionPill("-", false, onClick = onDecrease)
@@ -576,7 +591,6 @@ private fun StepAdjustRow(title: String, valueLabel: String, onDecrease: () -> U
         }
     }
 }
-
 @Composable
 fun SettingsModalDrawer(
     config: LauncherConfig,
@@ -602,22 +616,17 @@ fun SettingsModalDrawer(
     ) {
         BackHandler(onBack = onDismiss)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.72f))
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)),
             contentAlignment = Alignment.CenterEnd
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.56f)
-                                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(0.56f),
+                shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
                 color = Color(0xFF0B1324),
                 border = BorderStroke(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.45f))
             ) {
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                     Row(
-
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -630,20 +639,13 @@ fun SettingsModalDrawer(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // الفئة 1: تعيين اللانشر الافتراضي والموقع
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         item {
                             SettingsCategoryBox("١. تعيين اللانشر والموقع") {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     SettingOptionPill("تعيين كلانشر افتراضي للتلفاز", false) {
-                                        try {
-                                            context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
-                                        } catch (_: Exception) {
-                                            context.startActivity(Intent(Settings.ACTION_SETTINGS))
-                                        }
+                                        try { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+                                        catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
                                     }
                                     SettingOptionPill("تعرف تلقائي على موقعي", false) {
                                         locationStatus = "جاري تحديد الموقع..."
@@ -673,7 +675,7 @@ fun SettingsModalDrawer(
                                 }
                                 if (searchResults.isNotEmpty()) {
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                                                items(searchResults) { res ->
+                                        items(searchResults) { res ->
                                             SettingOptionPill("${res.name} (${res.country})", false) {
                                                 scope.launch {
                                                     prefs.setLocation(res)
@@ -703,7 +705,6 @@ fun SettingsModalDrawer(
                             }
                         }
 
-                        // الفئة 2: الخلفيات والمؤقت التلقائي وصور الجهاز
                         item {
                             SettingsCategoryBox("٢. الخلفيات والمؤقت التلقائي وصور الجهاز") {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -738,100 +739,10 @@ fun SettingsModalDrawer(
                                 }
                             }
                         }
-                                                // الفئة 3: أشكال الساعة والتاريخ
+
                         item {
                             SettingsCategoryBox("٣. أشكال الساعة والتاريخ") {
                                 val styles = listOf("رقمي عصري", "بطاقة زجاجية", "عقارب دائرية", "عمودي كبير")
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(styles.size) { idx ->
                                         SettingOptionPill(styles[idx], config.clockStyle == idx) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CLOCK_STYLE] = idx } }
-                                        }
-                                    }
-                                }
-                                val dateModes = listOf("هجري وميلادي", "هجري فقط", "ميلادي فقط", "إخفاء التاريخ")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(dateModes.size) { idx ->
-                                        SettingOptionPill(dateModes[idx], config.dateDisplayMode == idx) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx } }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // الفئة 4: إذاعة القرآن الكريم (mp3quran.net)
-                        item {
-                            SettingsCategoryBox("٤. إذاعة القرآن الكريم") {
-                                val modes = listOf("يدوي / دائم", "الشاشة الرئيسية فقط", "شاشة التوقف فقط", "تشغيل مجدول")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(modes.size) { idx ->
-                                        SettingOptionPill(modes[idx], config.quranPlayMode == idx) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_PLAY_MODE] = idx } }
-                                        }
-                                    }
-                                }
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(LiveRepository.verifiedQuranRadios) { (title, url) ->
-                                        SettingOptionPill(title, config.quranStreamUrl == url) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = url } }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // الفئة 5: الشفافية والأحجام والشريط العلوي
-                        item {
-                            SettingsCategoryBox("٥. الشفافية والأحجام والشريط العلوي") {
-                                StepAdjustRow(
-                                    title = "شفافية البطاقة",
-                                    valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
-                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
-                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
-                                )
-                                StepAdjustRow(
-                                    title = "حجم أيقونات التطبيقات",
-                                    valueLabel = PalestineData.toArabicDigits("${(config.appBaseScale * 100).toInt()}%"),
-                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale - 0.05f).coerceIn(0.75f, 1.3f) } } },
-                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale + 0.05f).coerceIn(0.75f, 1.3f) } } }
-                                )
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    item { SettingOptionPill("الشبكة", config.showTopWifi) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } } }
-                                    item { SettingOptionPill("إذاعة القرآن", config.showTopQuranRadio) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio } } } }
-                                    item { SettingOptionPill("المصحف", config.showTopQuranBook) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook } } } }
-                                    item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
-                                    item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
-                                    SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
-                                }
-                            }
-                        }
-
-                        // الفئة 6: شريط الأسعار والتخطيط المباشر
-                        item {
-                            SettingsCategoryBox("٦. شريط الأسعار والتخطيط المباشر") {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(allPairs) { pair ->
-                                        val active = config.activeTickerPairs.contains(pair)
-                                        SettingOptionPill(pair, active) {
-                                            val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
-                                        }
-                                    }
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
-                                    SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-    
-
-
-
