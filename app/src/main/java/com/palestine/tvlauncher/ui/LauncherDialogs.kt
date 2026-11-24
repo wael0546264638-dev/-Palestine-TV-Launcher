@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.palestine.tvlauncher.data.*
+import com.palestine.tvlauncher.data.liveWallpapers
 import com.palestine.tvlauncher.network.FullSurahContent
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
@@ -970,8 +971,8 @@ fun SettingsModalDrawer(
                                  }
                                  Text("نوع الحركة:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
                                  LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(LiveRepository.liveWallpapers.size) { idx ->
-                                         val opt = LiveRepository.liveWallpapers[idx]
+                                     items(liveWallpapers.size) { idx ->
+                                         val opt = liveWallpapers[idx]
                                          SettingOptionPill(opt.title, config.liveWallpaperType == opt.id) {
                                              scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_TYPE] = opt.id } }
                                          }

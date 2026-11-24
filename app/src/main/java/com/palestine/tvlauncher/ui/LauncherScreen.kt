@@ -67,6 +67,14 @@ private fun toLatinDigits(input: String): String {
     return sb.toString()
 }
 
+private fun isAnyPrayerAtTime(nowMins: Int, prayers: List<Pair<String, String>>): Boolean {
+    return prayers.any { (_, timeStr) ->
+        val parts = timeStr.split(":")
+        parts.size >= 2 && parts[0].toIntOrNull() == null == false && parts[1].toIntOrNull() == null == false
+            && parts[0].toIntOrNull()!! * 60 + parts[1].toIntOrNull()!! == nowMins
+    }
+}
+
 @Composable
 fun ArabicClockDisplay(timeZoneId: String, clockStyle: Int) {
     var timeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -417,14 +425,6 @@ fun LauncherScreen() {
         }
     }
 
-    fun isAnyPrayerAtTime(nowMins: Int, prayers: List<Pair<String, String>>): Boolean {
-        return prayers.any { (_, timeStr) ->
-            val parts = timeStr.split(":")
-            parts.size >= 2 && parts[0].toIntOrNull() == null == false && parts[1].toIntOrNull() == null == false
-                && parts[0].toIntOrNull()!! * 60 + parts[1].toIntOrNull()!! == nowMins
-        }
-    }
-
     DisposableEffect(Unit) {
         onDispose { AdhanManager.release() }
     }
@@ -466,7 +466,7 @@ fun LauncherScreen() {
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.NotificationsActive,
@@ -770,3 +770,4 @@ fun LauncherScreen() {
             )
         }
     }
+}

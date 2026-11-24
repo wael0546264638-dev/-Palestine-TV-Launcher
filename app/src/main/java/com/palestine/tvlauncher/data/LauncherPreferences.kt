@@ -88,6 +88,7 @@ data class LauncherConfig(
     val liveWallpaperEnabled: Boolean = false,
     val liveWallpaperIntervalMinutes: Int = 10,
     val liveWallpaperSource: Int = 0, // 0 = curated, 1 = unsplash, 2 = device images
+    val liveWallpaperType: String = "none",
 
     // Favorite team
     val favoriteTeamId: String = "",
@@ -191,6 +192,7 @@ class LauncherPreferences(private val context: Context) {
         val LIVE_WALLPAPER_ENABLED = booleanPreferencesKey("live_wallpaper_enabled")
         val LIVE_WALLPAPER_INTERVAL = intPreferencesKey("live_wallpaper_interval")
         val LIVE_WALLPAPER_SOURCE = intPreferencesKey("live_wallpaper_source")
+        val LIVE_WALLPAPER_TYPE = stringPreferencesKey("live_wallpaper_type")
 
         // Favorite team
         val FAVORITE_TEAM_ID = stringPreferencesKey("favorite_team_id")
@@ -286,6 +288,7 @@ class LauncherPreferences(private val context: Context) {
             liveWallpaperEnabled = p[LIVE_WALLPAPER_ENABLED] ?: false,
             liveWallpaperIntervalMinutes = p[LIVE_WALLPAPER_INTERVAL] ?: 10,
             liveWallpaperSource = p[LIVE_WALLPAPER_SOURCE] ?: 0,
+            liveWallpaperType = p[LIVE_WALLPAPER_TYPE] ?: "none",
 
             favoriteTeamId = p[FAVORITE_TEAM_ID] ?: "",
             favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",

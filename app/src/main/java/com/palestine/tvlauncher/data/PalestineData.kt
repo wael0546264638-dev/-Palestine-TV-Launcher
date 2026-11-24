@@ -14,6 +14,16 @@ data class PalestinianCity(
 
 data class QuranSurah(val number: Int, val name: String, val verses: String)
 
+data class LiveWallpaperOption(val id: String, val title: String)
+
+val liveWallpapers: List<LiveWallpaperOption> = listOf(
+    LiveWallpaperOption("none", "بدون"),
+    LiveWallpaperOption("smooth_motion", "تحرك ناعم"),
+    LiveWallpaperOption("changing_colors", "ألوان متغيرة"),
+    LiveWallpaperOption("rain_stars", "مطر ونجوم"),
+    LiveWallpaperOption("renewable_waterfalls", "شلالات متجددة"),
+)
+
 object PalestineData {
 
     val palestineCities = listOf(
