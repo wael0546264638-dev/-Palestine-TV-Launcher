@@ -46,7 +46,6 @@ dependencies {
     // ExoPlayer for robust audio playback (Quran radio, Adhan, Mushaf)
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation("com.google.android.exoplayer:exoplayer-ui:2.19.1")
-    implementation("com.google.android.exoplayer:extension-mp3:2.19.1")
 
     // Lifecycle & Room (for potential future data persistence)
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")

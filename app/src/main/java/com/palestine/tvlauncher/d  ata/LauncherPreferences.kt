@@ -78,8 +78,8 @@ data class LauncherConfig(
     val focusBorderWidth: Float = 2.5f,
     val focusBorderColor: Int = 0xFFFFFFFF,
 
-    // Tab auto-rotate interval
-    val tabAutoRotateIntervalSeconds: Int = 12,
+    // Tab auto-rotate interval in minutes
+    val tabAutoRotateIntervalMinutes: Int = 1,
 
     // Background live wallpapers
     val liveWallpaperEnabled: Boolean = false,
@@ -172,7 +172,7 @@ class LauncherPreferences(private val context: Context) {
         val FOCUS_BORDER_COLOR = intPreferencesKey("focus_border_color")
 
         // Tab rotate
-        val TAB_ROTATE_INTERVAL = intPreferencesKey("tab_rotate_interval")
+        val TAB_ROTATE_INTERVAL_MINUTES = intPreferencesKey("tab_rotate_interval_minutes")
 
         // Live wallpaper
         val LIVE_WALLPAPER_ENABLED = booleanPreferencesKey("live_wallpaper_enabled")
@@ -264,7 +264,7 @@ class LauncherPreferences(private val context: Context) {
             focusBorderWidth = p[FOCUS_BORDER_WIDTH] ?: 2.5f,
             focusBorderColor = p[FOCUS_BORDER_COLOR] ?: 0xFFFFFFFF.toInt(),
 
-            tabAutoRotateIntervalSeconds = p[TAB_ROTATE_INTERVAL] ?: 12,
+            tabAutoRotateIntervalMinutes = p[TAB_ROTATE_INTERVAL_MINUTES] ?: 1,
 
             liveWallpaperEnabled = p[LIVE_WALLPAPER_ENABLED] ?: false,
             liveWallpaperIntervalMinutes = p[LIVE_WALLPAPER_INTERVAL] ?: 10,

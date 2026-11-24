@@ -6,6 +6,7 @@ import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,6 +50,16 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
+
+private fun toLatinDigits(input: String): String {
+    val arabic = charArrayOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
+    val sb = StringBuilder()
+    for (c in input) {
+        val idx = arabic.indexOf(c)
+        if (idx >= 0) sb.append(idx) else sb.append(c)
+    }
+    return sb.toString()
+}
 
 @Composable
 fun ArabicClockDisplay(timeZoneId: String, clockStyle: Int) {
@@ -157,6 +169,13 @@ fun LauncherScreen() {
     var showAdhkarDialog by remember { mutableStateOf(false) }
     var showQuranDialog by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var tabCardExpanded by remember { mutableStateOf(false) }
+
+    // تذكير الأذان المرئي قبل الوقت
+    var showAdhanReminder by remember { mutableStateOf(false) }
+    var adhanReminderPrayer by remember { mutableStateOf("") }
+    var adhanReminderMinsLeft by remember { mutableStateOf(0) }
+    var lastReminderKey by remember { mutableStateOf<String?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -172,33 +191,51 @@ fun LauncherScreen() {
     }
 
     val mediaPlayer = remember { MediaPlayer() }
+    val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
+    val wakeLock = remember {
+        powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PalestineTV:QuranAudio")
+    }
 
     fun startQuranStream(url: String) {
+        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
         try {
             isQuranBuffering = true
             isQuranPlaying = false
             mediaPlayer.reset()
             mediaPlayer.setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build()
             )
-            mediaPlayer.setDataSource(url)
+            mediaPlayer.setDataSource(streamUrl)
             mediaPlayer.setOnPreparedListener {
                 it.start()
                 isQuranBuffering = false
                 isQuranPlaying = true
+                if (!wakeLock.isHeld) wakeLock.acquire(12 * 60 * 60 * 1000L)
             }
             mediaPlayer.setOnErrorListener { _, _, _ ->
                 isQuranBuffering = false
                 isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
+                scope.launch {
+                    delay(2500)
+                    if (isQuranPlaying || isQuranBuffering) return@launch
+                    startQuranStream(streamUrl)
+                }
                 true
+            }
+            mediaPlayer.setOnCompletionListener {
+                isQuranBuffering = false
+                isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
             }
             mediaPlayer.prepareAsync()
         } catch (_: Exception) {
             isQuranBuffering = false
             isQuranPlaying = false
+            if (wakeLock.isHeld) wakeLock.release()
         }
     }
 
@@ -209,6 +246,7 @@ fun LauncherScreen() {
         } catch (_: Exception) {}
         isQuranBuffering = false
         isQuranPlaying = false
+        if (wakeLock.isHeld) wakeLock.release()
     }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -219,6 +257,7 @@ fun LauncherScreen() {
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             try { mediaPlayer.release() } catch (_: Exception) {}
+            if (wakeLock.isHeld) wakeLock.release()
         }
     }
 
@@ -297,6 +336,93 @@ fun LauncherScreen() {
         if (w != null) liveFeed = liveFeed.copy(currentTemp = w.first, dailyMax = w.second, dailyMin = w.third)
     }
 
+    // تهيئة مدير الأذان وتحديث مواقيت الصلاة
+    LaunchedEffect(Unit) {
+        AdhanManager.init(context)
+    }
+
+    LaunchedEffect(prayerInfo, config.cityTimeZone) {
+        AdhanManager.setPrayerTimes(
+            mapOf(
+                "الفجر" to toLatinDigits(prayerInfo.fajr),
+                "الشروق" to toLatinDigits(prayerInfo.sunrise),
+                "الظهر" to toLatinDigits(prayerInfo.dhuhr),
+                "العصر" to toLatinDigits(prayerInfo.asr),
+                "المغرب" to toLatinDigits(prayerInfo.maghrib),
+                "العشاء" to toLatinDigits(prayerInfo.isha)
+            )
+        )
+    }
+
+    // مراقبة دخول وقت الصلاة لتشغيل الأذان تلقائياً وإظهار تذكير مرئي قبله
+    var lastAdhanKey by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(config.cityTimeZone, config.adhanEnabled, config.adhanPlayFajrOnly, config.adhanReminderMinutes, config.adhanMuadhinId, config.adhanLengthMode, config.adhanVolume) {
+        while (true) {
+            if (config.adhanEnabled) {
+                val tz = TimeZone.getTimeZone(config.cityTimeZone)
+                val now = Calendar.getInstance(tz)
+                val nowMins = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+                val dayOfYear = now.get(Calendar.DAY_OF_YEAR)
+                val prayers = listOf(
+                    "الفجر" to toLatinDigits(prayerInfo.fajr),
+                    "الظهر" to toLatinDigits(prayerInfo.dhuhr),
+                    "العصر" to toLatinDigits(prayerInfo.asr),
+                    "المغرب" to toLatinDigits(prayerInfo.maghrib),
+                    "العشاء" to toLatinDigits(prayerInfo.isha)
+                )
+                var reminderActive = false
+                for ((name, timeStr) in prayers) {
+                    val parts = timeStr.split(":")
+                    if (parts.size >= 2) {
+                        val h = parts[0].toIntOrNull() ?: continue
+                        val m = parts[1].toIntOrNull() ?: continue
+                        val prayerMins = h * 60 + m
+                        val minsUntil = (prayerMins - nowMins + 24 * 60) % (24 * 60)
+                        val reminder = config.adhanReminderMinutes
+                        val isAtTime = minsUntil == 0
+                        val isReminder = reminder > 0 && minsUntil > 0 && minsUntil <= reminder
+                        val fajrOnly = config.adhanPlayFajrOnly && name != "الفجر"
+                        if (isAtTime && !fajrOnly) {
+                            val key = "$dayOfYear-$name-a"
+                            if (lastAdhanKey != key) {
+                                lastAdhanKey = key
+                                showAdhanReminder = false
+                                scope.launch {
+                                    AdhanManager.playAdhan(context, name, config.adhanMuadhinId, config.adhanLengthMode, config.adhanVolume)
+                                }
+                            }
+                        } else if (isReminder && !fajrOnly) {
+                            val key = "$dayOfYear-$name-r"
+                            if (lastReminderKey != key) {
+                                lastReminderKey = key
+                                showAdhanReminder = true
+                                adhanReminderPrayer = name
+                                adhanReminderMinsLeft = minsUntil
+                                reminderActive = true
+                            }
+                        }
+                    }
+                }
+                if (!reminderActive && !isAnyPrayerAtTime(nowMins, prayers)) {
+                    showAdhanReminder = false
+                }
+            }
+            delay(20_000L)
+        }
+    }
+
+    fun isAnyPrayerAtTime(nowMins: Int, prayers: List<Pair<String, String>>): Boolean {
+        return prayers.any { (_, timeStr) ->
+            val parts = timeStr.split(":")
+            parts.size >= 2 && parts[0].toIntOrNull() == null == false && parts[1].toIntOrNull() == null == false
+                && parts[0].toIntOrNull()!! * 60 + parts[1].toIntOrNull()!! == nowMins
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { AdhanManager.release() }
+    }
+
     val (hijriDate, gregorianDate) = remember(config.cityTimeZone) {
         PalestineData.getFormattedDates(config.cityTimeZone)
     }
@@ -321,6 +447,47 @@ fun LauncherScreen() {
                 )
             )
     ) {
+        // شريط التذكير المرئي قبل الأذان
+        if (showAdhanReminder) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 26.dp, vertical = 10.dp)
+                    .align(Alignment.Top),
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF7C3AED).copy(alpha = 0.92f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsActive,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "تذكير الأذان - $adhanReminderPrayer",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "يُرفع الأذان بعد $adhanReminderMinsLeft دقيقة${if (adhanReminderMinsLeft > 1) "ات" else ""}",
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 14.sp
+                        )
+        }
+    }
+}
+
+private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
+        }
+
         if (activeWallpaperModel != null) {
             AsyncImage(
                 model = activeWallpaperModel,
@@ -335,7 +502,20 @@ fun LauncherScreen() {
             )
         }
 
-        if (isScreensaverMode) {
+        if (tabCardExpanded) {
+            InteractiveTabsCard(
+                modifier = Modifier.fillMaxSize(),
+                config = config,
+                prayerInfo = prayerInfo,
+                liveFeed = liveFeed,
+                hijriDate = hijriDate,
+                gregorianDate = gregorianDate,
+                onAddTask = { task -> scope.launch { prefs.saveTasks(config.tasks + task) } },
+                onRemoveTask = { task -> scope.launch { prefs.saveTasks(config.tasks - task) } },
+                onAddReminder = { rem -> scope.launch { prefs.saveReminders(config.reminders + rem) } },
+                onExpand = { tabCardExpanded = it }
+            )
+        } else if (isScreensaverMode) {
             ScreensaverView(
                 timeZoneId = config.cityTimeZone,
                 hijri = hijriDate,
@@ -386,6 +566,11 @@ fun LauncherScreen() {
                     onTriggerUpdate = { showUpdateDialog = true }
                 )
 
+                if (config.showBottomBar && config.tickerBarPosition == 1) {
+                    BottomTickerBar(config = config, prayerInfo = prayerInfo, liveFeed = liveFeed)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -411,7 +596,8 @@ fun LauncherScreen() {
                         gregorianDate = gregorianDate,
                         onAddTask = { task -> scope.launch { prefs.saveTasks(config.tasks + task) } },
                         onRemoveTask = { task -> scope.launch { prefs.saveTasks(config.tasks - task) } },
-                        onAddReminder = { rem -> scope.launch { prefs.saveReminders(config.reminders + rem) } }
+                        onAddReminder = { rem -> scope.launch { prefs.saveReminders(config.reminders + rem) } },
+                        onExpand = { tabCardExpanded = it }
                     )
 
                     Spacer(modifier = Modifier.width(18.dp))
@@ -485,7 +671,7 @@ fun LauncherScreen() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (config.showBottomBar) {
+                if (config.showBottomBar && config.tickerBarPosition == 0) {
                     BottomTickerBar(config = config, prayerInfo = prayerInfo, liveFeed = liveFeed)
                 }
             }

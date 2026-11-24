@@ -6,6 +6,9 @@ import android.content.Intent
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
@@ -54,7 +58,8 @@ fun InteractiveTabsCard(
     gregorianDate: String,
     onAddTask: (String) -> Unit,
     onRemoveTask: (String) -> Unit,
-    onAddReminder: (FamilyReminder) -> Unit
+    onAddReminder: (FamilyReminder) -> Unit,
+    onExpand: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val tabTitles = listOf(
@@ -63,11 +68,12 @@ fun InteractiveTabsCard(
         "العملات والذهب", "المناسبات", "حالة الجهاز", "المهام", "التذكيرات"
     )
     var selectedTab by remember { mutableIntStateOf(0) }
+    var isExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(config.autoRotateTabs) {
-        if (config.autoRotateTabs) {
+    LaunchedEffect(config.autoRotateTabs, config.tabAutoRotateIntervalMinutes) {
+        if (config.autoRotateTabs && config.tabAutoRotateIntervalMinutes > 0) {
             while (true) {
-                delay(12_000L)
+                delay(config.tabAutoRotateIntervalMinutes * 60_000L)
                 selectedTab = (selectedTab + 1) % tabTitles.size
             }
         }
@@ -80,33 +86,50 @@ fun InteractiveTabsCard(
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(tabTitles.size) { idx ->
-                    val active = selectedTab == idx
-                    val interaction = remember { MutableInteractionSource() }
-                    val focused by interaction.collectIsFocusedAsState()
-                    Surface(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable(interactionSource = interaction, indication = null) { selectedTab = idx },
-                        shape = CircleShape,
-                        color = when {
-                            focused -> Color.White
-                            active -> Color(0xFF38BDF8)
-                            else -> Color.White.copy(alpha = 0.10f)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(tabTitles.size) { idx ->
+                        val active = selectedTab == idx
+                        val interaction = remember { MutableInteractionSource() }
+                        val focused by interaction.collectIsFocusedAsState()
+                        Surface(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable(interactionSource = interaction, indication = null) { selectedTab = idx },
+                            shape = CircleShape,
+                            color = when {
+                                focused -> Color.White
+                                active -> Color(0xFF38BDF8)
+                                else -> Color.White.copy(alpha = 0.10f)
+                            }
+                        ) {
+                            Text(
+                                text = tabTitles[idx],
+                                color = if (focused || active) Color(0xFF0F172A) else Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = if (active || focused) FontWeight.Bold else FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
                         }
-                    ) {
-                        Text(
-                            text = tabTitles[idx],
-                            color = if (focused || active) Color(0xFF0F172A) else Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = if (active || focused) FontWeight.Bold else FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
                     }
+                }
+                IconButton(
+                    onClick = {
+                        isExpanded = !isExpanded
+                        onExpand(isExpanded)
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        contentDescription = if (isExpanded) "تصغير" else "تكبير",
+                        tint = Color.White
+                    )
                 }
             }
 
@@ -114,31 +137,108 @@ fun InteractiveTabsCard(
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (selectedTab) {
-                    0 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        val rows = listOf(
-                            "الفجر" to prayerInfo.fajr,
-                            "الشروق" to prayerInfo.sunrise,
-                            "الظهر" to prayerInfo.dhuhr,
-                            "العصر" to prayerInfo.asr,
-                            "المغرب" to prayerInfo.maghrib,
-                            "العشاء" to prayerInfo.isha
-                        )
-                        rows.forEach { (name, time) ->
-                            val isNext = prayerInfo.nextPrayerName == name
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isNext) Color(0xFF38BDF8).copy(alpha = 0.22f) else Color.Transparent)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(name, color = if (isNext) Color(0xFF38BDF8) else Color.White, fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal)
-                                Text(time, color = if (isNext) Color(0xFFFBBF24) else Color(0xFFE2E8F0), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
+                     0 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                         Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                         val rows = listOf(
+                             "الفجر" to prayerInfo.fajr,
+                             "الشروق" to prayerInfo.sunrise,
+                             "الظهر" to prayerInfo.dhuhr,
+                             "العصر" to prayerInfo.asr,
+                             "المغرب" to prayerInfo.maghrib,
+                             "العشاء" to prayerInfo.isha
+                         )
+rows.forEach { (name, time) ->
+                              val isNext = prayerInfo.nextPrayerName == name
+                              Row(
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .clip(RoundedCornerShape(12.dp))
+                                      .then(
+                                          if (isNext) Modifier
+                                              .background(
+                                                  Brush.horizontalGradient(
+                                                      listOf(
+                                                          Color(0xFFFBBF24).copy(alpha = 0.45f),
+                                                          Color(0xFFF59E0B).copy(alpha = 0.25f),
+                                                          Color(0xFFEF4444).copy(alpha = 0.15f)
+                                                      )
+                                                  )
+                                              )
+                                              .border(2.5.dp, Color(0xFFFBBF24), RoundedCornerShape(12.dp))
+                                              .graphicsLayer {
+                                                  shadowElevation = 8.dp.toPx()
+                                                  shadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
+                                              }
+                                          else Modifier
+                                      )
+                                      .padding(horizontal = 12.dp, vertical = if (isNext) 8.dp else 5.dp),
+                                  horizontalArrangement = Arrangement.SpaceBetween,
+                                  verticalAlignment = Alignment.CenterVertically
+                              ) {
+                                  Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                      if (isNext) {
+                                          Box(
+                                              modifier = Modifier.size(22.dp),
+                                              contentAlignment = Alignment.Center
+                                          ) {
+                                              Icon(
+                                                  Icons.Default.NotificationsActive,
+                                                  contentDescription = null,
+                                                  tint = Color(0xFFFBBF24),
+                                                  modifier = Modifier
+                                                      .size(18.dp)
+                                                      .graphicsLayer {
+                                                          shadowElevation = 4.dp.toPx()
+                                                          shadowColor = Color(0xFFFBBF24).copy(alpha = 0.6f)
+                                                      }
+                                              )
+                                          }
+                                      }
+                                      Text(
+                                          name,
+                                          color = if (isNext) Color(0xFFFBBF24) else Color.White,
+                                          fontWeight = if (isNext) FontWeight.Bold else FontWeight.Medium,
+                                          fontSize = if (isNext) 15.sp else 14.sp
+                                      )
+                                      if (isNext) {
+                                          Text(
+                                              "القادمة",
+                                              color = Color(0xFF0F172A),
+                                              fontSize = 11.sp,
+                                              fontWeight = FontWeight.ExtraBold,
+                                              modifier = Modifier
+                                                  .clip(RoundedCornerShape(8.dp))
+                                                  .background(
+                                                      Brush.horizontalGradient(
+                                                          listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+                                                      )
+                                                  )
+                                                  .padding(horizontal = 10.dp, vertical = 2.dp)
+                                                  .graphicsLayer {
+                                                      shadowElevation = 3.dp.toPx()
+                                                      shadowColor = Color(0xFFF59E0B).copy(alpha = 0.5f)
+                                                  }
+                                          )
+                                      }
+                                  }
+                                  Text(
+                                      time,
+                                      color = if (isNext) Color(0xFFFBBF24) else Color(0xFFE2E8F0),
+                                      fontWeight = FontWeight.Bold,
+                                      fontSize = if (isNext) 15.sp else 14.sp
+                                  )
+                              }
+    }
+}
+
+private val QURAN_RADIO_STATIONS = listOf(
+    "إذاعة القرآن الكريم - القاهرة" to "https://stream.radiojar.com/8s5u5tpdtwzuv",
+    "الشيخ ماهر المعيقلي" to "https://download.quranicaudio.com/quran/maher_almuaiqly/001.mp3",
+    "الشيخ عبدالباسط عبدالصمد" to "https://download.quranicaudio.com/quran/abdulbasit_abdulsamad/001.mp3",
+    "الشيخ مشاري العفاسي" to "https://download.quranicaudio.com/quran/mishaari_raashid_alafasy/001.mp3",
+    "الشيخ ياسر الدوسري" to "https://download.quranicaudio.com/quran/yasser_aldosari/001.mp3",
+    "الشيخ سعود الشريم" to "https://download.quranicaudio.com/quran/saud_alshuraim/001.mp3",
+)
                     1 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
@@ -274,6 +374,58 @@ fun InteractiveTabsCard(
         }
     }
 }
+private fun fetchSurahsList(): List<SurahHeader> {
+    return try {
+        val conn = (URL("https://api.alquran.cloud/v1/surah").openConnection() as HttpURLConnection).apply {
+            connectTimeout = 9000
+            readTimeout = 9000
+            setRequestProperty("User-Agent", "PalestineTVLauncher/1.2")
+        }
+        if (conn.responseCode in 200..299) {
+            val raw = conn.inputStream.bufferedReader().use { it.readText() }
+            val arr = JSONObject(raw).getJSONArray("data")
+            val list = mutableListOf<SurahHeader>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val type = if (obj.optString("revelationType") == "Meccan") "مكية" else "مدنية"
+                list.add(SurahHeader(obj.getInt("number"), obj.getString("name"), obj.getInt("numberOfAyahs"), type))
+            }
+            list
+        } else emptyList()
+    } catch (_: Exception) { emptyList() }
+}
+
+private fun fetchSurahContent(surahNumber: Int): FullSurahContent? {
+    return try {
+        val conn = (URL("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani").openConnection() as HttpURLConnection).apply {
+            connectTimeout = 9000
+            readTimeout = 9000
+            setRequestProperty("User-Agent", "PalestineTVLauncher/1.2")
+        }
+        if (conn.responseCode in 200..299) {
+            val raw = conn.inputStream.bufferedReader().use { it.readText() }
+            val data = JSONObject(raw).getJSONObject("data")
+            val name = data.getString("name")
+            val ayahs = data.getJSONArray("ayahs")
+            var firstPage = 0; var lastPage = 0
+            val sb = StringBuilder()
+            if (surahNumber != 1 && surahNumber != 9) sb.append("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n\n")
+            for (i in 0 until ayahs.length()) {
+                val a = ayahs.getJSONObject(i)
+                val num = a.getInt("numberInSurah")
+                val page = a.optInt("page", 1)
+                if (i == 0) firstPage = page
+                lastPage = page
+                var txt = a.getString("text")
+                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
+            }
+            val pageStr = if (firstPage == lastPage) "صفحة ${PalestineData.toArabicDigits(firstPage.toString())}" else "صفحة ${PalestineData.toArabicDigits("$firstPage - $lastPage")}"
+            FullSurahContent(surahNumber, name, sb.toString().trim(), pageStr)
+        } else null
+    } catch (_: Exception) { null }
+}
+
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
@@ -285,13 +437,13 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
     val listFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
-        surahs = LiveRepository.fetchAll114Surahs()
+        surahs = fetchSurahsList()
         listFocus.requestFocus()
     }
 
     LaunchedEffect(selectedSurahNum) {
         isLoading = true
-        surahContent = LiveRepository.fetchFullSurahText(selectedSurahNum)
+        surahContent = fetchSurahContent(selectedSurahNum)
         isLoading = false
     }
 
@@ -418,7 +570,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                     SettingOptionPill("إعادة المحاولة", false) {
                                         scope.launch {
                                             isLoading = true
-                                            surahContent = LiveRepository.fetchFullSurahText(selectedSurahNum)
+                                            surahContent = fetchSurahContent(selectedSurahNum)
                                             isLoading = false
                                         }
                                     }
@@ -772,7 +924,7 @@ fun SettingsModalDrawer(
                                     }
                                 }
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(LiveRepository.verifiedQuranRadios) { (title, url) ->
+                                    items(QURAN_RADIO_STATIONS) { (title, url) ->
                                         SettingOptionPill(title, config.quranStreamUrl == url) {
                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = url } }
                                         }
@@ -781,8 +933,65 @@ fun SettingsModalDrawer(
                             }
                         }
 
-                        item {
-                            SettingsCategoryBox("٥. الشفافية والأحجام والشريط العلوي") {
+                         item {
+                             SettingsCategoryBox("٥. إعدادات الأذان") {
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("تشغيل الأذان", config.adhanEnabled) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_ENABLED] = !config.adhanEnabled } }
+                                     }
+                                     SettingOptionPill("الفجر فقط", config.adhanPlayFajrOnly) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_FAJR_ONLY] = !config.adhanPlayFajrOnly } }
+                                     }
+                                 }
+                                 Text("المؤذن:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(AdhanManager.muadhinList) { (id, label) ->
+                                         SettingOptionPill(label, config.adhanMuadhinId == id) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_MUADHIN_ID] = id } }
+                                         }
+                                     }
+                                 }
+                                 StepAdjustRow(
+                                     title = "مستوى صوت الأذان",
+                                     valueLabel = PalestineData.toArabicDigits("${config.adhanVolume}%"),
+                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume - 10).coerceIn(10, 100) } } },
+                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume + 10).coerceIn(10, 100) } } }
+                                 )
+                                 Text("مدة الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 val lengthModes = listOf(0 to "كامل", 1 to "مختصر (١٥ ثانية)")
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(lengthModes) { (mode, label) ->
+                                         SettingOptionPill(label, config.adhanLengthMode == mode) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_LENGTH_MODE] = mode } }
+                                         }
+                                     }
+                                 }
+                                 Text("التذكير قبل الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 val reminderMins = listOf(0 to "إيقاف", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 20 to "٢٠ دقيقة")
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(reminderMins) { (mins, label) ->
+                                         SettingOptionPill(label, config.adhanReminderMinutes == mins) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_REMINDER_MINUTES] = mins } }
+                                         }
+                                     }
+                                 }
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("تجربة الأذان", false) {
+                                         scope.launch {
+                                             val next = AdhanManager.getNextPrayer()
+                                             val pname = next?.name ?: "الفجر"
+                                             AdhanManager.playAdhan(context, pname, config.adhanMuadhinId, config.adhanLengthMode, config.adhanVolume)
+                                         }
+                                     }
+                                     if (AdhanManager.isPlaying) {
+                                         SettingOptionPill("إيقاف", false) { AdhanManager.stop() }
+                                     }
+                                 }
+                             }
+                         }
+
+                         item {
+                             SettingsCategoryBox("٦. الشفافية والأحجام والشريط العلوي") {
                                 StepAdjustRow(
                                     title = "شفافية البطاقة",
                                     valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
@@ -802,31 +1011,138 @@ fun SettingsModalDrawer(
                                     item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
                                     item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
-                                    SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
-                                }
+Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
+                                     SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
+                                 }
+                                 if (config.autoRotateTabs) {
+                                     Text("فاصل التقليب التلقائي (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                     val rotateIntervals = listOf(1 to "دقيقة واحدة", 2 to "دقيقتان", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 30 to "٣٠ دقيقة")
+                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                         items(rotateIntervals) { (mins, label) ->
+                                             SettingOptionPill(label, config.tabAutoRotateIntervalMinutes == mins) {
+                                                 scope.launch { prefs.updateConfig { it[LauncherPreferences.TAB_ROTATE_INTERVAL_MINUTES] = mins } }
+                                             }
+                                         }
+                                     }
+                                 }
                             }
                         }
 
-                        item {
-                            SettingsCategoryBox("٦. شريط الأسعار والتخطيط المباشر") {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(allPairs) { pair ->
-                                        val active = config.activeTickerPairs.contains(pair)
-                                        SettingOptionPill(pair, active) {
-                                            val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
-                                        }
-                                    }
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
-                                    SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
-                                }
-                            }
-                        }
-                    }
+item {
+                             SettingsCategoryBox("٧. شريط الأسعار والتخطيط المباشر") {
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(allPairs) { pair ->
+                                         val active = config.activeTickerPairs.contains(pair)
+                                         SettingOptionPill(pair, active) {
+                                             val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
+                                         }
+                                     }
+                                 }
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
+                                     SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
+                                 }
+                             }
+                         }
+
+                         item {
+                             SettingsCategoryBox("٨. شريط التذكير (الأسفل/الأعلى)") {
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("أسفل الشاشة", config.tickerBarPosition == 0) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 0 } }
+                                     }
+                                     SettingOptionPill("أعلى الشاشة", config.tickerBarPosition == 1) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 1 } }
+                                     }
+                                 }
+                                 StepAdjustRow(
+                                     title = "ارتفاع شريط التذكير",
+                                     valueLabel = PalestineData.toArabicDigits("${config.tickerBarHeight} dp"),
+                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight - 4).coerceAtLeast(24) } } },
+                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight + 4).coerceAtMost(120) } } }
+                                 )
+                                 StepAdjustRow(
+                                     title = "حجم خط شريط التذكير",
+                                     valueLabel = PalestineData.toArabicDigits("${config.tickerBarFontSize} sp"),
+                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize - 2).coerceAtLeast(10) } } },
+                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize + 2).coerceAtMost(22) } } }
+                                 )
+                                  StepAdjustRow(
+                                      title = "شفافية شريط التذكير",
+                                      valueLabel = PalestineData.toArabicDigits("${(config.tickerBgOpacity * 100).toInt()}%"),
+                                      onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+                                      onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+                                  )
+                              }
+                          }
+
+                          item {
+                              SettingsCategoryBox("٩. عناصر الشريط المتحرك") {
+                                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                      SettingOptionPill("الصلاة القادمة", config.tickerShowNextPrayer) {
+                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_NEXT_PRAYER] = !config.tickerShowNextPrayer } }
+                                      }
+                                      SettingOptionPill("رمضان", config.tickerShowRamadan) {
+                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_RAMADAN] = !config.tickerShowRamadan } }
+                                      }
+                                      SettingOptionPill("أعياد الميلاد", config.tickerShowBirthday) {
+                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_BIRTHDAY] = !config.tickerShowBirthday } }
+                                      }
+                                      SettingOptionPill("العملات", config.tickerShowPrices) {
+                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_PRICES] = !config.tickerShowPrices } }
+                                      }
+                                      SettingOptionPill("المباريات", config.tickerShowMatches) {
+                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_MATCHES] = !config.tickerShowMatches } }
+                                      }
+                                  }
+                                  Text("ترتيب العناصر:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                  val orderLabels = mapOf(
+                                      "prayer" to "الصلاة القادمة",
+                                      "ramadan" to "رمضان",
+                                      "birthday" to "أعياد الميلاد",
+                                      "prices" to "العملات",
+                                      "matches" to "المباريات"
+                                  )
+                                  var order by remember { mutableStateOf(config.tickerElementOrder.toMutableList()) }
+                                  LaunchedEffect(config.tickerElementOrder) {
+                                      order = config.tickerElementOrder.toMutableList()
+                                  }
+                                  val move = { i: Int, j: Int ->
+                                      val n = order.toMutableList()
+                                      val t = n[i]
+                                      n[i] = n[j]
+                                      n[j] = t
+                                      order = n
+                                  }
+                                  LazyColumn {
+                                      items(order.size) { i ->
+                                          Row(
+                                              modifier = Modifier.fillMaxWidth(),
+                                              horizontalArrangement = Arrangement.SpaceBetween,
+                                              verticalAlignment = Alignment.CenterVertically
+                                          ) {
+                                              Text("${i + 1}. ${orderLabels[order[i]] ?: order[i]}", color = Color.White, fontSize = 14.sp)
+                                              Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                  if (i > 0) {
+                                                      SettingOptionPill("↑", false) { move(i, i - 1) }
+                                                  }
+                                                  if (i < order.size - 1) {
+                                                      SettingOptionPill("↓", false) { move(i, i + 1) }
+                                                  }
+                                              }
+                                          }
+                                      }
+                                  }
+                                  Button(onClick = {
+                                      scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
+                                  }) {
+                                      Text("حفظ الترتيب", color = Color(0xFF34D399))
+                                  }
+                              }
+                          }
+                     }
                 }
             }
         }      

@@ -8,6 +8,9 @@ import android.util.Log
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.audio.AudioAttributes as ExoAudioAttributes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -35,6 +38,8 @@ object AdhanManager {
 
     fun getMuadhinName(id: String): String = MUADHIN_NAMES[id] ?: "الحرم المكي - علي ملا"
     fun getMuadhinUrl(id: String): String = MUADHIN_URLS[id] ?: MUADHIN_URLS["makkah_alimla"]!!
+
+    val muadhinList: List<Pair<String, String>> = MUADHIN_NAMES.toList()
 
     var isPlaying by mutableStateOf(false)
         private set
