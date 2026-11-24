@@ -26,10 +26,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -259,7 +261,8 @@ rows.forEach { (name, time) ->
 }
         }
     }
-Text(
+                    1 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.Bold,
@@ -595,9 +598,12 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                         }
                     }
                 }
-            }
         }
     }
+}
+        }
+    }
+}
 }
 @Composable
 fun LiveLayoutEditorOverlay(

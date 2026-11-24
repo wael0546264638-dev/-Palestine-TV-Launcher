@@ -101,7 +101,6 @@ object AdhanManager {
             player?.audioAttributes = ExoAudioAttributes.Builder()
                 .setContentType(ExoAudioAttributes.CONTENT_TYPE_SPEECH)
                 .setUsage(ExoAudioAttributes.USAGE_MEDIA)
-                .setVolume(volume)
                 .build()
             val item = MediaItem.fromUri(url)
             player?.setMediaItem(item)
@@ -125,9 +124,9 @@ object AdhanManager {
                 setAudioAttributes(AudioAttributes.Builder()
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setVolume(volume)
                     .build())
                 setDataSource(url)
+                setVolume(volume, volume)
                 setOnPreparedListener { it.start() }
                 setOnCompletionListener { stop() }
                 setOnErrorListener { _, _, _ -> stop(); true }

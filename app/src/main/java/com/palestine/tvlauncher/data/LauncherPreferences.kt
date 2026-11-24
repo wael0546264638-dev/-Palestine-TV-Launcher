@@ -76,10 +76,10 @@ data class LauncherConfig(
     val focusScaleEnabled: Boolean = true,
     val focusScaleFactor: Float = 1.08f,
     val focusGlowEnabled: Boolean = true,
-    val focusGlowColor: Int = 0xFF38BDF8,
+    val focusGlowColor: Int = 0xFF38BDF8.toInt(),
     val focusBorderEnabled: Boolean = true,
     val focusBorderWidth: Float = 2.5f,
-    val focusBorderColor: Int = 0xFFFFFFFF,
+    val focusBorderColor: Int = 0xFFFFFFFF.toInt(),
 
     // Tab auto-rotate interval in minutes
     val tabAutoRotateIntervalMinutes: Int = 1,
