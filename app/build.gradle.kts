@@ -42,5 +42,17 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("com.batoulapps.adhan:adhan:1.2.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // ExoPlayer for robust audio playback (Quran radio, Adhan, Mushaf)
+    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
+    implementation("com.google.android.exoplayer:exoplayer-ui:2.19.1")
+    implementation("com.google.android.exoplayer:extension-mp3:2.19.1")
+
+    // Lifecycle & Room (for potential future data persistence)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.6")
 }
 

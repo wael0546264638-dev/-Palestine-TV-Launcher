@@ -16,7 +16,7 @@ data class LauncherConfig(
     val clockStyle: Int = 0,
     val dateDisplayMode: Int = 0,
     val quranPlayMode: Int = 0,
-    val quranStreamUrl: String = "https://qurango.net",
+    val quranStreamUrl: String = "https://streamer.radiojar.com/8s5u5tpdtwzuv?rj-ttl=5&rj-tok=AAABjZVX0SgAANlJqGi7c1aOCg",
     val quranScheduleStartHour: Int = 6,
     val quranScheduleEndHour: Int = 9,
     val wallpaperIndex: Int = 0,
@@ -47,7 +47,49 @@ data class LauncherConfig(
     val ssClockOffsetY: Float = 0f,
     val ssClockScale: Float = 1.0f,
     val tasks: List<String> = emptyList(),
-    val reminders: List<FamilyReminder> = emptyList()
+    val reminders: List<FamilyReminder> = emptyList(),
+
+    // Adhan settings
+    val adhanEnabled: Boolean = true,
+    val adhanVolume: Int = 70, // 10-100
+    val adhanMuadhinId: String = "makkah_alimla", // makkah_alimla, madinah_osamabakhri, abdulbasit, afasy, alaqsa
+    val adhanLengthMode: Int = 0, // 0 = full, 1 = short (15s)
+    val adhanReminderMinutes: Int = 5, // 0 = off, 5, 10, 15, 20
+    val adhanPlayFajrOnly: Boolean = false, // if true, only play Fajr adhan
+
+    // Ticker bar customization
+    val tickerBarPosition: Int = 0, // 0 = bottom, 1 = top
+    val tickerBarHeight: Int = 56, // dp
+    val tickerBarFontSize: Int = 13, // sp
+    val tickerBarOpacity: Float = 0.65f,
+    val tickerShowNextPrayer: Boolean = true,
+    val tickerShowRamadanCountdown: Boolean = true,
+    val tickerShowBirthdayCountdown: Boolean = true,
+    val tickerShowPrices: Boolean = true,
+    val tickerShowMatches: Boolean = true,
+    val tickerElementOrder: List<String> = listOf("prayer", "ramadan", "birthday", "prices", "matches"),
+
+    // Focus effects
+    val focusScaleEnabled: Boolean = true,
+    val focusScaleFactor: Float = 1.08f,
+    val focusGlowEnabled: Boolean = true,
+    val focusGlowColor: Int = 0xFF38BDF8,
+    val focusBorderEnabled: Boolean = true,
+    val focusBorderWidth: Float = 2.5f,
+    val focusBorderColor: Int = 0xFFFFFFFF,
+
+    // Tab auto-rotate interval
+    val tabAutoRotateIntervalSeconds: Int = 12,
+
+    // Background live wallpapers
+    val liveWallpaperEnabled: Boolean = false,
+    val liveWallpaperIntervalMinutes: Int = 10,
+    val liveWallpaperSource: Int = 0, // 0 = curated, 1 = unsplash, 2 = device images
+
+    // Favorite team
+    val favoriteTeamId: String = "",
+    val favoriteTeamName: String = "",
+    val favoriteTeamLeague: String = "",
 )
 
 data class FamilyReminder(
@@ -99,6 +141,48 @@ class LauncherPreferences(private val context: Context) {
         val SS_CLOCK_SCALE = floatPreferencesKey("ss_clock_scale")
         val TASKS_RAW = stringPreferencesKey("tasks_raw")
         val REMINDERS_RAW = stringPreferencesKey("reminders_raw")
+
+        // Adhan
+        val ADHAN_ENABLED = booleanPreferencesKey("adhan_enabled")
+        val ADHAN_VOLUME = intPreferencesKey("adhan_volume")
+        val ADHAN_MUADHIN_ID = stringPreferencesKey("adhan_muadhin_id")
+        val ADHAN_LENGTH_MODE = intPreferencesKey("adhan_length_mode")
+        val ADHAN_REMINDER_MINUTES = intPreferencesKey("adhan_reminder_minutes")
+        val ADHAN_FAJR_ONLY = booleanPreferencesKey("adhan_fajr_only")
+
+        // Ticker bar
+        val TICKER_BAR_POSITION = intPreferencesKey("ticker_bar_position")
+        val TICKER_BAR_HEIGHT = intPreferencesKey("ticker_bar_height")
+        val TICKER_BAR_FONT_SIZE = intPreferencesKey("ticker_bar_font_size")
+        val TICKER_BAR_OPACITY = floatPreferencesKey("ticker_bar_opacity")
+        val TICKER_SHOW_NEXT_PRAYER = booleanPreferencesKey("ticker_show_next_prayer")
+        val TICKER_SHOW_RAMADAN = booleanPreferencesKey("ticker_show_ramadan")
+        val TICKER_SHOW_BIRTHDAY = booleanPreferencesKey("ticker_show_birthday")
+        val TICKER_SHOW_PRICES = booleanPreferencesKey("ticker_show_prices")
+        val TICKER_SHOW_MATCHES = booleanPreferencesKey("ticker_show_matches")
+        val TICKER_ELEMENT_ORDER = stringPreferencesKey("ticker_element_order")
+
+        // Focus effects
+        val FOCUS_SCALE_ENABLED = booleanPreferencesKey("focus_scale_enabled")
+        val FOCUS_SCALE_FACTOR = floatPreferencesKey("focus_scale_factor")
+        val FOCUS_GLOW_ENABLED = booleanPreferencesKey("focus_glow_enabled")
+        val FOCUS_GLOW_COLOR = intPreferencesKey("focus_glow_color")
+        val FOCUS_BORDER_ENABLED = booleanPreferencesKey("focus_border_enabled")
+        val FOCUS_BORDER_WIDTH = floatPreferencesKey("focus_border_width")
+        val FOCUS_BORDER_COLOR = intPreferencesKey("focus_border_color")
+
+        // Tab rotate
+        val TAB_ROTATE_INTERVAL = intPreferencesKey("tab_rotate_interval")
+
+        // Live wallpaper
+        val LIVE_WALLPAPER_ENABLED = booleanPreferencesKey("live_wallpaper_enabled")
+        val LIVE_WALLPAPER_INTERVAL = intPreferencesKey("live_wallpaper_interval")
+        val LIVE_WALLPAPER_SOURCE = intPreferencesKey("live_wallpaper_source")
+
+        // Favorite team
+        val FAVORITE_TEAM_ID = stringPreferencesKey("favorite_team_id")
+        val FAVORITE_TEAM_NAME = stringPreferencesKey("favorite_team_name")
+        val FAVORITE_TEAM_LEAGUE = stringPreferencesKey("favorite_team_league")
     }
 
     val configFlow: Flow<LauncherConfig> = context.dataStore.data.map { p ->
@@ -152,7 +236,43 @@ class LauncherPreferences(private val context: Context) {
             ssClockOffsetY = p[SS_CLOCK_Y] ?: 0f,
             ssClockScale = p[SS_CLOCK_SCALE] ?: 1.0f,
             tasks = taskList,
-            reminders = remList
+            reminders = remList,
+
+            adhanEnabled = p[ADHAN_ENABLED] ?: true,
+            adhanVolume = p[ADHAN_VOLUME] ?: 70,
+            adhanMuadhinId = p[ADHAN_MUADHIN_ID] ?: "makkah_alimla",
+            adhanLengthMode = p[ADHAN_LENGTH_MODE] ?: 0,
+            adhanReminderMinutes = p[ADHAN_REMINDER_MINUTES] ?: 5,
+            adhanPlayFajrOnly = p[ADHAN_FAJR_ONLY] ?: false,
+
+            tickerBarPosition = p[TICKER_BAR_POSITION] ?: 0,
+            tickerBarHeight = p[TICKER_BAR_HEIGHT] ?: 56,
+            tickerBarFontSize = p[TICKER_BAR_FONT_SIZE] ?: 13,
+            tickerBarOpacity = p[TICKER_BAR_OPACITY] ?: 0.65f,
+            tickerShowNextPrayer = p[TICKER_SHOW_NEXT_PRAYER] ?: true,
+            tickerShowRamadan = p[TICKER_SHOW_RAMADAN] ?: true,
+            tickerShowBirthday = p[TICKER_SHOW_BIRTHDAY] ?: true,
+            tickerShowPrices = p[TICKER_SHOW_PRICES] ?: true,
+            tickerShowMatches = p[TICKER_SHOW_MATCHES] ?: true,
+            tickerElementOrder = if (p[TICKER_ELEMENT_ORDER]?.isBlank() == true) listOf("prayer", "ramadan", "birthday", "prices", "matches") else p[TICKER_ELEMENT_ORDER]?.split("::")?.filter { it.isNotBlank() }?.take(5) ?: listOf("prayer", "ramadan", "birthday", "prices", "matches"),
+
+            focusScaleEnabled = p[FOCUS_SCALE_ENABLED] ?: true,
+            focusScaleFactor = p[FOCUS_SCALE_FACTOR] ?: 1.08f,
+            focusGlowEnabled = p[FOCUS_GLOW_ENABLED] ?: true,
+            focusGlowColor = p[FOCUS_GLOW_COLOR] ?: 0xFF38BDF8.toInt(),
+            focusBorderEnabled = p[FOCUS_BORDER_ENABLED] ?: true,
+            focusBorderWidth = p[FOCUS_BORDER_WIDTH] ?: 2.5f,
+            focusBorderColor = p[FOCUS_BORDER_COLOR] ?: 0xFFFFFFFF.toInt(),
+
+            tabAutoRotateIntervalSeconds = p[TAB_ROTATE_INTERVAL] ?: 12,
+
+            liveWallpaperEnabled = p[LIVE_WALLPAPER_ENABLED] ?: false,
+            liveWallpaperIntervalMinutes = p[LIVE_WALLPAPER_INTERVAL] ?: 10,
+            liveWallpaperSource = p[LIVE_WALLPAPER_SOURCE] ?: 0,
+
+            favoriteTeamId = p[FAVORITE_TEAM_ID] ?: "",
+            favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",
+            favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: ""
         )
     }
 
