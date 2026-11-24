@@ -586,8 +586,8 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                     PillActionButton(
                         label = "البطاقة الشاملة",
                         icon = Icons.Default.ViewCompact,
-                        onClick = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } } }
-                    }
+                        onClick = { tabCardExpanded = !tabCardExpanded }
+                    )
                 }
 
                 if (config.showBottomBar && config.tickerBarPosition == 1) {
@@ -623,6 +623,7 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                         onAddReminder = { rem -> scope.launch { prefs.saveReminders(config.reminders + rem) } },
                         onExpand = { tabCardExpanded = it }
                     )
+
 
                     Spacer(modifier = Modifier.width(18.dp))
 
