@@ -466,7 +466,7 @@ fun LauncherScreen() {
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.Center
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.NotificationsActive,

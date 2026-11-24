@@ -392,8 +392,6 @@ rows.forEach { (name, time) ->
                 }
             }
         }
-    }
-}
 private fun fetchSurahsList(): List<SurahHeader> {
     return try {
         val conn = (URL("https://api.alquran.cloud/v1/surah").openConnection() as HttpURLConnection).apply {
