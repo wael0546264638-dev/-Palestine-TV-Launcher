@@ -593,53 +593,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                             }
                         }
                     }
-                    13 -> {
-                        val scrollState = rememberScrollState()
-                        Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-                            Text("البطاقة الشاملة - جميع التبويبات", color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
-                            Text("أوقات الصلاة:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                            val prayerRows = listOf(
-                                "الفجر" to prayerInfo.fajr,
-                                "الظهر" to prayerInfo.dhuhr,
-                                "العصر" to prayerInfo.asr,
-                                "المغرب" to prayerInfo.maghrib,
-                                "العشاء" to prayerInfo.isha
-                            )
-                            prayerRows.forEach { (name, time) ->
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(name, color = Color.White)
-                                    Text(time, color = Color(0xFF38BDF8))
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("الطقس: ${liveFeed.currentTemp}° (الأعلى ${liveFeed.dailyMax}° / الأدنى ${liveFeed.dailyMin}°)", color = Color.White)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("المباريات:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                            liveFeed.matches.forEach { m ->
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(m.name, color = Color.White)
-                                    Text(m.status, color = Color(0xFF34D399))
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("العملات والذهب:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                            liveFeed.prices.forEach { (pair, info) ->
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(pair, color = Color.White)
-                                    Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("المهام:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                            config.tasks.forEach { t -> Text("✓ $t", color = Color.White) }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("التذكيرات (أعياد الميلاد):", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                            config.reminders.forEach { r ->
-                                val left = calculateDaysUntilDate(r.month, r.day)
-                                Text("🎂 ${r.name} - متبقي $left يوم", color = Color.White)
-                            }
-                        }
-                    }
                 }
             }
         }
