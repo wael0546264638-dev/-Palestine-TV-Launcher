@@ -55,6 +55,8 @@ import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
+private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
+
 private fun toLatinDigits(input: String): String {
     val arabic = charArrayOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
     val sb = StringBuilder()
@@ -489,9 +491,6 @@ fun LauncherScreen() {
                 }
             }
         }
-    }
-
-private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
 
     if (activeWallpaperModel != null) {
             AsyncImage(

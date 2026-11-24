@@ -48,6 +48,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 
+private val QURAN_RADIO_STATIONS = listOf(
+    "إذاعة القرآن الكريم - القاهرة" to "https://stream.radiojar.com/8s5u5tpdtwzuv",
+    "الشيخ ماهر المعيقلي" to "https://download.quranicaudio.com/quran/maher_almuaiqly/001.mp3",
+    "الشيخ عبدالباسط عبدالصمد" to "https://download.quranicaudio.com/quran/abdulbasit_abdulsamad/001.mp3",
+    "الشيخ مشاري العفاسي" to "https://download.quranicaudio.com/quran/mishaari_raashid_alafasy/001.mp3",
+    "الشيخ ياسر الدوسري" to "https://download.quranicaudio.com/quran/yasser_aldosari/001.mp3",
+    "الشيخ سعود الشريم" to "https://download.quranicaudio.com/quran/saud_alshuraim/001.mp3",
+)
+
 @Composable
 fun InteractiveTabsCard(
     modifier: Modifier = Modifier,
@@ -246,19 +255,10 @@ rows.forEach { (name, time) ->
                                       fontWeight = FontWeight.Bold,
                                       fontSize = if (isNext) 15.sp else 14.sp
                                   )
-                              }
+}
+        }
     }
 }
-
-private val QURAN_RADIO_STATIONS = listOf(
-    "إذاعة القرآن الكريم - القاهرة" to "https://stream.radiojar.com/8s5u5tpdtwzuv",
-    "الشيخ ماهر المعيقلي" to "https://download.quranicaudio.com/quran/maher_almuaiqly/001.mp3",
-    "الشيخ عبدالباسط عبدالصمد" to "https://download.quranicaudio.com/quran/abdulbasit_abdulsamad/001.mp3",
-    "الشيخ مشاري العفاسي" to "https://download.quranicaudio.com/quran/mishaari_raashid_alafasy/001.mp3",
-    "الشيخ ياسر الدوسري" to "https://download.quranicaudio.com/quran/yasser_aldosari/001.mp3",
-    "الشيخ سعود الشريم" to "https://download.quranicaudio.com/quran/saud_alshuraim/001.mp3",
-)
-                    1 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
                             color = Color(0xFF38BDF8),
@@ -1253,18 +1253,20 @@ item {
                                                    it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = team.league
                                                } }
                                            }
-                                       }
-                                       if (config.favoriteTeamId.isNotBlank()) {
-                                           Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
-                                           SettingOptionPill("إلغاء التحديد", false) {
-                                               scope.launch { prefs.updateConfig {
-                                                   it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
-                                                   it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
-                                                   it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
-                                               } }
-                                           }
-                                       }
-                                   }
+}
+                                        item {
+                                            if (config.favoriteTeamId.isNotBlank()) {
+                                                Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
+                                                SettingOptionPill("إلغاء التحديد", false) {
+                                                    scope.launch { prefs.updateConfig {
+                                                        it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
+                                                        it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
+                                                        it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
+                                                    } }
+                                                }
+                                            }
+                                        }
+                                    }
                                }
                            }
 
