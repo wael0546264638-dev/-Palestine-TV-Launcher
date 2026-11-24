@@ -493,7 +493,7 @@ fun LauncherScreen() {
         }
 
 
-}
+
 
 private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
 
