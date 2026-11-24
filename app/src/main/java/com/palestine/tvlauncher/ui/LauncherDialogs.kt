@@ -1244,7 +1244,7 @@ item {
                                SettingsCategoryBox("الفريق الرياضي المفضل") {
                                    Text("اختر فريقك المفضل لعرضه في شريط المباريات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                       items(LiveRepository.favoriteTeams) { team ->
+                                        items(config.favoriteTeams) { team ->
                                            val selected = config.favoriteTeamId == team.id
                                            SettingOptionPill("${team.name}  •  ${team.league}", selected) {
                                                scope.launch { prefs.updateConfig {

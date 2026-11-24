@@ -1,5 +1,6 @@
 package com.palestine.tvlauncher.ui
 
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -484,20 +485,15 @@ fun LauncherScreen() {
                             color = Color.White.copy(alpha = 0.9f),
                             fontSize = 14.sp
                         )
+                    }
+                }
+            }
         }
     }
-}
-
-
-                }
-        }
-
-
-
 
 private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
 
-        if (activeWallpaperModel != null) {
+    if (activeWallpaperModel != null) {
             AsyncImage(
                 model = activeWallpaperModel,
                 contentDescription = null,

@@ -64,6 +64,8 @@ data class LauncherConfig(
     val tickerBarFontSize: Int = 13, // sp
     val tickerBarOpacity: Float = 0.65f,
     val tickerShowNextPrayer: Boolean = true,
+    val tickerShowRamadan: Boolean = true,
+    val tickerShowBirthday: Boolean = true,
     val tickerShowRamadanCountdown: Boolean = true,
     val tickerShowBirthdayCountdown: Boolean = true,
     val tickerShowPrices: Boolean = true,
@@ -91,6 +93,7 @@ data class LauncherConfig(
     val favoriteTeamId: String = "",
     val favoriteTeamName: String = "",
     val favoriteTeamLeague: String = "",
+    val favoriteTeams: List<FavoriteTeam> = emptyList(),
 )
 
 data class FamilyReminder(
@@ -98,6 +101,12 @@ data class FamilyReminder(
     val name: String,
     val month: Int,
     val day: Int
+)
+
+data class FavoriteTeam(
+    val id: String,
+    val name: String,
+    val league: String
 )
 
 class LauncherPreferences(private val context: Context) {
@@ -158,6 +167,8 @@ class LauncherPreferences(private val context: Context) {
         val TICKER_BAR_FONT_SIZE = intPreferencesKey("ticker_bar_font_size")
         val TICKER_BAR_OPACITY = floatPreferencesKey("ticker_bar_opacity")
         val TICKER_SHOW_NEXT_PRAYER = booleanPreferencesKey("ticker_show_next_prayer")
+        val TICKER_SHOW_RAMADAN2 = booleanPreferencesKey("ticker_show_ramadan2")
+        val TICKER_SHOW_BIRTHDAY2 = booleanPreferencesKey("ticker_show_birthday2")
         val TICKER_SHOW_RAMADAN = booleanPreferencesKey("ticker_show_ramadan")
         val TICKER_SHOW_BIRTHDAY = booleanPreferencesKey("ticker_show_birthday")
         val TICKER_SHOW_PRICES = booleanPreferencesKey("ticker_show_prices")
@@ -240,6 +251,8 @@ class LauncherPreferences(private val context: Context) {
             tasks = taskList,
             reminders = remList,
 
+            customCardAllTabs = p[CUSTOM_CARD_ALL_TABS] ?: false,
+
             adhanEnabled = p[ADHAN_ENABLED] ?: true,
             adhanVolume = p[ADHAN_VOLUME] ?: 70,
             adhanMuadhinId = p[ADHAN_MUADHIN_ID] ?: "makkah_alimla",
@@ -252,6 +265,8 @@ class LauncherPreferences(private val context: Context) {
             tickerBarFontSize = p[TICKER_BAR_FONT_SIZE] ?: 13,
             tickerBarOpacity = p[TICKER_BAR_OPACITY] ?: 0.65f,
             tickerShowNextPrayer = p[TICKER_SHOW_NEXT_PRAYER] ?: true,
+            tickerShowRamadan = p[TICKER_SHOW_RAMADAN2] ?: true,
+            tickerShowBirthday = p[TICKER_SHOW_BIRTHDAY2] ?: true,
             tickerShowRamadan = p[TICKER_SHOW_RAMADAN] ?: true,
             tickerShowBirthday = p[TICKER_SHOW_BIRTHDAY] ?: true,
             tickerShowPrices = p[TICKER_SHOW_PRICES] ?: true,
@@ -274,7 +289,8 @@ class LauncherPreferences(private val context: Context) {
 
             favoriteTeamId = p[FAVORITE_TEAM_ID] ?: "",
             favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",
-            favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: ""
+            favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: "",
+            favoriteTeams = emptyList(),
         )
     }
 
