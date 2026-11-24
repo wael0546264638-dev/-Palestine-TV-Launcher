@@ -97,11 +97,14 @@ object AdhanManager {
         wakeLock?.acquire()
 
         try {
-            player = ExoPlayer.Builder(context).build()
-            player?.audioAttributes = ExoAudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .build()
+                    val audioAttributes = ExoAudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .build()
+        player = ExoPlayer.Builder(context)
+            .setAudioAttributes(audioAttributes, true)
+            .build()
+
             val item = MediaItem.fromUri(url)
             player?.setMediaItem(item)
             player?.prepare()
