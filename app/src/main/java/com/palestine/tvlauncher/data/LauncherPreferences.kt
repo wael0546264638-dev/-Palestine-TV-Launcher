@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore by preferencesDataStore(name = "palestine_launcher_prefs")
 
 data class LauncherConfig(
+    val customCardAllTabs: Boolean = false,
     val cityName: String = "أريحا (الزبيدات)",
     val cityLat: Double = 32.0450,
     val cityLon: Double = 35.4580,
@@ -102,6 +103,7 @@ data class FamilyReminder(
 class LauncherPreferences(private val context: Context) {
 
     companion object {
+        val CUSTOM_CARD_ALL_TABS = booleanPreferencesKey("custom_card_all_tabs")
         val CITY_NAME = stringPreferencesKey("city_name")
         val CITY_LAT = doublePreferencesKey("city_lat")
         val CITY_LON = doublePreferencesKey("city_lon")
