@@ -697,7 +697,7 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                         translationY = config.dockOffsetY
                     },
                     onLaunchApp = { app -> AppManager.launchApp(context, app.packageName) }
-                )
+          )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -728,6 +728,7 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                 },
                 onCancel = { isLiveEditMode = false }
             )
+        }
 
         if (showSettingsDrawer) {
             SettingsModalDrawer(
