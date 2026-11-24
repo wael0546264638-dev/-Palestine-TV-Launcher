@@ -728,7 +728,6 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                 },
                 onCancel = { isLiveEditMode = false }
             )
-        }
 
         if (showSettingsDrawer) {
             SettingsModalDrawer(
@@ -774,4 +773,3 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
         }
     }
 }
-
