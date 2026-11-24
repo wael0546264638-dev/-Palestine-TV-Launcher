@@ -459,7 +459,7 @@ fun LauncherScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 26.dp, vertical = 10.dp)
-                    .align(Alignment.Top),
+                    .align(Alignment.Center),
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFF7C3AED).copy(alpha = 0.92f),
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
