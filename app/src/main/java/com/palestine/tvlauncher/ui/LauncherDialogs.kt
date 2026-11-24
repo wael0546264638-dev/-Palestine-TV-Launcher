@@ -259,8 +259,7 @@ rows.forEach { (name, time) ->
 }
         }
     }
-}
-                        Text(
+Text(
                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.Bold,
@@ -392,6 +391,8 @@ rows.forEach { (name, time) ->
                 }
             }
         }
+    }
+}
 private fun fetchSurahsList(): List<SurahHeader> {
     return try {
         val conn = (URL("https://api.alquran.cloud/v1/surah").openConnection() as HttpURLConnection).apply {
