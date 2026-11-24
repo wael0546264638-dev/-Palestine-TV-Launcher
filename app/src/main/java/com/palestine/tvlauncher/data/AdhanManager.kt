@@ -99,8 +99,8 @@ object AdhanManager {
         try {
             player = ExoPlayer.Builder(context).build()
             player?.audioAttributes = ExoAudioAttributes.Builder()
-                .setContentType(ExoAudioAttributes.CONTENT_TYPE_SPEECH)
-                .setUsage(ExoAudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
                 .build()
             val item = MediaItem.fromUri(url)
             player?.setMediaItem(item)

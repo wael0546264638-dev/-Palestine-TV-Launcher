@@ -267,8 +267,6 @@ class LauncherPreferences(private val context: Context) {
             tickerBarFontSize = p[TICKER_BAR_FONT_SIZE] ?: 13,
             tickerBarOpacity = p[TICKER_BAR_OPACITY] ?: 0.65f,
             tickerShowNextPrayer = p[TICKER_SHOW_NEXT_PRAYER] ?: true,
-            tickerShowRamadan = p[TICKER_SHOW_RAMADAN2] ?: true,
-            tickerShowBirthday = p[TICKER_SHOW_BIRTHDAY2] ?: true,
             tickerShowRamadan = p[TICKER_SHOW_RAMADAN] ?: true,
             tickerShowBirthday = p[TICKER_SHOW_BIRTHDAY] ?: true,
             tickerShowPrices = p[TICKER_SHOW_PRICES] ?: true,

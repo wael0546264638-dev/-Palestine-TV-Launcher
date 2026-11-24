@@ -127,7 +127,7 @@ fun InteractiveTabsCard(
                                     scaleY = focusScale
                                     if (glow) {
                                         shadowElevation = 12.dp.toPx()
-                                        shadowColor = Color(config.focusGlowColor).copy(alpha = 0.5f)
+                                        spotShadowColor = Color(config.focusGlowColor).copy(alpha = 0.5f)
                                     }
                                 },
                             shape = CircleShape,
@@ -198,7 +198,7 @@ rows.forEach { (name, time) ->
                                               .border(2.5.dp, Color(0xFFFBBF24), RoundedCornerShape(12.dp))
                                               .graphicsLayer {
                                                   shadowElevation = 8.dp.toPx()
-                                                  shadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
+                                                  spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
                                               }
                                           else Modifier
                                       )
@@ -220,7 +220,7 @@ rows.forEach { (name, time) ->
                                                       .size(18.dp)
                                                       .graphicsLayer {
                                                           shadowElevation = 4.dp.toPx()
-                                                          shadowColor = Color(0xFFFBBF24).copy(alpha = 0.6f)
+                                                          spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.6f)
                                                       }
                                               )
                                           }
@@ -247,7 +247,7 @@ rows.forEach { (name, time) ->
                                                   .padding(horizontal = 10.dp, vertical = 2.dp)
                                                   .graphicsLayer {
                                                       shadowElevation = 3.dp.toPx()
-                                                      shadowColor = Color(0xFFF59E0B).copy(alpha = 0.5f)
+                                                      spotShadowColor = Color(0xFFF59E0B).copy(alpha = 0.5f)
                                                   }
                                           )
                                       }
