@@ -354,35 +354,39 @@ fun BottomTickerBar(
         }
     }
 
+    val barHeight = config.tickerBarHeight.dp
+    val barFontSize = config.tickerBarFontSize.sp
+    val barOpacity = config.tickerBgOpacity
+
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = CircleShape,
-            color = Color.Black.copy(alpha = config.tickerBgOpacity)
+            color = Color.Black.copy(alpha = barOpacity)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = barFontSize, fontWeight = FontWeight.Bold)
                 Text(
                     PalestineData.toArabicDigits("رمضان بعد $daysToRamadan يوم$familyText"),
                     color = Color.White,
-                    fontSize = 13.sp
+                    fontSize = barFontSize
                 )
-                Text(liveFeed.matches.firstOrNull()?.name ?: "", color = Color(0xFFFBBF24), fontSize = 13.sp)
+                Text(liveFeed.matches.firstOrNull()?.name ?: "", color = Color(0xFFFBBF24), fontSize = barFontSize)
             }
         }
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = CircleShape,
-            color = Color.Black.copy(alpha = config.tickerBgOpacity)
+            color = Color.Black.copy(alpha = barOpacity)
         ) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 5.dp)) {
                 Text(
                     text = "$tickerLine      $tickerLine",
                     color = Color(0xFF34D399),
-                    fontSize = 14.sp,
+                    fontSize = barFontSize,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
