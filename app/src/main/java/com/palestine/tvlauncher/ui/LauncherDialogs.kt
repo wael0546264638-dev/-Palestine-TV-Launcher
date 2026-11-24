@@ -65,10 +65,15 @@ fun InteractiveTabsCard(
     val tabTitles = listOf(
         "أوقات الصلاة", "الطقس", "المباريات", "التاريخ",
         "آية اليوم", "حديث اليوم", "الأذكار", "الأخبار",
-        "العملات والذهب", "المناسبات", "حالة الجهاز", "المهام", "التذكيرات"
+        "العملات والذهب", "المناسبات", "حالة الجهاز", "المهام", "التذكيرات",
+        "الكل"
     )
     var selectedTab by remember { mutableIntStateOf(0) }
     var isExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(config.customCardAllTabs) {
+        if (config.customCardAllTabs) selectedTab = tabTitles.lastIndex
+    }
 
     LaunchedEffect(config.autoRotateTabs, config.tabAutoRotateIntervalMinutes) {
         if (config.autoRotateTabs && config.tabAutoRotateIntervalMinutes > 0) {
@@ -98,16 +103,30 @@ fun InteractiveTabsCard(
                         val active = selectedTab == idx
                         val interaction = remember { MutableInteractionSource() }
                         val focused by interaction.collectIsFocusedAsState()
+                        val focusScale = if (config.focusScaleEnabled && focused) config.focusScaleFactor else 1f
+                        val glow = config.focusGlowEnabled && focused
                         Surface(
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .clickable(interactionSource = interaction, indication = null) { selectedTab = idx },
+                                .focusable()
+                                .clickable(interactionSource = interaction, indication = null) { selectedTab = idx }
+                                .graphicsLayer {
+                                    scaleX = focusScale
+                                    scaleY = focusScale
+                                    if (glow) {
+                                        shadowElevation = 12.dp.toPx()
+                                        shadowColor = Color(config.focusGlowColor).copy(alpha = 0.5f)
+                                    }
+                                },
                             shape = CircleShape,
                             color = when {
                                 focused -> Color.White
                                 active -> Color(0xFF38BDF8)
                                 else -> Color.White.copy(alpha = 0.10f)
-                            }
+                            },
+                            border = if (config.focusBorderEnabled && (focused || active)) {
+                                BorderStroke(config.focusBorderWidth.dp, Color(config.focusBorderColor))
+                            } else BorderStroke(0.dp, Color.Transparent)
                         ) {
                             Text(
                                 text = tabTitles[idx],
@@ -572,14 +591,61 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                             isLoading = true
                                             surahContent = fetchSurahContent(selectedSurahNum)
                                             isLoading = false
-                                        }
-                                    }
+                            }
+                        }
+                    }
+                    13 -> {
+                        val scrollState = rememberScrollState()
+                        Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+                            Text("البطاقة الشاملة - جميع التبويبات", color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
+                            Text("أوقات الصلاة:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                            val prayerRows = listOf(
+                                "الفجر" to prayerInfo.fajr,
+                                "الظهر" to prayerInfo.dhuhr,
+                                "العصر" to prayerInfo.asr,
+                                "المغرب" to prayerInfo.maghrib,
+                                "العشاء" to prayerInfo.isha
+                            )
+                            prayerRows.forEach { (name, time) ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(name, color = Color.White)
+                                    Text(time, color = Color(0xFF38BDF8))
                                 }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("الطقس: ${liveFeed.currentTemp}° (الأعلى ${liveFeed.dailyMax}° / الأدنى ${liveFeed.dailyMin}°)", color = Color.White)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("المباريات:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                            liveFeed.matches.forEach { m ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(m.name, color = Color.White)
+                                    Text(m.status, color = Color(0xFF34D399))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("العملات والذهب:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                            liveFeed.prices.forEach { (pair, info) ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(pair, color = Color.White)
+                                    Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("المهام:", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                            config.tasks.forEach { t -> Text("✓ $t", color = Color.White) }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("التذكيرات (أعياد الميلاد):", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                            config.reminders.forEach { r ->
+                                val left = calculateDaysUntilDate(r.month, r.day)
+                                Text("🎂 ${r.name} - متبقي $left يوم", color = Color.White)
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
         }
     }
 }
@@ -890,10 +956,41 @@ fun SettingsModalDrawer(
                                     }
                                 }
                             }
-                        }
+                         }
 
-                        item {
-                            SettingsCategoryBox("٣. أشكال الساعة والتاريخ") {
+                         item {
+                             SettingsCategoryBox("الخلفيات الحية المتحركة") {
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                     SettingOptionPill("تفعيل الخلفية الحية", config.liveWallpaperEnabled) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = !config.liveWallpaperEnabled } }
+                                     }
+                                     SettingOptionPill("إيقاف", !config.liveWallpaperEnabled) {
+                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = false } }
+                                     }
+                                 }
+                                 Text("نوع الحركة:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(LiveRepository.liveWallpapers.size) { idx ->
+                                         val opt = LiveRepository.liveWallpapers[idx]
+                                         SettingOptionPill(opt.title, config.liveWallpaperType == opt.id) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_TYPE] = opt.id } }
+                                         }
+                                     }
+                                 }
+                                 Text("فاصل التجديد (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 val intervals = listOf(1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 10 to "كل ١٠ دقائق", 30 to "كل ٣٠ دقيقة", 60 to "كل ساعة")
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(intervals) { (mins, label) ->
+                                         SettingOptionPill(label, config.liveWallpaperIntervalMinutes == mins) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_INTERVAL] = mins } }
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+
+                         item {
+                             SettingsCategoryBox("٣. أشكال الساعة والتاريخ") {
                                 val styles = listOf("رقمي عصري", "بطاقة زجاجية", "عقارب دائرية", "عمودي كبير")
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(styles.size) { idx ->
@@ -1135,14 +1232,78 @@ item {
                                           }
                                       }
                                   }
-                                  Button(onClick = {
-                                      scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
-                                  }) {
-                                      Text("حفظ الترتيب", color = Color(0xFF34D399))
-                                  }
-                              }
-                          }
-                     }
+                                   Button(onClick = {
+                                       scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
+                                   }) {
+                                       Text("حفظ الترتيب", color = Color(0xFF34D399))
+                                   }
+                               }
+                           }
+
+                           item {
+                               SettingsCategoryBox("الفريق الرياضي المفضل") {
+                                   Text("اختر فريقك المفضل لعرضه في شريط المباريات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                   LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                       items(LiveRepository.favoriteTeams) { team ->
+                                           val selected = config.favoriteTeamId == team.id
+                                           SettingOptionPill("${team.name}  •  ${team.league}", selected) {
+                                               scope.launch { prefs.updateConfig {
+                                                   it[LauncherPreferences.FAVORITE_TEAM_ID] = team.id
+                                                   it[LauncherPreferences.FAVORITE_TEAM_NAME] = team.name
+                                                   it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = team.league
+                                               } }
+                                           }
+                                       }
+                                       if (config.favoriteTeamId.isNotBlank()) {
+                                           Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
+                                           SettingOptionPill("إلغاء التحديد", false) {
+                                               scope.launch { prefs.updateConfig {
+                                                   it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
+                                                   it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
+                                                   it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
+                                               } }
+                                           }
+                                       }
+                                   }
+                               }
+                           }
+
+                           item {
+                               SettingsCategoryBox("التركيز والتكبير والوهج") {
+                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                       SettingOptionPill("تكبير عند التركيز", config.focusScaleEnabled) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_SCALE_ENABLED] = !config.focusScaleEnabled } }
+                                       }
+                                       SettingOptionPill("وهج عند التركيز", config.focusGlowEnabled) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_GLOW_ENABLED] = !config.focusGlowEnabled } }
+                                       }
+                                   }
+                                   Text("عامل التكبير:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                   val scaleFactors = listOf(1.05f to "١٫٠٥", 1.10f to "١٫١٠", 1.15f to "١٫١٥", 1.20f to "١٫٢٠")
+                                   LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                       items(scaleFactors) { (factor, label) ->
+                                           SettingOptionPill(label, config.focusScaleFactor == factor) {
+                                               scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_SCALE_FACTOR] = factor } }
+                                           }
+                                       }
+                                   }
+                               }
+                           }
+
+                           item {
+                               SettingsCategoryBox("البطاقة المخصصة الشاملة") {
+                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                       SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
+                                       }
+                                       SettingOptionPill("إيقاف", !config.customCardAllTabs) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
+                                       }
+                                   }
+                                   Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                               }
+                           }
+                      }
                 }
             }
         }      

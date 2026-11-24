@@ -18,7 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.ViewCompact
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -486,7 +489,6 @@ fun LauncherScreen() {
 }
 
 private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
-        }
 
         if (activeWallpaperModel != null) {
             AsyncImage(
@@ -565,6 +567,28 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
                     onOpenSettings = { showSettingsDrawer = true },
                     onTriggerUpdate = { showUpdateDialog = true }
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PillActionButton(
+                        label = "المهام",
+                        icon = Icons.Default.CheckCircle,
+                        onClick = { tabCardExpanded = true }
+                    )
+                    PillActionButton(
+                        label = "التذكيرات",
+                        icon = Icons.Default.EventNote,
+                        onClick = { tabCardExpanded = true }
+                    )
+                    PillActionButton(
+                        label = "البطاقة الشاملة",
+                        icon = Icons.Default.ViewCompact,
+                        onClick = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } } }
+                    }
+                }
 
                 if (config.showBottomBar && config.tickerBarPosition == 1) {
                     BottomTickerBar(config = config, prayerInfo = prayerInfo, liveFeed = liveFeed)

@@ -23,7 +23,7 @@ def get_weather(lat=32.1642, lon=35.5311):
         return {
             "current_temp": 26,
             "code": 1,
-            "daily_max":,
+            "daily_max": [28, 29, 27, 28, 26],
             "daily_min": [16, 17, 15, 15, 16]
         }
 
