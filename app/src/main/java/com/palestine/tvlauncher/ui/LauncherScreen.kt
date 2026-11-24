@@ -758,6 +758,7 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
 
         if (showQuranDialog) {
             FullQuranDialog(onDismiss = { showQuranDialog = false })
+        }
 
         if (showUpdateDialog && updateInfo != null) {
             AlertDialog(
@@ -774,4 +775,3 @@ private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtw
             )
         }
     }
-}
