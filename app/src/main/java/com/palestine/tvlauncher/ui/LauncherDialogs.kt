@@ -44,6 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.quranRadioStations
+import com.palestine.tvlauncher.data.AdhanManager
 import com.palestine.tvlauncher.data.liveWallpapers
 import com.palestine.tvlauncher.data.FamilyReminder
 import com.palestine.tvlauncher.data.LauncherConfig
