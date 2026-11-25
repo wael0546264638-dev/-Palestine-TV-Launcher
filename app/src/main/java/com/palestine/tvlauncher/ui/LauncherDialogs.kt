@@ -459,7 +459,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        surahs = LiveRepository.fetchSurahsList()
+        surahs = LiveRepository.fetchAll114Surahs()
         surahListFocus.requestFocus()
     }
 
