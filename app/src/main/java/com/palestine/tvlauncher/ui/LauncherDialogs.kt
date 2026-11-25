@@ -488,7 +488,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxSize(0.92f),
             shape = RoundedCornerShape(24.dp),
             color = Color(0xFF0B1324),
-            border = BorderStroke(1.5.dp, Color(0xFFFBBF24).copy(alpha = 0.5f))
+            border = BorderStroke(width = 1.5.dp, color = Color(0xFFFBBF24).copy(alpha = 0.5f))
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                 Row(
@@ -566,7 +566,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                         modifier = Modifier.weight(0.72f).fillMaxHeight(),
                         shape = RoundedCornerShape(16.dp),
                         color = Color(0xFF111C33),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                        border = BorderStroke(width = 1.dp, color = Color.White.copy(alpha = 0.1f))
                     ) {
                         if (isLoading) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -622,13 +622,12 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                             else -> Color.Transparent
                                         },
                                         border = BorderStroke(
-                                            if (isFocused || isPlaying) 3.dp else if (focused) 2.dp else 1.dp,
-                                            when {
+                                            width = if (isFocused || isPlaying) 3.dp else if (focused) 2.dp else 1.dp,
+                                            color = when {
                                                 isFocused || isPlaying -> Color(0xFFFBBF24)
                                                 focused -> Color.White.copy(alpha = 0.5f)
                                                 else -> Color.White.copy(alpha = 0.1f)
-                                            },
-                                            RoundedCornerShape(14.dp)
+                                            }
                                         )
                                     ) {
                                         Column(
