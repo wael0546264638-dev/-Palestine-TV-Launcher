@@ -1,5 +1,6 @@
 package com.palestine.tvlauncher.ui
 
+import com.palestine.tvlauncher.data.quranRadioStations
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
