@@ -45,6 +45,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.quranRadioStations
+import com.palestine.tvlauncher.data.LauncherPreferences
+import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
