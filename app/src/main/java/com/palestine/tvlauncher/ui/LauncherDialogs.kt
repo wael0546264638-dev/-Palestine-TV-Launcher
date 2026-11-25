@@ -43,10 +43,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.palestine.tvlauncher.data.*
 import com.palestine.tvlauncher.data.liveWallpapers
-import com.palestine.tvlauncher.network.FullSurahContent
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.SurahHeader
+import com.palestine.tvlauncher.network.Verse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -396,81 +396,92 @@ rows.forEach { (name, time) ->
         }
     }
 }
-private fun fetchSurahsList(): List<SurahHeader> {
-    return try {
-        val conn = (URL("https://api.alquran.cloud/v1/surah").openConnection() as HttpURLConnection).apply {
-            connectTimeout = 9000
-            readTimeout = 9000
-            setRequestProperty("User-Agent", "PalestineTVLauncher/1.2")
-        }
-        if (conn.responseCode in 200..299) {
-            val raw = conn.inputStream.bufferedReader().use { it.readText() }
-            val arr = JSONObject(raw).getJSONArray("data")
-            val list = mutableListOf<SurahHeader>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val type = if (obj.optString("revelationType") == "Meccan") "مكية" else "مدنية"
-                list.add(SurahHeader(obj.getInt("number"), obj.getString("name"), obj.getInt("numberOfAyahs"), type))
-            }
-            list
-        } else emptyList()
-    } catch (_: Exception) { emptyList() }
-}
-
-private fun fetchSurahContent(surahNumber: Int): FullSurahContent? {
-    return try {
-        val conn = (URL("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani").openConnection() as HttpURLConnection).apply {
-            connectTimeout = 9000
-            readTimeout = 9000
-            setRequestProperty("User-Agent", "PalestineTVLauncher/1.2")
-        }
-        if (conn.responseCode in 200..299) {
-            val raw = conn.inputStream.bufferedReader().use { it.readText() }
-            val data = JSONObject(raw).getJSONObject("data")
-            val name = data.getString("name")
-            val ayahs = data.getJSONArray("ayahs")
-            var firstPage = 0; var lastPage = 0
-            val sb = StringBuilder()
-            if (surahNumber != 1 && surahNumber != 9) sb.append("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n\n")
-            for (i in 0 until ayahs.length()) {
-                val a = ayahs.getJSONObject(i)
-                val num = a.getInt("numberInSurah")
-                val page = a.optInt("page", 1)
-                if (i == 0) firstPage = page
-                lastPage = page
-                var txt = a.getString("text")
-                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
-                sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
-            }
-            val pageStr = if (firstPage == lastPage) "صفحة ${PalestineData.toArabicDigits(firstPage.toString())}" else "صفحة ${PalestineData.toArabicDigits("$firstPage - $lastPage")}"
-            FullSurahContent(surahNumber, name, sb.toString().trim(), pageStr)
-        } else null
-    } catch (_: Exception) { null }
-}
-
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var surahs by remember { mutableStateOf<List<SurahHeader>>(emptyList()) }
     var selectedSurahNum by remember { mutableIntStateOf(1) }
-    var surahContent by remember { mutableStateOf<FullSurahContent?>(null) }
+    var verses by remember { mutableStateOf<List<Verse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var fontSizeSp by remember { mutableFloatStateOf(21f) }
-    val listFocus = remember { FocusRequester() }
+    var fontSizeSp by remember { mutableFloatStateOf(24f) }
+    val surahListFocus = remember { FocusRequester() }
+    val versesFocus = remember { FocusRequester() }
+    var focusedVerseIndex by remember { mutableIntStateOf(-1) }
+    var lastPlayedVerseIndex by remember { mutableIntStateOf(-1) }
+
+    val mediaPlayer = remember {
+        android.media.MediaPlayer().apply {
+            setAudioAttributes(
+                android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+        }
+    }
+
+    fun playVerseAudio(audioUrl: String, verseIndex: Int) {
+        if (lastPlayedVerseIndex == verseIndex && mediaPlayer.isPlaying) {
+            return
+        }
+        scope.launch {
+            try {
+                mediaPlayer.reset()
+                mediaPlayer.setDataSource(audioUrl)
+                mediaPlayer.setOnPreparedListener {
+                    it.start()
+                    lastPlayedVerseIndex = verseIndex
+                }
+                mediaPlayer.setOnErrorListener { _, _, _ ->
+                    lastPlayedVerseIndex = -1
+                    true
+                }
+                mediaPlayer.setOnCompletionListener {
+                    if (lastPlayedVerseIndex == verseIndex) {
+                        lastPlayedVerseIndex = -1
+                    }
+                }
+                mediaPlayer.prepareAsync()
+            } catch (_: Exception) {
+                lastPlayedVerseIndex = -1
+            }
+        }
+    }
+
+    fun stopAudio() {
+        try {
+            if (mediaPlayer.isPlaying) mediaPlayer.stop()
+            mediaPlayer.reset()
+        } catch (_: Exception) {}
+        lastPlayedVerseIndex = -1
+    }
 
     LaunchedEffect(Unit) {
-        surahs = fetchSurahsList()
-        listFocus.requestFocus()
+        surahs = LiveRepository.fetchSurahsList()
+        surahListFocus.requestFocus()
     }
 
     LaunchedEffect(selectedSurahNum) {
         isLoading = true
-        surahContent = fetchSurahContent(selectedSurahNum)
+        focusedVerseIndex = -1
+        stopAudio()
+        val result = LiveRepository.fetchSurahWithAudio(selectedSurahNum)
+        verses = result ?: emptyList()
         isLoading = false
+        if (result != null && result.isNotEmpty()) {
+            scope.launch {
+                delay(300)
+                versesFocus.requestFocus()
+            }
+        }
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            stopAudio()
+            onDismiss()
+        },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
@@ -488,16 +499,16 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.MenuBook, contentDescription = null, tint = Color(0xFFFBBF24), modifier = Modifier.size(28.dp))
                         Text(
-                            text = surahContent?.let { "${it.name}  •  ${it.pageRange}" } ?: "المصحف الشريف الكامل (١١٤ سورة)",
+                            text = surahs.firstOrNull { it.number == selectedSurahNum }?.let { "${it.name}  •  ${it.ayahCount} آية" } ?: "المصحف الشريف الكامل (١١٤ سورة)",
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SettingOptionPill("تصغير الخط -", false) { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(16f) }
-                        SettingOptionPill("تكبير الخط +", false) { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(34f) }
-                        SettingOptionPill("إغلاق", false, onClick = onDismiss)
+                        SettingOptionPill("تصغير الخط -", false) { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(18f) }
+                        SettingOptionPill("تكبير الخط +", false) { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(36f) }
+                        SettingOptionPill("إغلاق", false, onClick = { stopAudio(); onDismiss() })
                     }
                 }
 
@@ -511,7 +522,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color.White.copy(alpha = 0.05f))
                             .padding(8.dp)
-                            .focusRequester(listFocus),
+                            .focusRequester(surahListFocus),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         items(surahs, key = { it.number }) { s ->
@@ -559,51 +570,139 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                     ) {
                         if (isLoading) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("جاري تحميل السورة بالرسم العثماني...", color = Color(0xFFFBBF24), fontSize = 18.sp)
+                                Text("جاري تحميل السورة بالرسم العثماني مع الصوت...", color = Color(0xFFFBBF24), fontSize = 18.sp)
                             }
-                        } else if (surahContent != null) {
+                        } else if (verses.isNotEmpty()) {
                             val scrollState = rememberScrollState()
                             LaunchedEffect(selectedSurahNum) { scrollState.scrollTo(0) }
-                            Column(
-                                modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp)
+                                    .verticalScroll(scrollState)
+                                    .focusRequester(versesFocus),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = surahContent!!.versesText,
-                                    color = Color(0xFFF8FAFC),
-                                    fontSize = fontSizeSp.sp,
-                                    lineHeight = (fontSizeSp * 1.75f).sp,
-                                    textAlign = TextAlign.Justify
-                                )
-                                Spacer(modifier = Modifier.height(20.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    if (selectedSurahNum > 1) {
-                                        SettingOptionPill("السورة السابقة", false) { selectedSurahNum -= 1 }
+                                items(verses, key = { it.number }) { verse ->
+                                    val verseIndex = verse.number - 1
+                                    val isFocused = focusedVerseIndex == verseIndex
+                                    val isPlaying = lastPlayedVerseIndex == verseIndex
+                                    val interaction = remember { MutableInteractionSource() }
+                                    val focused by interaction.collectIsFocusedAsState()
+                                    
+                                    LaunchedEffect(focused) {
+                                        if (focused) {
+                                            focusedVerseIndex = verseIndex
+                                            verse.audioUrl?.let { url ->
+                                                playVerseAudio(url, verseIndex)
+                                            }
+                                        }
                                     }
-                                    if (selectedSurahNum < 114) {
-                                        SettingOptionPill("السورة التالية", false) { selectedSurahNum += 1 }
+                                    
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .focusable()
+                                            .clickable(interactionSource = interaction, indication = null) { 
+                                                verse.audioUrl?.let { url ->
+                                                    playVerseAudio(url, verseIndex)
+                                                }
+                                            }
+                                            .graphicsLayer {
+                                                if (isFocused || isPlaying) {
+                                                    shadowElevation = 8.dp.toPx()
+                                                    spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
+                                                }
+                                            },
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = when {
+                                            isFocused || isPlaying -> Color(0xFFFBBF24).copy(alpha = 0.15f)
+                                            focused -> Color.White.copy(alpha = 0.1f)
+                                            else -> Color.Transparent
+                                        },
+                                        border = BorderStroke(
+                                            if (isFocused || isPlaying) 3.dp else if (focused) 2.dp else 1.dp,
+                                            when {
+                                                isFocused || isPlaying -> Color(0xFFFBBF24)
+                                                focused -> Color.White.copy(alpha = 0.5f)
+                                                else -> Color.White.copy(alpha = 0.1f)
+                                            },
+                                            RoundedCornerShape(14.dp)
+                                        )
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(20.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = PalestineData.toArabicDigits("﴿${verse.number}﴾"),
+                                                    color = if (isFocused || isPlaying) Color(0xFFFBBF24) else Color(0xFF94A3B8),
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                if (isPlaying) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.VolumeUp,
+                                                        contentDescription = "جاري التشغيل",
+                                                        tint = Color(0xFFFBBF24),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = verse.text,
+                                                color = Color(0xFFF8FAFC),
+                                                fontSize = fontSizeSp.sp,
+                                                lineHeight = (fontSizeSp * 1.9f).sp,
+                                                textAlign = TextAlign.Center,
+                                                fontWeight = FontWeight.Normal
+                                            )
+                                        }
                                     }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (selectedSurahNum > 1) {
+                                    SettingOptionPill("السورة السابقة", false) { selectedSurahNum -= 1 }
+                                }
+                                if (selectedSurahNum < 114) {
+                                    SettingOptionPill("السورة التالية", false) { selectedSurahNum += 1 }
                                 }
                             }
                         } else {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Text("تعذر جلب السورة، تأكد من اتصال الإنترنت", color = Color(0xFFF87171))
+                                    Text("تعذر جلب السورة، تأكد من اتصال الإنترنت", color = Color(0xFFF87171), fontSize = 16.sp)
                                     SettingOptionPill("إعادة المحاولة", false) {
                                         scope.launch {
                                             isLoading = true
-                                            surahContent = fetchSurahContent(selectedSurahNum)
+                                            val result = LiveRepository.fetchSurahWithAudio(selectedSurahNum)
+                                            verses = result ?: emptyList()
                                             isLoading = false
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
         }
     }
-}
-        }
-    }
-}
 }
 @Composable
 fun LiveLayoutEditorOverlay(

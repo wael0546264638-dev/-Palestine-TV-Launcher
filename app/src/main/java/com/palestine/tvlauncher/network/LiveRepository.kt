@@ -31,6 +31,7 @@ data class LiveFeedState(
 
 data class SurahHeader(val number: Int, val name: String, val ayahCount: Int, val revelationType: String)
 data class FullSurahContent(val number: Int, val name: String, val versesText: String, val pageRange: String)
+data class Verse(val number: Int, val text: String, val audioUrl: String?)
 
 object LiveRepository {
 
@@ -73,7 +74,7 @@ object LiveRepository {
     suspend fun fetchAll114Surahs(): List<SurahHeader> = withContext(Dispatchers.IO) {
         cachedSurahList?.let { return@withContext it }
         try {
-            val raw = httpGet("https://alquran.cloud") ?: return@withContext emptyList()
+            val raw = httpGet("https://api.alquran.cloud/v1/surah") ?: return@withContext emptyList()
             val arr = JSONObject(raw).getJSONArray("data")
             val list = mutableListOf<SurahHeader>()
             for (i in 0 until arr.length()) {
@@ -98,7 +99,7 @@ object LiveRepository {
     suspend fun fetchFullSurahText(surahNumber: Int): FullSurahContent? = withContext(Dispatchers.IO) {
         cachedSurahTexts[surahNumber]?.let { return@withContext it }
         try {
-            val raw = httpGet("https://alquran.cloud/$surahNumber/quran-uthmani") ?: return@withContext null
+            val raw = httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani") ?: return@withContext null
             val data = JSONObject(raw).getJSONObject("data")
             val name = data.getString("name")
             val ayahs = data.getJSONArray("ayahs")
@@ -125,6 +126,28 @@ object LiveRepository {
             val result = FullSurahContent(surahNumber, name, sb.toString().trim(), pageStr)
             cachedSurahTexts[surahNumber] = result
             result
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun fetchSurahWithAudio(surahNumber: Int): List<Verse>? = withContext(Dispatchers.IO) {
+        try {
+            val raw = httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.alafasy") ?: return@withContext null
+            val data = JSONObject(raw).getJSONObject("data")
+            val ayahs = data.getJSONArray("ayahs")
+            val verses = mutableListOf<Verse>()
+            for (i in 0 until ayahs.length()) {
+                val a = ayahs.getJSONObject(i)
+                val num = a.getInt("numberInSurah")
+                var txt = a.getString("text")
+                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) {
+                    txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                }
+                val audioUrl = a.optString("audio", "").takeIf { it.isNotBlank() }
+                verses.add(Verse(num, txt, audioUrl))
+            }
+            verses
         } catch (_: Exception) {
             null
         }
