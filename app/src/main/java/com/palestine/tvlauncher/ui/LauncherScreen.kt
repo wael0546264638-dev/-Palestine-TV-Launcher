@@ -50,7 +50,6 @@ import com.palestine.tvlauncher.data.AdhanManager
 import com.palestine.tvlauncher.data.LauncherConfig
 import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.PalestineData
-import com.palestine.tvlauncher.data.PalestineData.quranRadioStations
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
