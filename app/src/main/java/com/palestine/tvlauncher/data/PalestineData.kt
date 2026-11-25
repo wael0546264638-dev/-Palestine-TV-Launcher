@@ -82,9 +82,33 @@ object PalestineData {
     val cities = palestineCities + worldCapitals
 
     val quranRadios = listOf(
-        "إذاعة القرآن الكريم - مكة المكرمة" to "https://radiojar.com",
-        "إذاعة القرآن الكريم - القاهرة" to "https://radiojar.com"
+        "إذاعة القرآن الكريم - مكة المكرمة" to listOf(
+            "https://stream.radiojar.com/8s5u5tpdtwzuv",
+            "https://qurango.net/radio/makkah.mp3"
+        ),
+        "إذاعة القرآن الكريم - المدينة المنورة" to listOf(
+            "https://stream.radiojar.com/medinah",
+            "https://qurango.net/radio/madinah.mp3"
+        ),
+        "إذاعة القرآن الكريم - القاهرة" to listOf(
+            "https://stream.radiojar.com/8s5u5tpdtwzuv",
+            "https://qurango.net/radio/cairo.mp3"
+        ),
+        "إذاعة القرآن الكريم - نابلس" to listOf(
+            "https://nablus.radiojar.com/stream",
+            "https://qurango.net/radio/nablus.mp3"
+        ),
+        "إذاعة القرآن الكريم - القدس" to listOf(
+            "https://quds.radiojar.com/stream",
+            "https://qurango.net/radio/quds.mp3"
+        ),
+        "إذاعة القرآن الكريم - السعودية (إخبارية)" to listOf(
+            "https://radio.qurango.net/saudi",
+            "https://qurango.net/radio/saudi.mp3"
+        )
     )
+
+    val quranRadioStations = quranRadios
 
     val fullQuranSurahs = listOf(
         QuranSurah(1, "سورة الفاتحة", "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ (١) الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ (٢) الرَّحْمَٰنِ الرَّحِيمِ (٣) مَالِكِ يَوْمِ الدِّينِ (٤) إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ (٥) اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (٦) صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (٧)"),

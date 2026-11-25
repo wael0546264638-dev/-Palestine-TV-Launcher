@@ -44,7 +44,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import com.palestine.tvlauncher.data.*
+import com.palestine.tvlauncher.data.quranRadioStations
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
@@ -66,6 +66,72 @@ private fun toLatinDigits(input: String): String {
     }
     return sb.toString()
 }
+
+    fun startQuranStream(urls: List<String>) {
+        val urlList = if (urls.isEmpty()) listOf(QURAN_DEFAULT_STREAM) else urls
+        tryStream(urlList, 0)
+    }
+
+    fun startQuranStream(url: String) {
+        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
+        tryStream(listOf(streamUrl), 0)
+    }
+
+    private fun tryStream(urlList: List<String>, index: Int) {
+        if (index >= urlList.size) {
+            isQuranBuffering = false
+            isQuranPlaying = false
+            if (wakeLock.isHeld) wakeLock.release()
+            return
+        }
+        val streamUrl = urlList[index]
+        try {
+            isQuranBuffering = true
+            isQuranPlaying = false
+            mediaPlayer.reset()
+            mediaPlayer.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+            mediaPlayer.setAllowCrossProtocolRedirects(true)
+            val headers = mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
+            mediaPlayer.setDataSource(context, Uri.parse(streamUrl), headers)
+            mediaPlayer.setOnPreparedListener {
+                it.start()
+                isQuranBuffering = false
+                isQuranPlaying = true
+                if (!wakeLock.isHeld) wakeLock.acquire(12 * 60 * 60 * 1000L)
+            }
+            mediaPlayer.setOnErrorListener { _, what, _ ->
+                isQuranBuffering = false
+                isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
+                scope.launch {
+                    delay(1000)
+                    if (isQuranPlaying || isQuranBuffering) return@launch
+                    tryStream(urlList, index + 1)
+                }
+                true
+            }
+            mediaPlayer.setOnCompletionListener {
+                isQuranBuffering = false
+                isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
+            }
+            mediaPlayer.prepareAsync()
+        } catch (_: Exception) {
+            isQuranBuffering = false
+            isQuranPlaying = false
+            if (wakeLock.isHeld) wakeLock.release()
+            scope.launch {
+                delay(1000)
+                if (isQuranPlaying || isQuranBuffering) return@launch
+                tryStream(urlList, index + 1)
+            }
+        }
+    }
 
 private fun isAnyPrayerAtTime(nowMins: Int, prayers: List<Pair<String, String>>): Boolean {
     return prayers.any { (_, timeStr) ->
@@ -204,53 +270,16 @@ fun LauncherScreen() {
         }
     }
 
-    val mediaPlayer = remember { MediaPlayer() }
+val mediaPlayer = remember { MediaPlayer() }
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
     val wakeLock = remember {
         powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PalestineTV:QuranAudio")
     }
 
-    fun startQuranStream(url: String) {
-        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
-        try {
-            isQuranBuffering = true
-            isQuranPlaying = false
-            mediaPlayer.reset()
-            mediaPlayer.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-            mediaPlayer.setDataSource(streamUrl)
-            mediaPlayer.setOnPreparedListener {
-                it.start()
-                isQuranBuffering = false
-                isQuranPlaying = true
-                if (!wakeLock.isHeld) wakeLock.acquire(12 * 60 * 60 * 1000L)
-            }
-            mediaPlayer.setOnErrorListener { _, _, _ ->
-                isQuranBuffering = false
-                isQuranPlaying = false
-                if (wakeLock.isHeld) wakeLock.release()
-                scope.launch {
-                    delay(2500)
-                    if (isQuranPlaying || isQuranBuffering) return@launch
-                    startQuranStream(streamUrl)
-                }
-                true
-            }
-            mediaPlayer.setOnCompletionListener {
-                isQuranBuffering = false
-                isQuranPlaying = false
-                if (wakeLock.isHeld) wakeLock.release()
-            }
-            mediaPlayer.prepareAsync()
-        } catch (_: Exception) {
-            isQuranBuffering = false
-            isQuranPlaying = false
-            if (wakeLock.isHeld) wakeLock.release()
-        }
+    private fun getQuranStreamUrls(primaryUrl: String): List<String> {
+        return quranRadioStations.firstOrNull { it.second.first() == primaryUrl }
+            ?.second
+            ?: listOf(if (primaryUrl.isBlank() || !primaryUrl.startsWith("http")) QURAN_DEFAULT_STREAM else primaryUrl)
     }
 
     fun stopQuranStream() {
@@ -298,8 +327,9 @@ fun LauncherScreen() {
         isAppInForeground,
         manualQuranOverride
     ) {
+        val streamUrls = getQuranStreamUrls(config.quranStreamUrl)
         if (manualQuranOverride != null) {
-            if (manualQuranOverride == true && !isQuranPlaying && !isQuranBuffering) startQuranStream(config.quranStreamUrl)
+            if (manualQuranOverride == true && !isQuranPlaying && !isQuranBuffering) startQuranStream(streamUrls)
             if (manualQuranOverride == false && (isQuranPlaying || isQuranBuffering)) stopQuranStream()
             return@LaunchedEffect
         }
@@ -307,12 +337,12 @@ fun LauncherScreen() {
             0 -> {}
             1 -> {
                 if (isAppInForeground && !isScreensaverMode) {
-                    if (!isQuranPlaying && !isQuranBuffering) startQuranStream(config.quranStreamUrl)
+                    if (!isQuranPlaying && !isQuranBuffering) startQuranStream(streamUrls)
                 } else if (isQuranPlaying || isQuranBuffering) stopQuranStream()
             }
             2 -> {
                 if (isScreensaverMode) {
-                    if (!isQuranPlaying && !isQuranBuffering) startQuranStream(config.quranStreamUrl)
+                    if (!isQuranPlaying && !isQuranBuffering) startQuranStream(streamUrls)
                 } else if (isQuranPlaying || isQuranBuffering) stopQuranStream()
             }
             3 -> {
@@ -322,7 +352,7 @@ fun LauncherScreen() {
                     val s = config.quranScheduleStartHour
                     val e = config.quranScheduleEndHour
                     val inRange = if (s <= e) hr in s until e else (hr >= s || hr < e)
-                    if (inRange && !isQuranPlaying && !isQuranBuffering) startQuranStream(config.quranStreamUrl)
+                    if (inRange && !isQuranPlaying && !isQuranBuffering) startQuranStream(streamUrls)
                     else if (!inRange && (isQuranPlaying || isQuranBuffering)) stopQuranStream()
                     delay(30_000L)
                 }
@@ -560,7 +590,7 @@ fun LauncherScreen() {
                             stopQuranStream()
                         } else {
                             manualQuranOverride = true
-                            startQuranStream(config.quranStreamUrl)
+                            startQuranStream(getQuranStreamUrls(config.quranStreamUrl))
                         }
                     },
                     onOpenQuranBook = { showQuranDialog = true },

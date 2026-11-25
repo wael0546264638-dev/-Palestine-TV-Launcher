@@ -42,8 +42,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.palestine.tvlauncher.data.*
+import com.palestine.tvlauncher.data.PalestineData
+import com.palestine.tvlauncher.data.quranRadioStations
 import com.palestine.tvlauncher.data.liveWallpapers
+import com.palestine.tvlauncher.network.LiveFeedState
+import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.SurahHeader
@@ -51,15 +54,6 @@ import com.palestine.tvlauncher.network.Verse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
-
-private val QURAN_RADIO_STATIONS = listOf(
-    "إذاعة القرآن الكريم - القاهرة" to "https://stream.radiojar.com/8s5u5tpdtwzuv",
-    "الشيخ ماهر المعيقلي" to "https://download.quranicaudio.com/quran/maher_almuaiqly/001.mp3",
-    "الشيخ عبدالباسط عبدالصمد" to "https://download.quranicaudio.com/quran/abdulbasit_abdulsamad/001.mp3",
-    "الشيخ مشاري العفاسي" to "https://download.quranicaudio.com/quran/mishaari_raashid_alafasy/001.mp3",
-    "الشيخ ياسر الدوسري" to "https://download.quranicaudio.com/quran/yasser_aldosari/001.mp3",
-    "الشيخ سعود الشريم" to "https://download.quranicaudio.com/quran/saud_alshuraim/001.mp3",
-)
 
 @Composable
 fun InteractiveTabsCard(
@@ -1075,9 +1069,10 @@ fun SettingsModalDrawer(
                                     }
                                 }
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(QURAN_RADIO_STATIONS) { (title, url) ->
-                                        SettingOptionPill(title, config.quranStreamUrl == url) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = url } }
+                                    items(quranRadioStations) { (title, urls) ->
+                                        val primaryUrl = urls.first()
+                                        SettingOptionPill(title, config.quranStreamUrl == primaryUrl) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = primaryUrl } }
                                         }
                                     }
                                 }
