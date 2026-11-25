@@ -197,8 +197,8 @@ object LiveRepository {
             conn.apply {
                 connectTimeout = 15000
                 readTimeout = 15000
-                socketFactory = sslContext.socketFactory
-                hostnameVerifier = { _, _ -> true }
+                sslSocketFactory = sslContext.socketFactory
+                hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
                 setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
             }
             if (conn.responseCode in 200..299) {
