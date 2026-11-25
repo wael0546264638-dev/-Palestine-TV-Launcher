@@ -3,6 +3,7 @@ package com.palestine.tvlauncher.data
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.os.PowerManager
 import android.util.Log
 import com.google.android.exoplayer2.ExoPlayer
@@ -15,17 +16,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.net.URL
 import java.util.*
 
 object AdhanManager {
     private const val TAG = "AdhanManager"
 
+    private const val FALLBACK_ADHAN_URL = "https://archive.org/download/Adhan-Makkah/Adhan-Makkah.mp3"
+
     private val MUADHIN_URLS = mapOf(
-        "makkah_alimla" to "https://mp3quran.net/adhans/Al-Masjid_al-Haram_Ali_Mulla.mp3",
-        "madinah_osamabakhri" to "https://mp3quran.net/adhans/Al-Masjid_an-Nabawi_Osama_Bakhit.mp3",
-        "abdulbasit" to "https://mp3quran.net/adhans/Abdelbasset_Abdessamad.mp3",
-        "afasy" to "https://mp3quran.net/adhans/Mishary_Al_Alfasy.mp3",
-        "alaqsa" to "https://mp3quran.net/adhans/Al-Aqsa_Mosque.mp3"
+        "makkah_alimla" to "https://www.islamcan.com/audio/adhan/Adhan-Makkah.mp3",
+        "madinah_osamabakhri" to "https://www.islamcan.com/audio/adhan/Adhan-Madinah.mp3",
+        "abdulbasit" to "https://www.everyayah.com/data/Abdul_Basit_Murattal_192kbps/001001.mp3",
+        "afasy" to "https://www.everyayah.com/data/Alafasy_128kbps/001001.mp3",
+        "alaqsa" to "https://www.islamcan.com/audio/adhan/Adhan-Al-Aqsa.mp3"
     )
 
     private val MUADHIN_NAMES = mapOf(
@@ -38,6 +43,7 @@ object AdhanManager {
 
     fun getMuadhinName(id: String): String = MUADHIN_NAMES[id] ?: "الحرم المكي - علي ملا"
     fun getMuadhinUrl(id: String): String = MUADHIN_URLS[id] ?: MUADHIN_URLS["makkah_alimla"]!!
+    fun getFallbackAdhanUrl(): String = FALLBACK_ADHAN_URL
 
     val muadhinList: List<Pair<String, String>> = MUADHIN_NAMES.toList()
 
@@ -87,30 +93,51 @@ object AdhanManager {
         return prayerTimes.firstOrNull { it.minutes > nowMins } ?: prayerTimes.firstOrNull()
     }
 
+    private fun cacheFile(context: Context, url: String): File {
+        val cacheDir = context.cacheDir
+        val name = url.hashCode().toString() + ".mp3"
+        return File(cacheDir, name)
+    }
+
+    private fun downloadToCache(context: Context, url: String): File? {
+        return try {
+            val f = cacheFile(context, url)
+            if (!f.exists()) {
+                URL(url).openStream().use { input ->
+                    f.outputStream().use { out -> input.copyTo(out) }
+                }
+            }
+            f
+        } catch (e: Exception) {
+            Log.e(TAG, "download failed", e)
+            null
+        }
+    }
+
     fun playAdhan(context: Context, prayerName: String, muadhinId: String, lengthMode: Int, volumePercent: Int) {
         stop()
         isPlaying = true
         val url = getMuadhinUrl(muadhinId)
         val volume = (volumePercent.coerceIn(10, 100) / 100f)
 
-        // Acquire wake lock to ensure playback continues when screen is off
         wakeLock?.acquire()
 
         try {
-                    val audioAttributes = ExoAudioAttributes.Builder()
-            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .build()
-        player = ExoPlayer.Builder(context)
-            .setAudioAttributes(audioAttributes, true)
-            .build()
-
-            val item = MediaItem.fromUri(url)
+            val cached = downloadToCache(context, url) ?: downloadToCache(context, FALLBACK_ADHAN_URL)
+            val playUrl = cached?.takeIf { it.exists() }?.absolutePath ?: url
+            val audioAttributes = ExoAudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build()
+            player = ExoPlayer.Builder(context)
+                .setAudioAttributes(audioAttributes, true)
+                .build()
+            val item = MediaItem.fromUri(playUrl)
             player?.setMediaItem(item)
             player?.prepare()
             player?.play()
             if (lengthMode == 1) {
-                adhanCoroutine = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                adhanCoroutine = CoroutineScope(Dispatchers.IO).launch {
                     kotlinx.coroutines.delay(15_000L)
                     stop()
                 }
@@ -123,26 +150,39 @@ object AdhanManager {
 
     private fun playWithMediaPlayer(context: Context, url: String, volume: Float, lengthMode: Int) {
         try {
+            val cached = downloadToCache(context, url) ?: downloadToCache(context, FALLBACK_ADHAN_URL)
+            val playUrl = cached?.takeIf { it.exists() }?.absolutePath ?: url
             mediaPlayerFallback = MediaPlayer().apply {
                 setAudioAttributes(AudioAttributes.Builder()
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build())
-                setDataSource(url)
+                setDataSource(playUrl)
                 setVolume(volume, volume)
                 setOnPreparedListener { it.start() }
                 setOnCompletionListener { stop() }
-                setOnErrorListener { _, _, _ -> stop(); true }
+                setOnErrorListener { _, _, _ ->
+                    try {
+                        val r = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                        r?.play()
+                    } catch (_: Exception) {}
+                    stop()
+                    true
+                }
                 prepareAsync()
             }
             if (lengthMode == 1) {
-                adhanCoroutine = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                adhanCoroutine = CoroutineScope(Dispatchers.IO).launch {
                     kotlinx.coroutines.delay(15_000L)
                     stop()
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "MediaPlayer failed too", e)
+            try {
+                val r = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                r?.play()
+            } catch (_: Exception) {}
             stop()
         }
     }
@@ -156,7 +196,6 @@ object AdhanManager {
         mediaPlayerFallback?.stop()
         mediaPlayerFallback?.release()
         mediaPlayerFallback = null
-        // Release wake lock when stopping
         wakeLock?.release()
         isPlaying = false
     }
