@@ -44,9 +44,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import com.palestine.tvlauncher.data.quranRadioStations
+import com.palestine.tvlauncher.data.TvAppInfo
+import com.palestine.tvlauncher.data.AppManager
+import com.palestine.tvlauncher.data.AdhanManager
 import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.PalestineData
+import com.palestine.tvlauncher.data.PalestineData.quranRadioStations
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
@@ -278,7 +281,7 @@ val mediaPlayer = remember { MediaPlayer() }
         powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PalestineTV:QuranAudio")
     }
 
-    private fun getQuranStreamUrls(primaryUrl: String): List<String> {
+    fun getQuranStreamUrls(primaryUrl: String): List<String> {
         return quranRadioStations.firstOrNull { it.second.first() == primaryUrl }
             ?.second
             ?: listOf(if (primaryUrl.isBlank() || !primaryUrl.startsWith("http")) QURAN_DEFAULT_STREAM else primaryUrl)
