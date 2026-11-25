@@ -121,6 +121,42 @@ def generate_icon(size, path):
     print(f"Generated: {path} ({size}x{size})")
 
 
+def generate_banner(width, height, path):
+    """Generate a raster TV banner (Leanback launchers cannot render vector banners)."""
+    img = Image.new("RGBA", (width, height), BG_DARK)
+    draw = ImageDraw.Draw(img)
+    sx = width / 320.0
+    sy = height / 180.0
+
+    def P(x, y):
+        return (x * sx, y * sy)
+
+    # Subtle grid
+    grid = (30, 58, 95, 255)
+    for gx in (95, 225):
+        draw.line([P(gx, 0), P(gx, 180)], fill=grid, width=1)
+    for gy in (45, 135):
+        draw.line([P(0, gy), P(320, gy)], fill=grid, width=1)
+
+    # Hexagon outline
+    hex_pts = [P(160, 32), P(196, 53), P(196, 95), P(160, 116), P(124, 95), P(124, 53)]
+    draw.line(hex_pts + [hex_pts[0]], fill=ACCENT_BLUE, width=max(2, int(1.5 * sx)))
+
+    # Play triangle
+    draw.polygon([P(148, 54), P(182, 74), P(148, 94)], fill=ACCENT_GOLD)
+
+    # Sparkle
+    draw.polygon([P(166, 64), P(168, 70), P(174, 72), P(168, 74),
+                  P(166, 80), P(164, 74), P(158, 72), P(164, 70)], fill=ACCENT_BLUE)
+
+    # Lower bar
+    draw.rounded_rectangle([P(85, 134), P(235, 166)], radius=int(8 * sy), fill=BG_MID)
+    draw.rectangle([P(115, 146), P(205, 154)], fill=ACCENT_GOLD)
+
+    img.save(path, "PNG", optimize=True)
+    print(f"Generated banner: {path} ({width}x{height})")
+
+
 def main():
     for folder, size in DENSITIES:
         path = os.path.join(BASE_DIR, folder)
@@ -137,8 +173,14 @@ def main():
         img.save(icon_round_path, "PNG", optimize=True)
         print(f"Generated round: {icon_round_path}")
 
-    # لا نستخدم mipmap-anydpi-v26 لتجنب التعارض مع الأيقونات الثابتة
-    # الأيقونات PNG في المجلدات الأخرى تكفي لجميع مستويات API
+    # Raster TV banner (PNG). Vector banners are not rendered by the Leanback launcher.
+    banner_dir = os.path.join(BASE_DIR, "drawable-nodpi")
+    os.makedirs(banner_dir, exist_ok=True)
+    generate_banner(640, 360, os.path.join(banner_dir, "ic_banner.png"))
+
+    # Adaptive launcher icons live in mipmap-anydpi-v26/ic_launcher.xml and
+    # ic_launcher_round.xml (background + foreground vectors). The PNGs above are
+    # the fallback for API < 26.
 
 if __name__ == "__main__":
     main()
