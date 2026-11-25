@@ -223,5 +223,4 @@ val fullQuranSurahs = listOf(
         }
         return days
     }
-}
 
