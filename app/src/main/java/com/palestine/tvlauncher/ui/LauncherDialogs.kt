@@ -1,4 +1,5 @@
 package com.palestine.tvlauncher.ui
+import com.palestine.tvlauncher.data.LiveRepository.fetchSurahsList
 
 import android.app.ActivityManager
 import android.content.Context
