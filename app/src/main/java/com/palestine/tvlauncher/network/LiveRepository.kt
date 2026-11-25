@@ -4,12 +4,19 @@ import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 data class MatchItem(val name: String, val status: String)
 data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, val apkDownloadUrl: String, val releaseNotes: String)
@@ -150,6 +157,16 @@ val staticSurahList: List<SurahHeader> = listOf(
     SurahHeader(114, "الناس", 6, "مكية")
 )
 
+private val sslContext: SSLContext = SSLContext.getInstance("TLS").apply {
+    init(null, arrayOf(TrustAllManager), SecureRandom())
+}
+
+private object TrustAllManager : X509TrustManager {
+    override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) {}
+    override fun checkServerTrusted(chain: Array<X509Certificate>?, authType: String?) {}
+    override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+}
+
 object LiveRepository {
 
     val natureWallpapers = listOf(
@@ -175,10 +192,14 @@ object LiveRepository {
 
     private fun httpGet(urlStr: String): String? {
         return try {
-            val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+            val url = URL(urlStr)
+            val conn = url.openConnection() as HttpsURLConnection
+            conn.apply {
                 connectTimeout = 15000
                 readTimeout = 15000
-                setRequestProperty("User-Agent", "PalestineTVLauncher/1.2 (Android TV; Quran Reader)")
+                socketFactory = sslContext.socketFactory
+                hostnameVerifier = { _, _ -> true }
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
             }
             if (conn.responseCode in 200..299) {
                 conn.inputStream.bufferedReader().use { it.readText() }
@@ -201,8 +222,9 @@ object LiveRepository {
     suspend fun fetchFullSurahText(surahNumber: Int): FullSurahContent? = withContext(Dispatchers.IO) {
         cachedSurahTexts[surahNumber]?.let { return@withContext it }
         try {
-            val raw = httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani") ?: return@withContext null
-            val data = JSONObject(raw).getJSONObject("data")
+            val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json"
+            val raw = httpGet(url) ?: return@withContext null
+            val data = JSONObject(raw)
             val name = data.getString("name")
             val ayahs = data.getJSONArray("ayahs")
             var firstPage = 0
@@ -218,8 +240,8 @@ object LiveRepository {
                 if (i == 0) firstPage = page
                 lastPage = page
                 var txt = a.getString("text")
-                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) {
-                    txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
+                    txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
                 }
                 sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
             }
@@ -234,27 +256,32 @@ object LiveRepository {
     }
 
     suspend fun fetchSurahWithAudio(surahNumber: Int): List<Verse>? = withContext(Dispatchers.IO) {
-        // Try primary source: alquran.cloud
+        // Primary: jsdelivr.net CDN (fast, open, no rate limits)
+        // Format: https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/{surah}.json
         try {
-            val raw = httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.alafasy")
+            val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json"
+            val raw = httpGet(url)
             if (raw != null) {
-                val data = JSONObject(raw).getJSONObject("data")
+                val data = JSONObject(raw)
                 val ayahs = data.getJSONArray("ayahs")
                 val verses = mutableListOf<Verse>()
                 for (i in 0 until ayahs.length()) {
                     val a = ayahs.getJSONObject(i)
                     val num = a.getInt("numberInSurah")
                     var txt = a.getString("text")
-                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) {
-                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
+                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
                     }
-                    val audioUrl = a.optString("audio", "").takeIf { it.isNotBlank() }
+                    // Audio from everyayah.com: format 001001.mp3 for surah 1, ayah 1
+                    val surah3 = "%03d".format(surahNumber)
+                    val ayah3 = "%03d".format(num)
+                    val audioUrl = "https://everyayah.com/data/Al_Afasy_128kbps/${surah3}${ayah3}.mp3"
                     verses.add(Verse(num, txt, audioUrl))
                 }
                 return@withContext verses
             }
         } catch (e: Exception) {
-            System.err.println("alquran.cloud fetch failed for surah $surahNumber: ${e.message}")
+            System.err.println("jsdelivr fetch failed for surah $surahNumber: ${e.message}")
         }
 
         // Fallback: quran.com API
@@ -268,10 +295,12 @@ object LiveRepository {
                     val a = ayahs.getJSONObject(i)
                     val num = a.getInt("verse_number")
                     var txt = a.getString("text_uthmani")
-                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ")) {
-                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ").trim()
+                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
+                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
                     }
-                    val audioUrl = a.optString("audio_url", "").takeIf { it.isNotBlank() }
+                    val surah3 = "%03d".format(surahNumber)
+                    val ayah3 = "%03d".format(num)
+                    val audioUrl = "https://everyayah.com/data/Al_Afasy_128kbps/${surah3}${ayah3}.mp3"
                     verses.add(Verse(num, txt, audioUrl))
                 }
                 return@withContext verses
@@ -323,7 +352,7 @@ object LiveRepository {
         }
     }
 
-        suspend fun fetchExactPrayers(lat: Double, lon: Double, timeZoneId: String): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
+    suspend fun fetchExactPrayers(lat: Double, lon: Double, timeZoneId: String): PalestineData.PrayerDisplay = withContext(Dispatchers.IO) {
         try {
             val tz = TimeZone.getTimeZone(timeZoneId)
             val dateStr = SimpleDateFormat("dd-MM-yyyy", Locale.US).apply { timeZone = tz }.format(Date())
