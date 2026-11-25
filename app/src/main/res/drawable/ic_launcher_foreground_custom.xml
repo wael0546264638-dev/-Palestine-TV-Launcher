@@ -27,21 +27,21 @@
 
     <!-- Broadcast Waves (Turquoise) - 3 arcs emanating from TV -->
     <path
-        android:fillColor="none"
+        android:fillColor="#00000000"
         android:strokeColor="#06D6A0"
         android:strokeWidth="2"
         android:strokeLineCap="round"
         android:pathData="M54,56 Q64,54 71,56" />
 
     <path
-        android:fillColor="none"
+        android:fillColor="#00000000"
         android:strokeColor="#06D6A0"
         android:strokeWidth="2"
         android:strokeLineCap="round"
         android:pathData="M54,59 Q67,56 76,59" />
 
     <path
-        android:fillColor="none"
+        android:fillColor="#00000000"
         android:strokeColor="#06D6A0"
         android:strokeWidth="2"
         android:strokeLineCap="round"
