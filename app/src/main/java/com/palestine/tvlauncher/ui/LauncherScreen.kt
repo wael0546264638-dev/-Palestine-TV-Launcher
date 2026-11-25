@@ -47,6 +47,7 @@ import coil.compose.AsyncImage
 import com.palestine.tvlauncher.data.TvAppInfo
 import com.palestine.tvlauncher.data.AppManager
 import com.palestine.tvlauncher.data.AdhanManager
+import com.palestine.tvlauncher.data.LauncherConfig
 import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestineData.quranRadioStations
@@ -71,72 +72,6 @@ private fun toLatinDigits(input: String): String {
     }
     return sb.toString()
 }
-
-    fun startQuranStream(urls: List<String>) {
-        val urlList = if (urls.isEmpty()) listOf(QURAN_DEFAULT_STREAM) else urls
-        tryStream(urlList, 0)
-    }
-
-    fun startQuranStream(url: String) {
-        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
-        tryStream(listOf(streamUrl), 0)
-    }
-
-    private fun tryStream(urlList: List<String>, index: Int) {
-        if (index >= urlList.size) {
-            isQuranBuffering = false
-            isQuranPlaying = false
-            if (wakeLock.isHeld) wakeLock.release()
-            return
-        }
-        val streamUrl = urlList[index]
-        try {
-            isQuranBuffering = true
-            isQuranPlaying = false
-            mediaPlayer.reset()
-            mediaPlayer.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-            mediaPlayer.setAllowCrossProtocolRedirects(true)
-            val headers = mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
-            mediaPlayer.setDataSource(context, Uri.parse(streamUrl), headers)
-            mediaPlayer.setOnPreparedListener {
-                it.start()
-                isQuranBuffering = false
-                isQuranPlaying = true
-                if (!wakeLock.isHeld) wakeLock.acquire(12 * 60 * 60 * 1000L)
-            }
-            mediaPlayer.setOnErrorListener { _, what, _ ->
-                isQuranBuffering = false
-                isQuranPlaying = false
-                if (wakeLock.isHeld) wakeLock.release()
-                scope.launch {
-                    delay(1000)
-                    if (isQuranPlaying || isQuranBuffering) return@launch
-                    tryStream(urlList, index + 1)
-                }
-                true
-            }
-            mediaPlayer.setOnCompletionListener {
-                isQuranBuffering = false
-                isQuranPlaying = false
-                if (wakeLock.isHeld) wakeLock.release()
-            }
-            mediaPlayer.prepareAsync()
-        } catch (_: Exception) {
-            isQuranBuffering = false
-            isQuranPlaying = false
-            if (wakeLock.isHeld) wakeLock.release()
-            scope.launch {
-                delay(1000)
-                if (isQuranPlaying || isQuranBuffering) return@launch
-                tryStream(urlList, index + 1)
-            }
-        }
-    }
 
 private fun isAnyPrayerAtTime(nowMins: Int, prayers: List<Pair<String, String>>): Boolean {
     return prayers.any { (_, timeStr) ->
@@ -295,6 +230,72 @@ val mediaPlayer = remember { MediaPlayer() }
         isQuranBuffering = false
         isQuranPlaying = false
         if (wakeLock.isHeld) wakeLock.release()
+    }
+
+    fun startQuranStream(urls: List<String>) {
+        val urlList = if (urls.isEmpty()) listOf(QURAN_DEFAULT_STREAM) else urls
+        tryStream(urlList, 0)
+    }
+
+    fun startQuranStream(url: String) {
+        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
+        tryStream(listOf(streamUrl), 0)
+    }
+
+    private fun tryStream(urlList: List<String>, index: Int) {
+        if (index >= urlList.size) {
+            isQuranBuffering = false
+            isQuranPlaying = false
+            if (wakeLock.isHeld) wakeLock.release()
+            return
+        }
+        val streamUrl = urlList[index]
+        try {
+            isQuranBuffering = true
+            isQuranPlaying = false
+            mediaPlayer.reset()
+            mediaPlayer.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+            mediaPlayer.setAllowCrossProtocolRedirects(true)
+            val headers = mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
+            mediaPlayer.setDataSource(context, Uri.parse(streamUrl), headers)
+            mediaPlayer.setOnPreparedListener {
+                it.start()
+                isQuranBuffering = false
+                isQuranPlaying = true
+                if (!wakeLock.isHeld) wakeLock.acquire(12 * 60 * 60 * 1000L)
+            }
+            mediaPlayer.setOnErrorListener { _, what, _ ->
+                isQuranBuffering = false
+                isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
+                scope.launch {
+                    delay(1000)
+                    if (isQuranPlaying || isQuranBuffering) return@launch
+                    tryStream(urlList, index + 1)
+                }
+                true
+            }
+            mediaPlayer.setOnCompletionListener {
+                isQuranBuffering = false
+                isQuranPlaying = false
+                if (wakeLock.isHeld) wakeLock.release()
+            }
+            mediaPlayer.prepareAsync()
+        } catch (_: Exception) {
+            isQuranBuffering = false
+            isQuranPlaying = false
+            if (wakeLock.isHeld) wakeLock.release()
+            scope.launch {
+                delay(1000)
+                if (isQuranPlaying || isQuranBuffering) return@launch
+                tryStream(urlList, index + 1)
+            }
+        }
     }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
