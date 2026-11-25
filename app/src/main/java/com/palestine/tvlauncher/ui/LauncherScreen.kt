@@ -232,17 +232,7 @@ val mediaPlayer = remember { MediaPlayer() }
         if (wakeLock.isHeld) wakeLock.release()
     }
 
-    fun startQuranStream(urls: List<String>) {
-        val urlList = if (urls.isEmpty()) listOf(QURAN_DEFAULT_STREAM) else urls
-        tryStream(urlList, 0)
-    }
-
-    fun startQuranStream(url: String) {
-        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
-        tryStream(listOf(streamUrl), 0)
-    }
-
-    private fun tryStream(urlList: List<String>, index: Int) {
+    fun tryStream(urlList: List<String>, index: Int) {
         if (index >= urlList.size) {
             isQuranBuffering = false
             isQuranPlaying = false
@@ -260,7 +250,6 @@ val mediaPlayer = remember { MediaPlayer() }
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build()
             )
-            mediaPlayer.setAllowCrossProtocolRedirects(true)
             val headers = mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
             mediaPlayer.setDataSource(context, Uri.parse(streamUrl), headers)
             mediaPlayer.setOnPreparedListener {
@@ -296,6 +285,16 @@ val mediaPlayer = remember { MediaPlayer() }
                 tryStream(urlList, index + 1)
             }
         }
+    }
+
+    fun startQuranStream(urls: List<String>) {
+        val urlList = if (urls.isEmpty()) listOf(QURAN_DEFAULT_STREAM) else urls
+        tryStream(urlList, 0)
+    }
+
+    fun startQuranStream(url: String) {
+        val streamUrl = if (url.isBlank() || !url.startsWith("http")) QURAN_DEFAULT_STREAM else url
+        tryStream(listOf(streamUrl), 0)
     }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
