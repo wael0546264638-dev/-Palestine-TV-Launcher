@@ -401,7 +401,7 @@ rows.forEach { (name, time) ->
 fun FullQuranDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var surahs by remember { mutableStateOf<List<SurahHeader>>(emptyList()) }
+    var surahs by remember { mutableStateOf<List<SurahHeader>>(staticSurahList) }
     var selectedSurahNum by remember { mutableIntStateOf(1) }
     var verses by remember { mutableStateOf<List<Verse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -459,7 +459,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        surahs = LiveRepository.fetchAll114Surahs()
         surahListFocus.requestFocus()
     }
 
