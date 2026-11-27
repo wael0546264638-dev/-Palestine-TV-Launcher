@@ -1,12 +1,14 @@
 package com.palestine.tvlauncher.network
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -22,6 +24,8 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+
+private val Context.liveDataStore: DataStore<Preferences> by preferencesDataStore(name = "live_cache")
 
 data class MatchItem(val name: String, val status: String)
 data class NewsSource(val id: String, val name: String, val url: String, val country: String)
@@ -265,14 +269,10 @@ object LiveRepository {
         HadithItem(10, "قال رسول الله ﷺ: «اطْلُبُوا الْعِلْمَ مِنَ الْمَهْدِ إِلَى اللَّحْدِ»", "طلب العلم فريضة على كل مسلم.", "طلب العلم من المهد إلى اللذة طريق للنجاة والفلاح.", "مستدرك الحاكم")
     )
 
-    private val radiosDataStore by lazy { preferencesDataStore(name = "quran_radios_prefs") }
-private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_prefs") }
-private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs") }
-private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_wallpapers_lib_prefs") }
 
     suspend fun fetchQuranRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
-        val cached = getCachedRadios()
-        if (cached.isNotEmpty() && isCacheValid()) {
+        val cached = getCachedRadios(context)
+        if (cached.isNotEmpty() && isCacheValid(context)) {
             return@withContext cached
         }
 
@@ -295,24 +295,24 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
                     }
                 }
                 if (result.isNotEmpty()) {
-                    cacheRadios(result)
+                    cacheRadios(context, result)
                     result
                 } else {
-                    getCachedRadios().ifEmpty { getDefaultRadios() }
+                    getCachedRadios(context).ifEmpty { getDefaultRadios() }
                 }
             } else {
-                getCachedRadios().ifEmpty { getDefaultRadios() }
+                getCachedRadios(context).ifEmpty { getDefaultRadios() }
             }
         } catch (e: Exception) {
             System.err.println("Failed to fetch radios from mp3quran.net: ${e.message}")
-            getCachedRadios().ifEmpty { getDefaultRadios() }
+            getCachedRadios(context).ifEmpty { getDefaultRadios() }
         }
         fetched
     }
 
-    private suspend fun getCachedRadios(): List<QuranRadio> = withContext(Dispatchers.IO) {
+    private suspend fun getCachedRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
         try {
-            val jsonStr = radiosDataStore.data.map { it[stringPreferencesKey(CACHED_RADIOS_KEY)] ?: "" }.first()
+            val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey(CACHED_RADIOS_KEY)] ?: ""
             if (jsonStr.isNotBlank()) {
                 val array = JSONArray(jsonStr)
                 val result = mutableListOf<QuranRadio>()
@@ -327,9 +327,9 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         }
     }
 
-    private suspend fun isCacheValid(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun isCacheValid(context: Context): Boolean = withContext(Dispatchers.IO) {
         try {
-            val timestamp = radiosDataStore.data.map { it[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] ?: 0L }.first()
+            val timestamp = context.liveDataStore.data.first()[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] ?: 0L
             val now = System.currentTimeMillis()
             (now - timestamp) < (CACHE_VALIDITY_HOURS * 60 * 60 * 1000L)
         } catch (_: Exception) {
@@ -337,7 +337,7 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         }
     }
 
-    private suspend fun cacheRadios(radios: List<QuranRadio>) = withContext(Dispatchers.IO) {
+    private suspend fun cacheRadios(context: Context, radios: List<QuranRadio>) = withContext(Dispatchers.IO) {
         try {
             val array = JSONArray()
             for (radio in radios) {
@@ -346,9 +346,9 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
                     put("url", radio.url)
                 })
             }
-            radiosDataStore.edit {
-                it[stringPreferencesKey(CACHED_RADIOS_KEY)] = array.toString()
-                it[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] = System.currentTimeMillis()
+            context.liveDataStore.edit { prefs ->
+                prefs[stringPreferencesKey(CACHED_RADIOS_KEY)] = array.toString()
+                prefs[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] = System.currentTimeMillis()
             }
         } catch (e: Exception) {
             System.err.println("Failed to cache radios: ${e.message}")
@@ -369,10 +369,10 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         QuranRadio("الشيخ ياسر الدوسري", "https://qurango.net/radio/dosari.mp3")
     )
 
-    private suspend fun getCachedHadith(): HadithItem? = withContext(Dispatchers.IO) {
+    private suspend fun getCachedHadith(context: Context): HadithItem? = withContext(Dispatchers.IO) {
         try {
-            val jsonStr = hadithDataStore.data.map { it[stringPreferencesKey(CACHED_HADITH_KEY)] ?: "" }.first()
-            val id = hadithDataStore.data.map { it[longPreferencesKey(CACHED_HADITH_ID_KEY)] ?: 0L }.first().toInt()
+            val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey(CACHED_HADITH_KEY)] ?: ""
+            val id = context.liveDataStore.data.first()[longPreferencesKey(CACHED_HADITH_ID_KEY)] ?: 0L
             if (jsonStr.isNotBlank()) {
                 val obj = JSONObject(jsonStr)
                 return@withContext HadithItem(
@@ -387,9 +387,9 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         null
     }
 
-    private suspend fun isHadithCacheValid(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun isHadithCacheValid(context: Context): Boolean = withContext(Dispatchers.IO) {
         try {
-            val timestamp = hadithDataStore.data.map { it[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] ?: 0L }.first()
+            val timestamp = context.liveDataStore.data.first()[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] ?: 0L
             val now = System.currentTimeMillis()
             (now - timestamp) < (HADITH_CACHE_HOURS * 60 * 60 * 1000L)
         } catch (_: Exception) {
@@ -397,17 +397,17 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         }
     }
 
-    private suspend fun cacheHadith(hadith: HadithItem) = withContext(Dispatchers.IO) {
+    private suspend fun cacheHadith(context: Context, hadith: HadithItem) = withContext(Dispatchers.IO) {
         try {
-            hadithDataStore.edit {
-                it[stringPreferencesKey(CACHED_HADITH_KEY)] = JSONObject().apply {
+            context.liveDataStore.edit { prefs ->
+                prefs[stringPreferencesKey(CACHED_HADITH_KEY)] = JSONObject().apply {
                     put("text", hadith.text)
                     put("explanation", hadith.explanation)
                     put("benefits", hadith.benefits)
                     put("source", hadith.source)
                 }.toString()
-                it[longPreferencesKey(CACHED_HADITH_ID_KEY)] = hadith.id.toLong()
-                it[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] = System.currentTimeMillis()
+                prefs[longPreferencesKey(CACHED_HADITH_ID_KEY)] = hadith.id.toLong()
+                prefs[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] = System.currentTimeMillis()
             }
         } catch (e: Exception) {
             System.err.println("Failed to cache hadith: ${e.message}")
@@ -416,11 +416,11 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
 
     suspend fun fetchTodaysHadith(context: Context): HadithItem = withContext(Dispatchers.IO) {
         val todayId = Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % embeddedHadiths.size + 1
-        if (isHadithCacheValid()) {
-            getCachedHadith()?.let { if (it.id == todayId) return@withContext it }
+        if (isHadithCacheValid(context)) {
+            getCachedHadith(context)?.let { if (it.id == todayId) return@withContext it }
         }
         val fetched = tryFetchHadith(todayId) ?: embeddedHadiths.firstOrNull { it.id == todayId } ?: embeddedHadiths.first()
-        try { cacheHadith(fetched) } catch (_: Exception) { }
+        try { cacheHadith(context, fetched) } catch (_: Exception) { }
         fetched
     }
 
@@ -527,7 +527,7 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         val cacheKey = stringPreferencesKey("surah_${surahNumber}")
         // Offline-first: return cached if present
         try {
-            val cachedJson = surahDataStore.data.map { it[cacheKey] ?: "" }.first()
+            val cachedJson = context.liveDataStore.data.first()[cacheKey] ?: ""
             if (cachedJson.isNotBlank()) {
                 val arr = JSONArray(cachedJson)
                 val verses = mutableListOf<Verse>()
@@ -573,7 +573,7 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
                             put("tafsir", v.tafsir)
                         })
                     }
-                    surahDataStore.edit { it[cacheKey] = arr.toString() }
+                    context.liveDataStore.edit { prefs -> prefs[cacheKey] = arr.toString() }
                 } catch (_: Exception) { }
                 return@withContext verses
             }
@@ -881,8 +881,8 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
     }
 
     suspend fun fetchLiveWallpapers(context: Context, category: LiveWallpaperCategory = LiveWallpaperCategory.ALL): List<String> = withContext(Dispatchers.IO) {
-        val cached = getCachedLiveWallpapers(category)
-        if (cached.isNotEmpty() && isLiveWallpaperCacheValid(category)) return@withContext cached
+        val cached = getCachedLiveWallpapers(context, category)
+        if (cached.isNotEmpty() && isLiveWallpaperCacheValid(context, category)) return@withContext cached
 
         val result = mutableListOf<String>()
         if (category == LiveWallpaperCategory.BING || category == LiveWallpaperCategory.ALL) {
@@ -895,13 +895,13 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
             result += defaultLiveWallpapers
         }
         val filtered = result.distinct()
-        if (filtered.isNotEmpty()) cacheLiveWallpapers(category, filtered)
+        if (filtered.isNotEmpty()) cacheLiveWallpapers(context, category, filtered)
         filtered.ifEmpty { cached.ifEmpty { emptyList() } }
     }
 
-    private suspend fun getCachedLiveWallpapers(category: LiveWallpaperCategory): List<String> = withContext(Dispatchers.IO) {
+    private suspend fun getCachedLiveWallpapers(context: Context, category: LiveWallpaperCategory): List<String> = withContext(Dispatchers.IO) {
         try {
-            val jsonStr = liveWallpapersDataStore.data.map { it[stringPreferencesKey("cached_live_walls_${category.key}")] ?: "" }.first()
+            val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey("cached_live_walls_${category.key}")] ?: ""
             if (jsonStr.isNotBlank()) {
                 val arr = JSONArray(jsonStr)
                 (0 until arr.length()).map { index -> arr.getString(index) }
@@ -909,20 +909,20 @@ private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_
         } catch (_: Exception) { emptyList() }
     }
 
-    private suspend fun isLiveWallpaperCacheValid(category: LiveWallpaperCategory): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun isLiveWallpaperCacheValid(context: Context, category: LiveWallpaperCategory): Boolean = withContext(Dispatchers.IO) {
         try {
-            val ts = liveWallpapersDataStore.data.map { it[longPreferencesKey("cached_live_walls_${category.key}_ts")] ?: 0L }.first()
+            val ts = context.liveDataStore.data.first()[longPreferencesKey("cached_live_walls_${category.key}_ts")] ?: 0L
             System.currentTimeMillis() - ts < LIVE_WALLPAPER_CACHE_HOURS * 60 * 60 * 1000L
         } catch (_: Exception) { false }
     }
 
-    private suspend fun cacheLiveWallpapers(category: LiveWallpaperCategory, list: List<String>) = withContext(Dispatchers.IO) {
+    private suspend fun cacheLiveWallpapers(context: Context, category: LiveWallpaperCategory, list: List<String>) = withContext(Dispatchers.IO) {
         try {
             val arr = JSONArray()
             list.forEach { arr.put(it) }
-            liveWallpapersDataStore.edit {
-                it[stringPreferencesKey("cached_live_walls_${category.key}")] = arr.toString()
-                it[longPreferencesKey("cached_live_walls_${category.key}_ts")] = System.currentTimeMillis()
+            context.liveDataStore.edit { prefs ->
+                prefs[stringPreferencesKey("cached_live_walls_${category.key}")] = arr.toString()
+                prefs[longPreferencesKey("cached_live_walls_${category.key}_ts")] = System.currentTimeMillis()
             }
         } catch (_: Exception) { }
     }
