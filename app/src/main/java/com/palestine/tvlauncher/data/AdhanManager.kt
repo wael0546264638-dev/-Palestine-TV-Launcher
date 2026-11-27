@@ -57,14 +57,22 @@ object AdhanManager {
 
     fun init(context: Context) {
         if (wakeLock == null) {
-            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AdhanManagerWakeLock")
+            try {
+                val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AdhanManagerWakeLock")
+            } catch (e: Exception) {
+                Log.e(TAG, "init failed", e)
+            }
         }
     }
 
     fun release() {
         stop()
-        wakeLock?.release()
+        try {
+            wakeLock?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "wakeLock release failed", e)
+        }
         wakeLock = null
         player = null
         mediaPlayerFallback = null
@@ -120,7 +128,11 @@ object AdhanManager {
         val url = getMuadhinUrl(muadhinId)
         val volume = (volumePercent.coerceIn(10, 100) / 100f)
 
-        wakeLock?.acquire()
+        try {
+            wakeLock?.acquire()
+        } catch (e: Exception) {
+            Log.e(TAG, "wakeLock acquire failed", e)
+        }
 
         try {
             val cached = downloadToCache(context, url) ?: downloadToCache(context, FALLBACK_ADHAN_URL)
@@ -150,26 +162,59 @@ object AdhanManager {
 
     private fun playWithMediaPlayer(context: Context, url: String, volume: Float, lengthMode: Int) {
         try {
+            // Release any existing MediaPlayer first
+            try {
+                mediaPlayerFallback?.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "mediaPlayerFallback stop failed", e)
+            }
+            try {
+                mediaPlayerFallback?.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "mediaPlayerFallback release failed", e)
+            }
+            mediaPlayerFallback = null
+
             val cached = downloadToCache(context, url) ?: downloadToCache(context, FALLBACK_ADHAN_URL)
             val playUrl = cached?.takeIf { it.exists() }?.absolutePath ?: url
             mediaPlayerFallback = MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build())
-                setDataSource(playUrl)
-                setVolume(volume, volume)
-                setOnPreparedListener { it.start() }
-                setOnCompletionListener { stop() }
+                try {
+                    setAudioAttributes(AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build())
+                } catch (e: Exception) {
+                    Log.e(TAG, "setAudioAttributes failed", e)
+                }
+                try {
+                    setDataSource(playUrl)
+                } catch (e: Exception) {
+                    Log.e(TAG, "setDataSource failed", e)
+                }
+                try {
+                    setVolume(volume, volume)
+                } catch (e: Exception) {
+                    Log.e(TAG, "setVolume failed", e)
+                }
+                setOnPreparedListener {
+                    try { it.start() } catch (e: Exception) { Log.e(TAG, "onPrepared start failed", e) }
+                }
+                setOnCompletionListener {
+                    try { stop() } catch (e: Exception) { Log.e(TAG, "onCompletion stop failed", e) }
+                }
                 setOnErrorListener { _, _, _ ->
                     try {
                         val r = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
                         r?.play()
                     } catch (_: Exception) {}
-                    stop()
+                    try { stop() } catch (e: Exception) { Log.e(TAG, "onError stop failed", e) }
                     true
                 }
-                prepareAsync()
+                try {
+                    prepareAsync()
+                } catch (e: Exception) {
+                    Log.e(TAG, "prepareAsync failed", e)
+                }
             }
             if (lengthMode == 1) {
                 adhanCoroutine = CoroutineScope(Dispatchers.IO).launch {
@@ -188,15 +233,42 @@ object AdhanManager {
     }
 
     fun stop() {
-        adhanCoroutine?.cancel()
+        try {
+            adhanCoroutine?.cancel()
+        } catch (e: Exception) {
+            Log.e(TAG, "adhanCoroutine cancel failed", e)
+        }
         adhanCoroutine = null
-        player?.stop()
-        player?.release()
+
+        try {
+            player?.stop()
+        } catch (e: Exception) {
+            Log.e(TAG, "player stop failed", e)
+        }
+        try {
+            player?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "player release failed", e)
+        }
         player = null
-        mediaPlayerFallback?.stop()
-        mediaPlayerFallback?.release()
+
+        try {
+            mediaPlayerFallback?.stop()
+        } catch (e: Exception) {
+            Log.e(TAG, "mediaPlayerFallback stop failed", e)
+        }
+        try {
+            mediaPlayerFallback?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "mediaPlayerFallback release failed", e)
+        }
         mediaPlayerFallback = null
-        wakeLock?.release()
+
+        try {
+            wakeLock?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "wakeLock release failed", e)
+        }
         isPlaying = false
     }
 }
