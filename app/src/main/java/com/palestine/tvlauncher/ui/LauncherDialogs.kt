@@ -1825,7 +1825,71 @@ fun AppBarSection(
     onOpenLiveEditor: () -> Unit,
     onOpenScreensaverEditor: () -> Unit
 ) {
-    SettingsCategoryBox("شريط الأسعار والتخطيط المباشر") {
+    SettingsCategoryBox("شفافية الشريط والأيقونات") {
+        StepAdjustRow(
+            title = "شفافية خلفية شريط التطبيقات",
+            valueLabel = PalestineData.toArabicDigits("${(config.dockBgOpacity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.DOCK_OPACITY] = (config.dockBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.DOCK_OPACITY] = (config.dockBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+        )
+        StepAdjustRow(
+            title = "شفافية أيقونات التطبيقات",
+            valueLabel = PalestineData.toArabicDigits("${(config.appIconOpacity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_ICON_OPACITY] = (config.appIconOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_ICON_OPACITY] = (config.appIconOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+        )
+    }
+    SettingsCategoryBox("حجم وشكل الأيقونات") {
+        Text("حجم الأيقونات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val sizes = listOf(0 to "صغير", 1 to "متوسط", 2 to "كبير")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(sizes) { (size, label) ->
+                SettingOptionPill(label, config.appIconSize == size) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_ICON_SIZE] = size } }
+                }
+            }
+        }
+        Text("شكل الأيقونات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val shapes = listOf(0 to "مستدير الحواف", 1 to "دائري", 2 to "مربع")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(shapes) { (shape, label) ->
+                SettingOptionPill(label, config.appIconShape == shape) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_ICON_SHAPE] = shape } }
+                }
+            }
+        }
+    }
+    SettingsCategoryBox("الوهج والتكبير عند التركيز") {
+        StepAdjustRow(
+            title = "شدة وهج التحديد",
+            valueLabel = PalestineData.toArabicDigits("${(config.appFocusGlowIntensity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_INTENSITY] = (config.appFocusGlowIntensity - 0.1f).coerceIn(0f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_INTENSITY] = (config.appFocusGlowIntensity + 0.1f).coerceIn(0f, 1f) } } }
+        )
+        Text("لون وهج التحديد:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val glowColors = listOf(
+            "أزرق" to 0xFF38BDF8,
+            "أحمر" to 0xFFEF4444,
+            "أخضر" to 0xFF34D399,
+            "برتقالي" to 0xFFF59E0B,
+            "أرجواني" to 0xFFA855F7,
+            "أبيض" to 0xFFFFFFFF
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(glowColors) { (label, color) ->
+                SettingOptionPill(label, config.appFocusGlowColor == color) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_COLOR] = color } }
+                }
+            }
+        }
+        StepAdjustRow(
+            title = "نسبة التكبير عند الوقوف",
+            valueLabel = PalestineData.toArabicDigits("${(config.appFocusScaleFactor * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_SCALE_FACTOR] = (config.appFocusScaleFactor - 0.05f).coerceIn(1.0f, 1.6f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_SCALE_FACTOR] = (config.appFocusScaleFactor + 0.05f).coerceIn(1.0f, 1.6f) } } }
+        )
+    }
+    SettingsCategoryBox("الشريط المتحرك والتحكم (سابق)") {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(allPairs) { pair ->
                 val active = config.activeTickerPairs.contains(pair)

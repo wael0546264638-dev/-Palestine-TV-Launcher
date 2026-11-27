@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -248,13 +249,23 @@ private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Uni
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val focusScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.10f else 1.0f,
+        targetValue = if (isFocused) config.appFocusScaleFactor else 1.0f,
         animationSpec = tween(70),
         label = "app_tile_scale"
     )
-    val tileW = (116 * config.appBaseScale).dp
-    val tileH = (74 * config.appBaseScale).dp
-    val shape = RoundedCornerShape(config.appCornerRadiusPercent.dp)
+    val (baseW, baseH) = when (config.appIconSize) {
+        0 -> 96f to 60f   // صغير
+        2 -> 140f to 90f  // كبير
+        else -> 116f to 74f // متوسط
+    }
+    val tileW = (baseW * config.appBaseScale).dp
+    val tileH = (baseH * config.appBaseScale).dp
+    val shape = when (config.appIconShape) {
+        1 -> CircleShape
+        2 -> RectangleShape
+        else -> RoundedCornerShape(config.appCornerRadiusPercent.dp)
+    }
+    val glowAlpha = config.appFocusGlowIntensity.coerceIn(0f, 1f)
 
     val cachedBitmap: ImageBitmap? = remember(app.packageName) {
         try {
@@ -271,6 +282,10 @@ private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Uni
             .graphicsLayer {
                 scaleX = focusScale
                 scaleY = focusScale
+                if (isFocused) {
+                    shadowElevation = 14.dp.toPx() * glowAlpha
+                    spotShadowColor = Color(config.appFocusGlowColor).copy(alpha = glowAlpha)
+                }
             }
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
     ) {
@@ -280,7 +295,7 @@ private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Uni
                 .clip(shape)
                 .background(
                     Brush.linearGradient(
-                        listOf(app.dominantColor.copy(alpha = 0.45f), Color(0xFF0F172A))
+                        listOf(app.dominantColor.copy(alpha = 0.45f * config.appIconOpacity), Color(0xFF0F172A))
                     )
                 )
                 .border(
@@ -295,7 +310,9 @@ private fun TvAppTile(app: TvAppInfo, config: LauncherConfig, onClick: () -> Uni
                     bitmap = cachedBitmap,
                     contentDescription = app.label,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = config.appIconOpacity }
                 )
             }
         }

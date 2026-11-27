@@ -54,6 +54,14 @@ data class LauncherConfig(
     val tickerBgOpacity: Float = 0.65f,
     val appBaseScale: Float = 1.0f,
     val appCornerRadiusPercent: Int = 22,
+
+    // Favorite app bar customization
+    val appIconOpacity: Float = 1.0f,
+    val appIconSize: Int = 1,
+    val appIconShape: Int = 0,
+    val appFocusGlowIntensity: Float = 0.6f,
+    val appFocusGlowColor: Int = 0xFF38BDF8.toInt(),
+    val appFocusScaleFactor: Float = 1.12f,
     val showTopWifi: Boolean = true,
     val showTopQuranRadio: Boolean = true,
     val showTopQuranBook: Boolean = true,
@@ -168,6 +176,14 @@ class LauncherPreferences(private val context: Context) {
         val TICKER_OPACITY = floatPreferencesKey("ticker_opacity")
         val APP_SCALE = floatPreferencesKey("app_scale")
         val APP_CORNER = intPreferencesKey("app_corner")
+
+        // Favorite app bar
+        val APP_ICON_OPACITY = floatPreferencesKey("app_icon_opacity")
+        val APP_ICON_SIZE = intPreferencesKey("app_icon_size")
+        val APP_ICON_SHAPE = intPreferencesKey("app_icon_shape")
+        val APP_FOCUS_GLOW_INTENSITY = floatPreferencesKey("app_focus_glow_intensity")
+        val APP_FOCUS_GLOW_COLOR = intPreferencesKey("app_focus_glow_color")
+        val APP_FOCUS_SCALE_FACTOR = floatPreferencesKey("app_focus_scale_factor")
         val SHOW_WIFI = booleanPreferencesKey("show_wifi")
         val SHOW_QURAN = booleanPreferencesKey("show_quran")
         val SHOW_BOOK = booleanPreferencesKey("show_book")
@@ -277,6 +293,12 @@ class LauncherPreferences(private val context: Context) {
             tickerBgOpacity = p[TICKER_OPACITY] ?: 0.65f,
             appBaseScale = p[APP_SCALE] ?: 1.0f,
             appCornerRadiusPercent = p[APP_CORNER] ?: 22,
+            appIconOpacity = p[APP_ICON_OPACITY] ?: 1.0f,
+            appIconSize = p[APP_ICON_SIZE] ?: 1,
+            appIconShape = p[APP_ICON_SHAPE] ?: 0,
+            appFocusGlowIntensity = p[APP_FOCUS_GLOW_INTENSITY] ?: 0.6f,
+            appFocusGlowColor = p[APP_FOCUS_GLOW_COLOR] ?: 0xFF38BDF8.toInt(),
+            appFocusScaleFactor = p[APP_FOCUS_SCALE_FACTOR] ?: 1.12f,
             showTopWifi = p[SHOW_WIFI] ?: true,
             showTopQuranRadio = p[SHOW_QURAN] ?: true,
             showTopQuranBook = p[SHOW_BOOK] ?: true,
