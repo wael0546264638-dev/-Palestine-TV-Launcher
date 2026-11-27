@@ -326,13 +326,22 @@ rows.forEach { (name, time) ->
                         }
                     }
                     10 -> {
-                        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                        val mi = ActivityManager.MemoryInfo()
-                        am.getMemoryInfo(mi)
-                        val avail = mi.availMem / (1024 * 1024)
-                        val total = mi.totalMem / (1024 * 1024)
-                        val stat = StatFs(Environment.getDataDirectory().path)
-                        val gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+                        var avail = 0L
+                        var total = 0L
+                        var gb = 0L
+                        try {
+                            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                            val mi = ActivityManager.MemoryInfo()
+                            am.getMemoryInfo(mi)
+                            avail = mi.availMem / (1024 * 1024)
+                            total = mi.totalMem / (1024 * 1024)
+                        } catch (e: Exception) {
+                        }
+                        try {
+                            val stat = StatFs(Environment.getDataDirectory().path)
+                            gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+                        } catch (e: Exception) {
+                        }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
                             Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
@@ -469,7 +478,10 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         if (result != null && result.isNotEmpty()) {
             scope.launch {
                 delay(300)
-                versesFocus.requestFocus()
+                try {
+                    versesFocus.requestFocus()
+                } catch (e: Exception) {
+                }
             }
         }
     }
@@ -574,7 +586,12 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                             }
                         } else if (verses.isNotEmpty()) {
                             val scrollState = rememberScrollState()
-                            LaunchedEffect(selectedSurahNum) { scrollState.scrollTo(0) }
+                            LaunchedEffect(selectedSurahNum) {
+                                try {
+                                    scrollState.scrollTo(0)
+                                } catch (e: Exception) {
+                                }
+                            }
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
