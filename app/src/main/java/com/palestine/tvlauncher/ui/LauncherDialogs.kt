@@ -140,10 +140,22 @@ fun InteractiveTabsCard(
                         } else false
                     }
                 else Modifier
-            ),
+            )
+            .graphicsLayer {
+                if (cardHasFocus && config.focusGlowEnabled) {
+                    shadowElevation = 12.dp.toPx()
+                    spotShadowColor = Color(config.focusGlowColor).copy(alpha = 0.5f)
+                }
+            },
         shape = RoundedCornerShape(24.dp),
         color = Color.Black.copy(alpha = config.cardBgOpacity),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
+        border = BorderStroke(
+            width = if (cardHasFocus) 3.dp else 1.dp,
+            color = when {
+                cardHasFocus -> Color(config.focusGlowColor)
+                else -> Color.White.copy(alpha = 0.16f)
+            }
+        )
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             if (expanded) {
@@ -183,10 +195,12 @@ fun InteractiveTabsCard(
                             else -> 1f
                         }
                         val glow = config.focusGlowEnabled && focused
-                        // إطار تركيز بارز + خلفية مميزة + تكبير خفيف حول عنوان التبويب المحدد
+                        // التبويب المحدد: خلفية مميزة (أزرق ساطع) + إطار بارز (3dp) + نص داكن عالي التباين
+                        // التبويب المركز: خلفية بيضاء + إطار توهج + نص داكن
+                        // التبويبات الأخرى: خلفية شفافة خفيفة
                         val tabBg = when {
                             focused -> Color.White
-                            active -> Color(0xFF38BDF8)
+                            active -> Color(0xFF0EA5E9)  // أزرق ساطع ومميز للتبويب المحدد
                             else -> Color.White.copy(alpha = 0.10f)
                         }
                         val tabBorderColor = when {
@@ -196,7 +210,7 @@ fun InteractiveTabsCard(
                         }
                         val tabBorderWidth = when {
                             focused -> maxOf(config.focusBorderWidth, 3f)
-                            active && config.focusBorderEnabled -> config.focusBorderWidth
+                            active && config.focusBorderEnabled -> maxOf(config.focusBorderWidth, 3f)  // إطار بارز 3dp للتبويب المحدد
                             else -> 0f
                         }
                         Surface(
@@ -228,18 +242,6 @@ fun InteractiveTabsCard(
                             )
                         }
                     }
-                }
-                IconButton(
-                    onClick = {
-                        isExpanded = !isExpanded
-                        onExpand(isExpanded)
-                    }
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                        contentDescription = if (isExpanded) "تصغير" else "تكبير",
-                        tint = Color.White
-                    )
                 }
             }
 
