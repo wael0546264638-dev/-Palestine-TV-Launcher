@@ -96,6 +96,7 @@ data class LauncherConfig(
     val favoriteTeamName: String = "",
     val favoriteTeamLeague: String = "",
     val favoriteTeams: List<FavoriteTeam> = emptyList(),
+    val disabledNewsSources: Set<String> = emptySet(),
 )
 
 data class FamilyReminder(
@@ -200,6 +201,7 @@ class LauncherPreferences(private val context: Context) {
         val FAVORITE_TEAM_ID = stringPreferencesKey("favorite_team_id")
         val FAVORITE_TEAM_NAME = stringPreferencesKey("favorite_team_name")
         val FAVORITE_TEAM_LEAGUE = stringPreferencesKey("favorite_team_league")
+        val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
     }
 
     val configFlow: Flow<LauncherConfig> = context.dataStore.data.map { p ->
@@ -295,6 +297,7 @@ class LauncherPreferences(private val context: Context) {
             favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",
             favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: "",
             favoriteTeams = emptyList(),
+            disabledNewsSources = p[DISABLED_NEWS_SOURCES] ?: emptySet(),
         )
     }
 
@@ -323,5 +326,16 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun saveLastQuranRadioUrl(url: String) {
         context.dataStore.edit { it[LAST_QURAN_RADIO_URL] = url }
+    }
+
+    suspend fun toggleNewsSource(sourceId: String, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[DISABLED_NEWS_SOURCES] ?: emptySet()
+            prefs[DISABLED_NEWS_SOURCES] = if (enabled) {
+                current - sourceId
+            } else {
+                current + sourceId
+            }
+        }
     }
 }

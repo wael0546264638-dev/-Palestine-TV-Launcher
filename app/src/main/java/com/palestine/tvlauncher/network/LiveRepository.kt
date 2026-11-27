@@ -23,6 +23,7 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 data class MatchItem(val name: String, val status: String)
+data class NewsSource(val id: String, val name: String, val url: String, val country: String)
 data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, val apkDownloadUrl: String, val releaseNotes: String)
 
 data class QuranRadio(val name: String, val url: String)
@@ -185,6 +186,40 @@ private object TrustAllManager : X509TrustManager {
 }
 
 object LiveRepository {
+
+    val countryNewsSources: Map<String, List<NewsSource>> = mapOf(
+        "Palestine" to listOf(
+            NewsSource("pal_wafa", "وفا", "https://www.wafa.ps/rss", "Palestine"),
+            NewsSource("pal_maann", "معاً", "https://www.maannews.net/rss", "Palestine"),
+            NewsSource("pal_alquds", "القدس", "https://www.alquds.com/rss", "Palestine")
+        ),
+        "Jordan" to listOf(
+            NewsSource("jor_petra", "بترا", "https://petra.gov.jo/rss", "Jordan"),
+            NewsSource("jor_roya", "رؤيا", "https://roya.tv/rss", "Jordan")
+        ),
+        "Egypt" to listOf(
+            NewsSource("egy_ahram", "الأهرام", "https://www.ahram.org.eg/rss", "Egypt"),
+            NewsSource("egy_youm7", "اليوم السابع", "https://www.youm7.com/rss", "Egypt")
+        ),
+        "Saudi Arabia" to listOf(
+            NewsSource("ksa_spa", "واس", "https://www.spa.gov.sa/rss", "Saudi Arabia"),
+            NewsSource("ksa_okaz", "عكاظ", "https://www.okaz.com.sa/rss", "Saudi Arabia")
+        )
+    )
+
+    val worldNewsSources: List<NewsSource> = listOf(
+        NewsSource("world_bbc", "BBC Arabic", "https://www.bbc.com/arabic/rss", "World"),
+        NewsSource("world_aljazeera", "Al Jazeera", "https://www.aljazeera.net/xml/rss/all.xml", "World")
+    )
+
+    val techNewsSources: List<NewsSource> = listOf(
+        NewsSource("tech_aitnews", "aitnews", "https://aitnews.com/feed/", "Tech")
+    )
+
+    fun sourcesForCountry(country: String, disabled: Set<String>): List<NewsSource> {
+        val all = (countryNewsSources[country] ?: emptyList()) + worldNewsSources + techNewsSources
+        return all.filter { it.id !in disabled }
+    }
 
     val natureWallpapers = listOf(
         "غروب هادئ" to "https://unsplash.com",
