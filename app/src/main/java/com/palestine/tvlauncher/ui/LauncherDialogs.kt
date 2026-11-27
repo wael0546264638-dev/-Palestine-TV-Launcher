@@ -1265,6 +1265,7 @@ fun GeneralLocationSection(
         Text(locationStatus, color = Color(0xFFFBBF24), fontSize = 13.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             var searchFieldFocused by remember { mutableStateOf(false) }
+            var isEditing by remember { mutableStateOf(false) }
             val searchFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = searchQuery,
@@ -1275,25 +1276,40 @@ fun GeneralLocationSection(
                     .focusRequester(searchFocusRequester)
                     .onFocusChanged { searchFieldFocused = it.isFocused }
                     .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && !searchFieldFocused) {
+                        if (event.type == KeyEventType.KeyDown) {
                             when (event.key) {
                                 Key.DirectionCenter, Key.Enter -> {
-                                    searchFocusRequester.requestFocus()
-                                    searchFieldFocused = true
-                                    true
+                                    if (searchFieldFocused && !isEditing) {
+                                        isEditing = true
+                                        true
+                                    } else if (!searchFieldFocused) {
+                                        searchFocusRequester.requestFocus()
+                                        searchFieldFocused = true
+                                        true
+                                    } else {
+                                        false
+                                    }
                                 }
                                 Key.Back -> {
-                                    if (searchFieldFocused) {
+                                    if (isEditing) {
+                                        isEditing = false
+                                        true
+                                    } else if (searchFieldFocused) {
                                         searchFieldFocused = false
                                         true
-                                    } else false
+                                    } else {
+                                        false
+                                    }
                                 }
                                 else -> false
                             }
                         } else false
                     },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, keyboardType = KeyboardType.Text),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = if (isEditing) ImeAction.Search else ImeAction.None,
+                    keyboardType = KeyboardType.Text
+                ),
                 visualTransformation = VisualTransformation { TextFieldValue(it.text) }
             )
             SettingOptionPill("بحث", false) {
