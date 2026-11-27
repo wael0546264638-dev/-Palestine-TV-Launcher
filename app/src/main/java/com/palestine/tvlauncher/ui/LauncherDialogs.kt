@@ -549,15 +549,18 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                         fontSize = 14.sp,
                                         fontWeight = if (isSelected || focused) FontWeight.Bold else FontWeight.Normal
                                     )
-                                    Text(
-                                        text = PalestineData.toArabicDigits("${s.ayahCount} آية"),
-                                        color = if (focused) Color(0xFF334155) else Color(0xFF94A3B8),
-                                        fontSize = 11.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
+                                     Text(
+                                         text = PalestineData.toArabicDigits("${s.ayahCount} آية"),
+                                         color = if (focused) Color(0xFF334155) else Color(0xFF94A3B8),
+                                         fontSize = 11.sp
+                                     )
+                                 }
+                             }
+                         }
+                         item {
+                             Spacer(modifier = Modifier.height(32.dp))
+                         }
+                     }
 
                     Surface(
                         modifier = Modifier.weight(0.72f).fillMaxHeight(),
@@ -652,18 +655,21 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                                 }
                                             }
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                text = verse.text,
-                                                color = Color(0xFFF8FAFC),
-                                                fontSize = fontSizeSp.sp,
-                                                lineHeight = (fontSizeSp * 1.9f).sp,
-                                                textAlign = TextAlign.Center,
-                                                fontWeight = FontWeight.Normal
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                                             Text(
+                                                 text = verse.text,
+                                                 color = Color(0xFFF8FAFC),
+                                                 fontSize = fontSizeSp.sp,
+                                                 lineHeight = (fontSizeSp * 1.9f).sp,
+                                                 textAlign = TextAlign.Center,
+                                                 fontWeight = FontWeight.Normal
+                                             )
+                                         }
+                                     }
+                                 }
+                                 item {
+                                     Spacer(modifier = Modifier.height(32.dp))
+                                 }
+                             }
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
