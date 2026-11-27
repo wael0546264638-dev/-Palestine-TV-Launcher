@@ -1,6 +1,10 @@
 package com.palestine.tvlauncher.data
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -26,11 +30,11 @@ object AdhanManager {
     private const val FALLBACK_ADHAN_URL = "https://archive.org/download/Adhan-Makkah/Adhan-Makkah.mp3"
 
     private val MUADHIN_URLS = mapOf(
-        "makkah_alimla" to "https://www.islamcan.com/audio/adhan/Adhan-Makkah.mp3",
-        "madinah_osamabakhri" to "https://www.islamcan.com/audio/adhan/Adhan-Madinah.mp3",
-        "abdulbasit" to "https://www.everyayah.com/data/Abdul_Basit_Murattal_192kbps/001001.mp3",
-        "afasy" to "https://www.everyayah.com/data/Alafasy_128kbps/001001.mp3",
-        "alaqsa" to "https://www.islamcan.com/audio/adhan/Adhan-Al-Aqsa.mp3"
+        "makkah_alimla" to "https://www.islamcan.com/audio/adhan/azan1.mp3",
+        "madinah_osamabakhri" to "https://www.islamcan.com/audio/adhan/azan2.mp3",
+        "abdulbasit" to "https://www.islamcan.com/audio/adhan/azan3.mp3",
+        "afasy" to "https://www.islamcan.com/audio/adhan/azan4.mp3",
+        "alaqsa" to "https://www.islamcan.com/audio/adhan/azan5.mp3"
     )
 
     private val MUADHIN_NAMES = mapOf(
@@ -148,6 +152,15 @@ object AdhanManager {
             player?.setMediaItem(item)
             player?.prepare()
             player?.play()
+            player?.addListener(object : com.google.android.exoplayer2.Player.Listener {
+                override fun onPlayerError(error: com.google.android.exoplayer2.PlaybackException) {
+                    try {
+                        val r = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                        r?.play()
+                    } catch (_: Exception) {}
+                    stop()
+                }
+            })
             if (lengthMode == 1) {
                 adhanCoroutine = CoroutineScope(Dispatchers.IO).launch {
                     kotlinx.coroutines.delay(15_000L)
@@ -229,6 +242,44 @@ object AdhanManager {
                 r?.play()
             } catch (_: Exception) {}
             stop()
+        }
+    }
+
+fun scheduleAdhanAlarms(context: Context, prayers: Map<String, String>) {
+        try {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val tz = TimeZone.getDefault()
+            for ((name, timeStr) in prayers) {
+                val parts = timeStr.split(":")
+                if (parts.size < 2) continue
+                val h = parts[0].toIntOrNull() ?: continue
+                val m = parts[1].toIntOrNull() ?: continue
+                val cal = Calendar.getInstance(tz).apply {
+                    set(Calendar.HOUR_OF_DAY, h)
+                    set(Calendar.MINUTE, m)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                    if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+                }
+                val intent = Intent(context, AdhanAlarmReceiver::class.java).apply {
+                    putExtra("prayerName", name)
+                }
+                val pi = PendingIntent.getBroadcast(context, name.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "scheduleAdhanAlarms failed", e)
+        }
+    }
+
+    class AdhanAlarmReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val prayerName = intent.getStringExtra("prayerName") ?: "صلاة"
+            try {
+                AdhanManager.playAdhan(context, prayerName, "makkah_alimla", 0, 70)
+            } catch (e: Exception) {
+                Log.e(TAG, "AdhanAlarmReceiver failed", e)
+            }
         }
     }
 

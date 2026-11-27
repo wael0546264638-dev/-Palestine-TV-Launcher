@@ -489,33 +489,45 @@ object LiveRepository {
 
     suspend fun fetchFullSurahText(surahNumber: Int): FullSurahContent? = withContext(Dispatchers.IO) {
         cachedSurahTexts[surahNumber]?.let { return@withContext it }
-        try {
-            val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json"
-            val raw = httpGet(url) ?: return@withContext null
-            val data = JSONObject(raw)
-            val name = data.getString("name")
-            val ayahs = data.getJSONArray("ayahs")
+try {
+            // Try alquran.cloud (Ottoman text) first
+            var raw: String? = null
+            try { raw = httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani") } catch (_: Exception) { raw = null }
+            // Fast backup: jsdelivr
+            if (raw == null) {
+                try { raw = httpGet("https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json") } catch (_: Exception) { raw = null }
+            }
+            if (raw == null) return@withContext null
+            val data = try { JSONObject(raw).optJSONObject("data") } catch (_: Exception) { null }
+            val ayahs = data?.optJSONArray("ayahs") ?: JSONObject(raw).optJSONArray("ayahs")
+            val name = data?.optString("name")?.ifBlank { null } ?: JSONObject(raw).optString("name")
             var firstPage = 0
             var lastPage = 0
             val sb = StringBuilder()
             if (surahNumber != 1 && surahNumber != 9) {
                 sb.append("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\n\n")
             }
-            for (i in 0 until ayahs.length()) {
-                val a = ayahs.getJSONObject(i)
-                val num = a.getInt("numberInSurah")
-                val page = a.optInt("page", 1)
-                if (i == 0) firstPage = page
-                lastPage = page
-                var txt = a.getString("text")
-                if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
-                    txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
+            if (ayahs != null) {
+                for (i in 0 until ayahs.length()) {
+                    val a = ayahs.getJSONObject(i)
+                    val num = a.optInt("numberInSurah", i + 1)
+                    val page = a.optInt("page", 1)
+                    if (i == 0) firstPage = page
+                    lastPage = page
+                    var txt = a.optString("text")
+                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
+                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
+                    }
+                    sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
                 }
-                sb.append("$txt ﴿${PalestineData.toArabicDigits(num.toString())}﴾ ")
             }
+            // Fetch tafsir (الميسر) in separate protected request
+            try {
+                httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.muyassar")
+            } catch (_: Exception) { }
             val pageStr = if (firstPage == lastPage) "صفحة ${PalestineData.toArabicDigits(firstPage.toString())}"
             else "صفحة ${PalestineData.toArabicDigits("$firstPage - $lastPage")}"
-            val result = FullSurahContent(surahNumber, name, sb.toString().trim(), pageStr)
+            val result = FullSurahContent(surahNumber, name ?: "", sb.toString().trim(), pageStr)
             cachedSurahTexts[surahNumber] = result
             result
         } catch (_: Exception) {
@@ -540,8 +552,8 @@ object LiveRepository {
         } catch (_: Exception) { }
 
         try {
-            val uthmaniRaw = httpGet("https://alquran.cloud/$surahNumber/quran-uthmani") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani")
-            val muyassarRaw = httpGet("https://alquran.cloud/$surahNumber/ar.muyassar") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.muyassar")
+            val uthmaniRaw = try { httpGet("https://alquran.cloud/$surahNumber/quran-uthmani") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani") ?: httpGet("https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json") } catch (_: Exception) { null }
+            val muyassarRaw = try { httpGet("https://alquran.cloud/$surahNumber/ar.muyassar") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.muyassar") } catch (_: Exception) { null }
             val uthmaniAyahs = if (uthmaniRaw != null) JSONObject(uthmaniRaw).optJSONObject("data")?.optJSONArray("ayahs") else null
             val muyassarAyahs = if (muyassarRaw != null) JSONObject(muyassarRaw).optJSONObject("data")?.optJSONArray("ayahs") else null
 
@@ -703,7 +715,7 @@ object LiveRepository {
     suspend fun fetchCityWeatherDetailed(lat: Double, lon: Double, timeZoneId: String): WeatherDetail? = withContext(Dispatchers.IO) {
         try {
             val encodedTz = URLEncoder.encode(timeZoneId, "UTF-8")
-            val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=$encodedTz"
+            val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
             val raw = httpGet(url)
                 ?: return@withContext null
             val json = JSONObject(raw)
@@ -735,9 +747,16 @@ object LiveRepository {
             val daily = mutableListOf<WeatherDay>()
             val dLimit = dailyDates.length().coerceAtMost(dailyMaxs.length()).coerceAtMost(dailyMins.length()).coerceAtMost(dailyProbs.length())
             for (i in 0 until dLimit) {
+                val dateStr = dailyDates.optString(i)
+                val dayName = try {
+                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    val d = sdf.parse(dateStr)
+                    val daySdf = SimpleDateFormat("EEEE", Locale("ar"))
+                    daySdf.format(d!!)
+                } catch (_: Exception) { dateStr }
                 daily.add(
                     WeatherDay(
-                        dailyDates.optString(i),
+                        dayName,
                         dailyMaxs.optDouble(i, 0.0).toInt().toString(),
                         dailyMins.optDouble(i, 0.0).toInt().toString(),
                         dailyProbs.optInt(i, 0)
@@ -869,12 +888,13 @@ object LiveRepository {
         val title = category.commonsCategory ?: return
         try {
             val encoded = URLEncoder.encode(title, "UTF-8")
-            val api = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=$encoded&gcmnamespace=6&gcmlimit=50&prop=imageinfo&iiprop=url&format=json"
+            val api = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=$encoded&gcmnamespace=6&gcmlimit=50&prop=imageinfo&iiprop=url&iiurlwidth=1920&format=json"
             val raw = httpGet(api) ?: return
             val pages = JSONObject(raw).optJSONObject("query")?.optJSONObject("pages")
             pages?.keys()?.forEach { k ->
                 val ii = pages.optJSONObject(k)?.optJSONArray("imageinfo")
-                val url = ii?.optJSONObject(0)?.optString("url")
+                val info = ii?.optJSONObject(0)
+                val url = info?.optString("thumburl")?.ifBlank { info.optString("url") } ?: info?.optString("url")
                 if (!url.isNullOrBlank() && isValidWallpaperUrl(url)) sink.add(url)
             }
         } catch (_: Exception) { }
@@ -894,7 +914,7 @@ object LiveRepository {
         if (result.isEmpty()) {
             result += defaultLiveWallpapers
         }
-        val filtered = result.distinct()
+        val filtered = result.distinct().shuffled()
         if (filtered.isNotEmpty()) cacheLiveWallpapers(context, category, filtered)
         filtered.ifEmpty { cached.ifEmpty { emptyList() } }
     }

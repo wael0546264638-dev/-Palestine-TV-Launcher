@@ -27,7 +27,7 @@ val liveWallpapers: List<LiveWallpaperOption> = listOf(
 object PalestineData {
 
     val palestineCities = listOf(
-        PalestinianCity("أريحا (الزبيدات)", "فلسطين", 32.0450, 35.4580, "Asia/Hebron"),
+        PalestinianCity("أريحا (الزبيدات)", "فلسطين", 32.1642, 35.5397, "Asia/Hebron"),
         PalestinianCity("أريحا", "فلسطين", 31.8611, 35.4618, "Asia/Hebron"),
         PalestinianCity("القدس", "فلسطين", 31.7683, 35.2137, "Asia/Jerusalem"),
         PalestinianCity("رام الله", "فلسطين", 31.9038, 35.2034, "Asia/Hebron"),
