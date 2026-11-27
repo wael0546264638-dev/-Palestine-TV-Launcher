@@ -823,56 +823,84 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
             null
         }
     }
+    enum class LiveWallpaperCategory(val title: String, val commonsCategory: String?, val key: String) {
+        ALL("الكل المتنوع", "Category:Featured_pictures_on_Wikimedia_Commons", "all"),
+        NATURE("الطبيعة والمناظر الخلابة", "Category:Nature", "nature"),
+        MOSQUES("المساجد والعمارة الإسلامية", "Category:Islamic architecture", "mosques"),
+        SPACE("الفضاء والنجوم", "Category:Outer space", "space"),
+        BING("صور Bing اليومية", null, "bing"),
+        CITIES_NIGHT("المدن والليل", "Category:Cities at night", "cities_night");
+
+        companion object {
+            fun fromTitle(title: String): LiveWallpaperCategory =
+                values().firstOrNull { it.title == title } ?: ALL
+        }
+    }
+
     private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_wallpapers_lib_prefs") }
-    private const val CACHED_LIVE_WALLPAPERS_KEY = "cached_live_wallpapers"
-    private const val CACHED_LIVE_WALLPAPERS_TS_KEY = "cached_live_wallpapers_ts"
     private const val LIVE_WALLPAPER_CACHE_HOURS = 6
 
-    suspend fun fetchLiveWallpapers(context: Context): List<String> = withContext(Dispatchers.IO) {
-        val cached = getCachedLiveWallpapers()
-        if (cached.isNotEmpty() && isLiveWallpaperCacheValid()) return@withContext cached
+    private fun isValidWallpaperUrl(url: String): Boolean =
+        url.startsWith("https", ignoreCase = true) &&
+            (url.endsWith(".jpg", ignoreCase = true) || url.endsWith(".png", ignoreCase = true))
+
+    private val defaultLiveWallpapers = listOf(
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
+        "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80",
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80"
+    )
+
+    private suspend fun appendBingWallpapers(sink: MutableList<String>) {
+        try {
+            val raw = httpGet("https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US") ?: return
+            val arr = JSONObject(raw).optJSONArray("images") ?: return
+            for (i in 0 until arr.length()) {
+                val u = arr.getJSONObject(i).optString("url")
+                if (u.isNotBlank()) {
+                    val full = if (u.startsWith("http")) u else "https://www.bing.com$u"
+                    if (isValidWallpaperUrl(full)) sink.add(full)
+                }
+            }
+        } catch (_: Exception) { }
+    }
+
+    private suspend fun appendCommonsWallpapers(category: LiveWallpaperCategory, sink: MutableList<String>) {
+        val title = category.commonsCategory ?: return
+        try {
+            val encoded = URLEncoder.encode(title, "UTF-8")
+            val api = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=$encoded&gcmnamespace=6&gcmlimit=50&prop=imageinfo&iiprop=url&format=json"
+            val raw = httpGet(api) ?: return
+            val pages = JSONObject(raw).optJSONObject("query")?.optJSONObject("pages")
+            pages?.keys()?.forEach { k ->
+                val ii = pages.optJSONObject(k)?.optJSONArray("imageinfo")
+                val url = ii?.optJSONObject(0)?.optString("url")
+                if (!url.isNullOrBlank() && isValidWallpaperUrl(url)) sink.add(url)
+            }
+        } catch (_: Exception) { }
+    }
+
+    suspend fun fetchLiveWallpapers(context: Context, category: LiveWallpaperCategory = LiveWallpaperCategory.ALL): List<String> = withContext(Dispatchers.IO) {
+        val cached = getCachedLiveWallpapers(category)
+        if (cached.isNotEmpty() && isLiveWallpaperCacheValid(category)) return@withContext cached
 
         val result = mutableListOf<String>()
-        try {
-            val raw = httpGet("https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US")
-            if (raw != null) {
-                val arr = JSONObject(raw).optJSONArray("images")
-                if (arr != null) {
-                    for (i in 0 until arr.length()) {
-                        val u = arr.getJSONObject(i).optString("url")
-                        if (u.isNotBlank()) {
-                            val full = if (u.startsWith("http")) u else "https://www.bing.com$u"
-                            if (full.startsWith("https") && (full.contains(".jpg") || full.contains(".png"))) result.add(full)
-                        }
-                    }
-                }
-            }
-        } catch (_: Exception) { }
-        try {
-            val api = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=Category:Featured_pictures_on_Wikimedia_Commons&gcmnamespace=6&gcmlimit=20&prop=imageinfo&iiprop=url&format=json"
-            val raw = httpGet(api)
-            if (raw != null) {
-                val pages = JSONObject(raw).optJSONObject("query")?.optJSONObject("pages")
-                pages?.keys()?.forEach { k ->
-                    val ii = pages.optJSONObject(k)?.optJSONArray("imageinfo")
-                    val url = ii?.optJSONObject(0)?.optString("url")
-                    if (!url.isNullOrBlank() && url.startsWith("https") && (url.endsWith(".jpg", true) || url.endsWith(".png", true))) result.add(url)
-                }
-            }
-        } catch (_: Exception) { }
-        result += listOf(
-            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
-            "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80",
-            "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80"
-        )
+        if (category == LiveWallpaperCategory.BING || category == LiveWallpaperCategory.ALL) {
+            appendBingWallpapers(result)
+        }
+        if (category != LiveWallpaperCategory.BING) {
+            appendCommonsWallpapers(category, result)
+        }
+        if (result.isEmpty()) {
+            result += defaultLiveWallpapers
+        }
         val filtered = result.distinct()
-        if (filtered.isNotEmpty()) cacheLiveWallpapers(filtered)
+        if (filtered.isNotEmpty()) cacheLiveWallpapers(category, filtered)
         filtered.ifEmpty { cached.ifEmpty { emptyList() } }
     }
 
-    private suspend fun getCachedLiveWallpapers(): List<String> = withContext(Dispatchers.IO) {
+    private suspend fun getCachedLiveWallpapers(category: LiveWallpaperCategory): List<String> = withContext(Dispatchers.IO) {
         try {
-            val jsonStr = liveWallpapersDataStore.data.map { it[stringPreferencesKey(CACHED_LIVE_WALLPAPERS_KEY)] ?: "" }.first()
+            val jsonStr = liveWallpapersDataStore.data.map { it[stringPreferencesKey("cached_live_walls_${category.key}")] ?: "" }.first()
             if (jsonStr.isNotBlank()) {
                 val arr = JSONArray(jsonStr)
                 (0 until arr.length()).map { arr.getString(it) }
@@ -880,20 +908,20 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
         } catch (_: Exception) { emptyList() }
     }
 
-    private suspend fun isLiveWallpaperCacheValid(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun isLiveWallpaperCacheValid(category: LiveWallpaperCategory): Boolean = withContext(Dispatchers.IO) {
         try {
-            val ts = liveWallpapersDataStore.data.map { it[longPreferencesKey(CACHED_LIVE_WALLPAPERS_TS_KEY)] ?: 0L }.first()
+            val ts = liveWallpapersDataStore.data.map { it[longPreferencesKey("cached_live_walls_${category.key}_ts")] ?: 0L }.first()
             System.currentTimeMillis() - ts < LIVE_WALLPAPER_CACHE_HOURS * 60 * 60 * 1000L
         } catch (_: Exception) { false }
     }
 
-    private suspend fun cacheLiveWallpapers(list: List<String>) = withContext(Dispatchers.IO) {
+    private suspend fun cacheLiveWallpapers(category: LiveWallpaperCategory, list: List<String>) = withContext(Dispatchers.IO) {
         try {
             val arr = JSONArray()
             list.forEach { arr.put(it) }
             liveWallpapersDataStore.edit {
-                it[stringPreferencesKey(CACHED_LIVE_WALLPAPERS_KEY)] = arr.toString()
-                it[longPreferencesKey(CACHED_LIVE_WALLPAPERS_TS_KEY)] = System.currentTimeMillis()
+                it[stringPreferencesKey("cached_live_walls_${category.key}")] = arr.toString()
+                it[longPreferencesKey("cached_live_walls_${category.key}_ts")] = System.currentTimeMillis()
             }
         } catch (_: Exception) { }
     }

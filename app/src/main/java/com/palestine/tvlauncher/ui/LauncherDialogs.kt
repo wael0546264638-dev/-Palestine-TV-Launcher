@@ -1136,11 +1136,29 @@ fun SettingsModalDrawer(
 
                          item {
                              SettingsCategoryBox("مكتبة الخلفيات الحية المتجددة") {
-                                 SettingOptionPill("مكتبة الخلفيات الحية المتجددة", true) { }
+                                 Text("اختر المكتبة الحية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(LiveRepository.LiveWallpaperCategory.values()) { cat ->
+                                         val selected = config.liveWallpaperCategory == cat.title
+                                         SettingOptionPill(cat.title, selected) {
+                                             scope.launch {
+                                                 prefs.saveLiveWallpaperCategory(cat.title)
+                                                 val list = LiveRepository.fetchLiveWallpapers(context, cat)
+                                                 if (list.isNotEmpty()) {
+                                                     prefs.updateConfig {
+                                                         it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                                                         it[LauncherPreferences.WALLPAPER_IDX] = 0
+                                                     }
+                                                 }
+                                             }
+                                         }
+                                     }
+                                 }
                                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                      SettingOptionPill("تغيير الخلفية الآن", false) {
                                          scope.launch {
-                                             val list = LiveRepository.fetchLiveWallpapers(context)
+                                             val cat = LiveRepository.LiveWallpaperCategory.fromTitle(config.liveWallpaperCategory)
+                                             val list = LiveRepository.fetchLiveWallpapers(context, cat)
                                              if (list.isNotEmpty()) {
                                                  val next = (config.wallpaperIndex + 1) % list.size
                                                  prefs.updateConfig {

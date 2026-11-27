@@ -475,8 +475,9 @@ val mediaPlayer = remember { MediaPlayer() }
     }
 
     var liveWallpapers by remember { mutableStateOf<List<String>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        liveWallpapers = LiveRepository.fetchLiveWallpapers(context)
+    LaunchedEffect(config.liveWallpaperCategory) {
+        val cat = LiveRepository.LiveWallpaperCategory.fromTitle(config.liveWallpaperCategory)
+        liveWallpapers = LiveRepository.fetchLiveWallpapers(context, cat)
     }
 
     val activeWallpaperModel: Any? = remember(config.customWallpaperUri, config.wallpaperIndex, liveWallpapers) {

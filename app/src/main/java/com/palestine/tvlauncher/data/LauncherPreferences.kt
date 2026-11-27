@@ -90,6 +90,7 @@ data class LauncherConfig(
     val liveWallpaperIntervalMinutes: Int = 10,
     val liveWallpaperSource: Int = 0,
     val liveWallpaperType: String = "none",
+    val liveWallpaperCategory: String = "الكل المتنوع",
 
     // Favorite team
     val favoriteTeamId: String = "",
@@ -197,6 +198,7 @@ class LauncherPreferences(private val context: Context) {
         val LIVE_WALLPAPER_INTERVAL = intPreferencesKey("live_wallpaper_interval")
         val LIVE_WALLPAPER_SOURCE = intPreferencesKey("live_wallpaper_source")
         val LIVE_WALLPAPER_TYPE = stringPreferencesKey("live_wallpaper_type")
+        val LIVE_WALLPAPER_CATEGORY = stringPreferencesKey("live_wallpaper_category")
 
         // Favorite team
         val FAVORITE_TEAM_ID = stringPreferencesKey("favorite_team_id")
@@ -294,6 +296,7 @@ class LauncherPreferences(private val context: Context) {
             liveWallpaperIntervalMinutes = p[LIVE_WALLPAPER_INTERVAL] ?: 10,
             liveWallpaperSource = p[LIVE_WALLPAPER_SOURCE] ?: 0,
             liveWallpaperType = p[LIVE_WALLPAPER_TYPE] ?: "none",
+            liveWallpaperCategory = p[LIVE_WALLPAPER_CATEGORY] ?: "الكل المتنوع",
 
             favoriteTeamId = p[FAVORITE_TEAM_ID] ?: "",
             favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",
@@ -339,5 +342,9 @@ class LauncherPreferences(private val context: Context) {
                 current + sourceId
             }
         }
+    }
+
+    suspend fun saveLiveWallpaperCategory(category: String) {
+        context.dataStore.edit { it[LIVE_WALLPAPER_CATEGORY] = category }
     }
 }
