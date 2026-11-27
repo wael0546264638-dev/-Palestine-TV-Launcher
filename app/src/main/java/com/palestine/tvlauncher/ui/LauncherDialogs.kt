@@ -413,6 +413,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
     var verses by remember { mutableStateOf<List<Verse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var fontSizeSp by remember { mutableFloatStateOf(24f) }
+    var showTafsir by remember { mutableStateOf(false) }
     val surahListFocus = remember { FocusRequester() }
     val versesFocus = remember { FocusRequester() }
     var focusedVerseIndex by remember { mutableIntStateOf(-1) }
@@ -473,7 +474,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         isLoading = true
         focusedVerseIndex = -1
         stopAudio()
-        val result = LiveRepository.fetchSurahWithAudio(selectedSurahNum)
+                                             val result = LiveRepository.fetchSurahWithAudio(context, selectedSurahNum)
         verses = result ?: emptyList()
         isLoading = false
         if (result != null && result.isNotEmpty()) {
@@ -518,6 +519,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SettingOptionPill("تصغير الخط -", false) { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(18f) }
                         SettingOptionPill("تكبير الخط +", false) { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(36f) }
+                        SettingOptionPill(if (showTafsir) "إخفاء التفسير" else "إظهار التفسير", showTafsir) { showTafsir = !showTafsir }
                         SettingOptionPill("إغلاق", false, onClick = { stopAudio(); onDismiss() })
                     }
                 }
@@ -673,14 +675,23 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                                 }
                                             }
                                             Spacer(modifier = Modifier.height(8.dp))
-                                             Text(
-                                                 text = verse.text,
-                                                 color = Color(0xFFF8FAFC),
-                                                 fontSize = fontSizeSp.sp,
-                                                 lineHeight = (fontSizeSp * 1.9f).sp,
-                                                 textAlign = TextAlign.Center,
-                                                 fontWeight = FontWeight.Normal
-                                             )
+                                              Text(
+                                                  text = verse.text,
+                                                  color = Color(0xFFF8FAFC),
+                                                  fontSize = fontSizeSp.sp,
+                                                  lineHeight = (fontSizeSp * 1.9f).sp,
+                                                  textAlign = TextAlign.Center,
+                                                  fontWeight = FontWeight.Normal
+                                              )
+                                              if (showTafsir && verse.tafsir.isNotBlank()) {
+                                                  Spacer(modifier = Modifier.height(10.dp))
+                                                  Text(
+                                                      text = "التفسير الميسر: ${verse.tafsir}",
+                                                      color = Color(0xFF94A3B8),
+                                                      fontSize = (fontSizeSp - 4f).coerceAtLeast(14f).sp,
+                                                      textAlign = TextAlign.Center
+                                                  )
+                                              }
                                          }
                                      }
                                  }
@@ -710,7 +721,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                     SettingOptionPill("إعادة المحاولة", false) {
                                         scope.launch {
                                             isLoading = true
-                                            val result = LiveRepository.fetchSurahWithAudio(selectedSurahNum)
+        val result = LiveRepository.fetchSurahWithAudio(context, selectedSurahNum)
                                             verses = result ?: emptyList()
                                             isLoading = false
                                         }

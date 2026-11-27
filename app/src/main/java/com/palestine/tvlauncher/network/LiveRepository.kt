@@ -44,7 +44,7 @@ data class LiveFeedState(
 
 data class SurahHeader(val number: Int, val name: String, val ayahCount: Int, val revelationType: String)
 data class FullSurahContent(val number: Int, val name: String, val versesText: String, val pageRange: String)
-data class Verse(val number: Int, val text: String, val audioUrl: String?)
+data class Verse(val number: Int, val text: String, val audioUrl: String?, val tafsir: String = "")
 
 val staticSurahList: List<SurahHeader> = listOf(
     SurahHeader(1, "الفاتحة", 7, "مكية"),
@@ -199,6 +199,7 @@ object LiveRepository {
     private const val CACHE_VALIDITY_HOURS = 24
 
     private val radiosDataStore by lazy { preferencesDataStore(name = "quran_radios_prefs") }
+private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_prefs") }
 
     suspend fun fetchQuranRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
         val cached = getCachedRadios()
@@ -367,61 +368,63 @@ object LiveRepository {
         }
     }
 
-    suspend fun fetchSurahWithAudio(surahNumber: Int): List<Verse>? = withContext(Dispatchers.IO) {
-        // Primary: jsdelivr.net CDN (fast, open, no rate limits)
-        // Format: https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/{surah}.json
+    suspend fun fetchSurahWithAudio(context: Context, surahNumber: Int): List<Verse>? = withContext(Dispatchers.IO) {
+        val cacheKey = stringPreferencesKey("surah_${surahNumber}")
+        // Offline-first: return cached if present
         try {
-            val url = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ar/quran-uthmani/$surahNumber.json"
-            val raw = httpGet(url)
-            if (raw != null) {
-                val data = JSONObject(raw)
-                val ayahs = data.getJSONArray("ayahs")
+            val cachedJson = surahDataStore.data.map { it[cacheKey] ?: "" }.first()
+            if (cachedJson.isNotBlank()) {
+                val arr = JSONArray(cachedJson)
                 val verses = mutableListOf<Verse>()
-                for (i in 0 until ayahs.length()) {
-                    val a = ayahs.getJSONObject(i)
-                    val num = a.getInt("numberInSurah")
-                    var txt = a.getString("text")
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    verses.add(Verse(o.getInt("num"), o.getString("text"), o.optString("audio"), o.optString("tafsir")))
+                }
+                if (verses.isNotEmpty()) return@withContext verses
+            }
+        } catch (_: Exception) { }
+
+        try {
+            val uthmaniRaw = httpGet("https://alquran.cloud/$surahNumber/quran-uthmani") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/quran-uthmani")
+            val muyassarRaw = httpGet("https://alquran.cloud/$surahNumber/ar.muyassar") ?: httpGet("https://api.alquran.cloud/v1/surah/$surahNumber/ar.muyassar")
+            val uthmaniAyahs = if (uthmaniRaw != null) JSONObject(uthmaniRaw).optJSONObject("data")?.optJSONArray("ayahs") else null
+            val muyassarAyahs = if (muyassarRaw != null) JSONObject(muyassarRaw).optJSONObject("data")?.optJSONArray("ayahs") else null
+
+            val verses = mutableListOf<Verse>()
+            if (uthmaniAyahs != null) {
+                for (i in 0 until uthmaniAyahs.length()) {
+                    val a = uthmaniAyahs.getJSONObject(i)
+                    val num = a.optInt("numberInSurah", i + 1)
+                    var txt = a.optString("text")
                     if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
                         txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
                     }
-                    // Audio from everyayah.com: format 001001.mp3 for surah 1, ayah 1
+                    val tafsir = if (muyassarAyahs != null && i < muyassarAyahs.length()) muyassarAyahs.getJSONObject(i).optString("text") else ""
                     val surah3 = "%03d".format(surahNumber)
                     val ayah3 = "%03d".format(num)
                     val audioUrl = "https://everyayah.com/data/Al_Afasy_128kbps/${surah3}${ayah3}.mp3"
-                    verses.add(Verse(num, txt, audioUrl))
+                    verses.add(Verse(num, txt, audioUrl, tafsir))
                 }
-                return@withContext verses
             }
-        } catch (e: Exception) {
-            System.err.println("jsdelivr fetch failed for surah $surahNumber: ${e.message}")
-        }
-
-        // Fallback: quran.com API
-        try {
-            val raw = httpGet("https://api.quran.com/api/v4/chapters/$surahNumber/verses/ar.alafasy")
-            if (raw != null) {
-                val data = JSONObject(raw).getJSONObject("data")
-                val ayahs = data.getJSONArray("verses")
-                val verses = mutableListOf<Verse>()
-                for (i in 0 until ayahs.length()) {
-                    val a = ayahs.getJSONObject(i)
-                    val num = a.getInt("verse_number")
-                    var txt = a.getString("text_uthmani")
-                    if (i == 0 && surahNumber != 1 && txt.startsWith("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ")) {
-                        txt = txt.removePrefix("بِسْمِ ٱللَّهِ ٱالرَّحْمَٰنِ ٱالرَّحِيمِ").trim()
+            if (verses.isNotEmpty()) {
+                // cache
+                try {
+                    val arr = JSONArray()
+                    for (v in verses) {
+                        arr.put(JSONObject().apply {
+                            put("num", v.number)
+                            put("text", v.text)
+                            put("audio", v.audioUrl ?: "")
+                            put("tafsir", v.tafsir)
+                        })
                     }
-                    val surah3 = "%03d".format(surahNumber)
-                    val ayah3 = "%03d".format(num)
-                    val audioUrl = "https://everyayah.com/data/Al_Afasy_128kbps/${surah3}${ayah3}.mp3"
-                    verses.add(Verse(num, txt, audioUrl))
-                }
+                    surahDataStore.edit { it[cacheKey] = arr.toString() }
+                } catch (_: Exception) { }
                 return@withContext verses
             }
         } catch (e: Exception) {
-            System.err.println("quran.com fallback failed for surah $surahNumber: ${e.message}")
+            System.err.println("alquran fetch failed for surah $surahNumber: ${e.message}")
         }
-
-        System.err.println("Both sources failed for surah $surahNumber")
         null
     }
     suspend fun autoDetectLocation(): PalestinianCity? = withContext(Dispatchers.IO) {
