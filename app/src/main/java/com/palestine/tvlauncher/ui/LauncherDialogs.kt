@@ -1904,6 +1904,13 @@ fun AppBarSection(
             SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
         }
     }
+    SettingsCategoryBox("شبكة تطبيقات الجهاز") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("إظهار الشبكة السفلية", config.showDeviceGrid) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_DEVICE_GRID] = !config.showDeviceGrid } }
+            }
+        }
+    }
 }
 
 @Composable

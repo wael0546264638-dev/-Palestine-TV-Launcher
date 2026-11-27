@@ -33,6 +33,14 @@ private fun tabOrderFromRaw(raw: String?): List<String> {
     else raw.split("::").filter { it.isNotBlank() && it in valid }
 }
 
+private fun appCustomNamesFromRaw(raw: String?): Map<String, String> {
+    return if (raw?.isBlank() == true) emptyMap()
+    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+        val parts = item.split("::", limit = 2)
+        if (parts.size == 2) parts[0] to parts[1] else null
+    }.toMap()
+}
+
 data class LauncherConfig(
     val customCardAllTabs: Boolean = false,
     val cityName: String = "أريحا (الزبيدات)",
@@ -68,6 +76,10 @@ data class LauncherConfig(
     val showTopScreensaver: Boolean = true,
     val showTopVpn: Boolean = true,
     val showBottomBar: Boolean = true,
+    val showDeviceGrid: Boolean = true,
+    val appCustomNames: Map<String, String> = emptyMap(),
+    val favoriteApps: Set<String> = emptySet(),
+    val appOrder: List<String> = emptyList(),
     val autoRotateTabs: Boolean = false,
     val cardFlipMode: Int = 0,
     val clockOffsetX: Float = 0f,
@@ -190,6 +202,10 @@ class LauncherPreferences(private val context: Context) {
         val SHOW_SS = booleanPreferencesKey("show_ss")
         val SHOW_VPN = booleanPreferencesKey("show_vpn")
         val SHOW_BOTTOM = booleanPreferencesKey("show_bottom")
+        val SHOW_DEVICE_GRID = booleanPreferencesKey("show_device_grid")
+        val APP_CUSTOM_NAMES = stringPreferencesKey("app_custom_names")
+        val FAVORITE_APPS_RAW = stringPreferencesKey("favorite_apps_raw")
+        val APP_ORDER_RAW = stringPreferencesKey("app_order_raw")
         val AUTO_ROTATE = booleanPreferencesKey("auto_rotate")
         val CARD_FLIP_MODE = intPreferencesKey("card_flip_mode")
         val TICKER_PAIRS = stringSetPreferencesKey("ticker_pairs")
@@ -305,6 +321,10 @@ class LauncherPreferences(private val context: Context) {
             showTopScreensaver = p[SHOW_SS] ?: true,
             showTopVpn = p[SHOW_VPN] ?: true,
             showBottomBar = p[SHOW_BOTTOM] ?: true,
+            showDeviceGrid = p[SHOW_DEVICE_GRID] ?: true,
+            appCustomNames = appCustomNamesFromRaw(p[APP_CUSTOM_NAMES]),
+            favoriteApps = p[FAVORITE_APPS_RAW]?.split("||")?.filter { it.isNotBlank() }?.toSet() ?: emptySet(),
+            appOrder = p[APP_ORDER_RAW]?.split("||")?.filter { it.isNotBlank() } ?: emptyList(),
             autoRotateTabs = p[AUTO_ROTATE] ?: false,
             cardFlipMode = p[CARD_FLIP_MODE] ?: 0,
             activeTickerPairs = p[TICKER_PAIRS] ?: setOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD"),
@@ -411,5 +431,21 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun saveLiveWallpaperCategory(category: String) {
         context.dataStore.edit { it[LIVE_WALLPAPER_CATEGORY] = category }
+    }
+
+    suspend fun saveAppCustomNames(names: Map<String, String>) {
+        context.dataStore.edit { it[APP_CUSTOM_NAMES] = names.joinToString("||") { (k, v) -> "$k::$v" } }
+    }
+
+    suspend fun toggleFavoriteApp(packageName: String, add: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = (prefs[FAVORITE_APPS_RAW] ?: "").split("||").filter { it.isNotBlank() }.toMutableList()
+            if (add) current += packageName else current -= packageName
+            prefs[FAVORITE_APPS_RAW] = current.joinToString("||")
+        }
+    }
+
+    suspend fun saveAppOrder(order: List<String>) {
+        context.dataStore.edit { it[APP_ORDER_RAW] = order.joinToString("||") }
     }
 }

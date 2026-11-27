@@ -178,6 +178,8 @@ fun LauncherScreen() {
 
     val config by prefs.configFlow.collectAsState(initial = LauncherConfig())
     var installedApps by remember { mutableStateOf<List<TvAppInfo>>(emptyList()) }
+    val effectiveOrder = if (config.appOrder.isNotEmpty()) config.appOrder else installedApps.map { it.packageName }
+    val orderedApps = installedApps.sortedBy { effectiveOrder.indexOf(it.packageName) }
     var liveFeed by remember { mutableStateOf(LiveFeedState()) }
     var prayerInfo by remember { mutableStateOf(PalestineData.PrayerDisplay()) }
     var updateInfo by remember { mutableStateOf<GitHubUpdateInfo?>(null) }
@@ -196,6 +198,8 @@ fun LauncherScreen() {
     var showQuranDialog by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
     var tabCardExpanded by remember { mutableStateOf(false) }
+    var showAppMenu by remember { mutableStateOf(false) }
+    var menuApp by remember { mutableStateOf<TvAppInfo?>(null) }
 
     // تذكير الأذان المرئي قبل الوقت
     var showAdhanReminder by remember { mutableStateOf(false) }
@@ -734,14 +738,25 @@ val mediaPlayer = remember { MediaPlayer() }
                 }
 
                 AppDockRow(
-                    apps = installedApps,
+                    apps = orderedApps,
                     config = config,
                     modifier = Modifier.graphicsLayer {
                         translationX = config.dockOffsetX
                         translationY = config.dockOffsetY
                     },
-                    onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} }
-          )
+                    onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} },
+                    onLongPress = { app -> menuApp = app; showAppMenu = true }
+                )
+
+                if (config.showDeviceGrid && installedApps.isNotEmpty()) {
+                    DeviceAppsGrid(
+                        apps = orderedApps,
+                        config = config,
+                        onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} },
+                        onLongPress = { app -> menuApp = app; showAppMenu = true }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -819,6 +834,19 @@ val mediaPlayer = remember { MediaPlayer() }
                 dismissButton = { TextButton(onClick = { showUpdateDialog = false }) { Text("لاحقاً") } },
                 title = { Text("تحديث جديد متاح (${updateInfo!!.latestVersion})") },
                 text = { Text(updateInfo!!.releaseNotes) }
+            )
+        }
+
+        if (showAppMenu && menuApp != null) {
+            AppLongPressMenu(
+                app = menuApp!!,
+                config = config,
+                prefs = prefs,
+                scope = scope,
+                favoriteApps = config.favoriteApps,
+                currentOrder = effectiveOrder,
+                onDismiss = { showAppMenu = false; menuApp = null },
+                onOrderChanged = { newOrder -> scope.launch { prefs.saveAppOrder(newOrder) } }
             )
         }
     }
