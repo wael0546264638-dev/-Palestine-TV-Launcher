@@ -2,6 +2,7 @@ package com.palestine.tvlauncher.network
 
 import android.content.Context
 import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
@@ -267,6 +268,7 @@ object LiveRepository {
     private val radiosDataStore by lazy { preferencesDataStore(name = "quran_radios_prefs") }
 private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_prefs") }
 private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs") }
+private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_wallpapers_lib_prefs") }
 
     suspend fun fetchQuranRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
         val cached = getCachedRadios()
@@ -837,7 +839,6 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
         }
     }
 
-    private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_wallpapers_lib_prefs") }
     private const val LIVE_WALLPAPER_CACHE_HOURS = 6
 
     private fun isValidWallpaperUrl(url: String): Boolean =
@@ -903,7 +904,7 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
             val jsonStr = liveWallpapersDataStore.data.map { it[stringPreferencesKey("cached_live_walls_${category.key}")] ?: "" }.first()
             if (jsonStr.isNotBlank()) {
                 val arr = JSONArray(jsonStr)
-                (0 until arr.length()).map { arr.getString(it) }
+                (0 until arr.length()).map { index -> arr.getString(index) }
             } else emptyList()
         } catch (_: Exception) { emptyList() }
     }
