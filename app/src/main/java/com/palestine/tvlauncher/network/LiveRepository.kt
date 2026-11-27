@@ -27,6 +27,8 @@ data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, v
 
 data class QuranRadio(val name: String, val url: String)
 
+data class HadithItem(val id: Int, val text: String, val explanation: String, val benefits: String, val source: String = "")
+
 data class LiveFeedState(
     val currentTemp: String = "26",
     val dailyMax: String = "28",
@@ -40,6 +42,15 @@ data class LiveFeedState(
         "EUR/ILS" to ("3.95" to false),
         "GOLD" to ("2640$" to true)
     )
+)
+
+data class WeatherHour(val time: String, val temp: String, val precipProb: Int)
+data class WeatherDay(val date: String, val max: String, val min: String, val precipProb: Int)
+data class WeatherDetail(
+    val currentTemp: String,
+    val hourly: List<WeatherHour>,
+    val daily: List<WeatherDay>,
+    val precipitationProbability: Int
 )
 
 data class SurahHeader(val number: Int, val name: String, val ayahCount: Int, val revelationType: String)
@@ -198,8 +209,29 @@ object LiveRepository {
     private const val CACHED_RADIOS_TIMESTAMP_KEY = "cached_quran_radios_timestamp"
     private const val CACHE_VALIDITY_HOURS = 24
 
+    private const val HADEETH_ENC_API = "https://hadeethenc.com/api/v1/hadith"
+    private const val HADEETH_ENC_PAGE = "https://hadeethenc.com"
+    private const val CACHED_HADITH_KEY = "cached_hadith"
+    private const val CACHED_HADITH_ID_KEY = "cached_hadith_id"
+    private const val CACHED_HADITH_TIMESTAMP_KEY = "cached_hadith_timestamp"
+    private const val HADITH_CACHE_HOURS = 24
+
+    private val embeddedHadiths = listOf(
+        HadithItem(1, "قال رسول الله ﷺ: «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»", "فضل تعليم القرآن وتعلمه.", "أفضل الأعمال تعليم كتاب الله وتعليمه للناس.", "صحيح البخاري"),
+        HadithItem(2, "قال رسول الله ﷺ: «إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى»", "الأعمال مبنية على النيات.", "نية العامل تحدد قبول عمله عند الله تعالى.", "صحيح البخاري"),
+        HadithItem(3, "قال رسول الله ﷺ: «الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ»", "الكلمة الطيبة صدقة.", "محاسن الأخلاق والكلام الطيب عبادة يتقرب بها إلى الله.", "متفق عليه"),
+        HadithItem(4, "قال رسول الله ﷺ: «لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ»", "حب الخير للغير شرط في الإيمان.", "الأخوة الإسلامية والتعاطف بين المسلمين.", "متفق عليه"),
+        HadithItem(5, "قال رسول الله ﷺ: «اطْعَمُوا الطَّعَامَ، وَأَفْشُوا السَّلَامَ، وَصِلُوا الْأَرْحَامَ، وَصَلُّوا بِاللَّيْلِ وَالنَّاسُ نِيَامٌ، تَدْخُلُوا الْجَنَّةَ بِسَلَامٍ»", "إطعام الطعام وإفشاء السلام وصلة الرحم.", "أعمال البر التي تؤدي إلى دخول الجنة بالسلام.", "مسند الإمام أحمد"),
+        HadithItem(6, "قال رسول الله ﷺ: «مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الْآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ»", "قول الخير أو السكوت.", "حفظ اللسان وسداد القول من علامات الإيمان.", "متفق عليه"),
+        HadithItem(7, "قال رسول الله ﷺ: «الدِّينُ النَّصِيحَةُ»", "الدين النصيحة لله ورسوله ولأئمة المسلمين وعامتهم.", "النصيحة قلب الدين وأساس صلاح الأمة.", "صحيح مسلم"),
+        HadithItem(8, "قال رسول الله ﷺ: «مَنْ كَفَّ شَرَّهُ عَنْ النَّاسِ فَهِيَ صَدَقَةٌ مِنْهُ عَلَى نَفْسِهِ»", "كف الأذى عن الناس صدقة.", "الكف عن الأذى صدقة يتقرب بها العبد إلى ربه.", "متفق عليه"),
+        HadithItem(9, "قال رسول الله ﷺ: «كُلُّ مَعْرُوفٍ صَدَقَةٌ»", "كل عمل معروف صدقة.", "كل عمل خير يقدمه المسلم يعتبر صدقة.", "متفق عليه"),
+        HadithItem(10, "قال رسول الله ﷺ: «اطْلُبُوا الْعِلْمَ مِنَ الْمَهْدِ إِلَى اللَّحْدِ»", "طلب العلم فريضة على كل مسلم.", "طلب العلم من المهد إلى اللذة طريق للنجاة والفلاح.", "مستدرك الحاكم")
+    )
+
     private val radiosDataStore by lazy { preferencesDataStore(name = "quran_radios_prefs") }
 private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_prefs") }
+private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs") }
 
     suspend fun fetchQuranRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
         val cached = getCachedRadios()
@@ -299,6 +331,92 @@ private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_pr
         QuranRadio("الشيخ مشاري العفاسي", "https://qurango.net/radio/afasy.mp3"),
         QuranRadio("الشيخ ياسر الدوسري", "https://qurango.net/radio/dosari.mp3")
     )
+
+    private suspend fun getCachedHadith(): HadithItem? = withContext(Dispatchers.IO) {
+        try {
+            val jsonStr = hadithDataStore.data.map { it[stringPreferencesKey(CACHED_HADITH_KEY)] ?: "" }.first()
+            val id = hadithDataStore.data.map { it[longPreferencesKey(CACHED_HADITH_ID_KEY)] ?: 0L }.first().toInt()
+            if (jsonStr.isNotBlank()) {
+                val obj = JSONObject(jsonStr)
+                return@withContext HadithItem(
+                    id,
+                    obj.optString("text"),
+                    obj.optString("explanation"),
+                    obj.optString("benefits"),
+                    obj.optString("source")
+                )
+            }
+        } catch (_: Exception) { }
+        null
+    }
+
+    private suspend fun isHadithCacheValid(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val timestamp = hadithDataStore.data.map { it[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] ?: 0L }.first()
+            val now = System.currentTimeMillis()
+            (now - timestamp) < (HADITH_CACHE_HOURS * 60 * 60 * 1000L)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun cacheHadith(hadith: HadithItem) = withContext(Dispatchers.IO) {
+        try {
+            hadithDataStore.edit {
+                it[stringPreferencesKey(CACHED_HADITH_KEY)] = JSONObject().apply {
+                    put("text", hadith.text)
+                    put("explanation", hadith.explanation)
+                    put("benefits", hadith.benefits)
+                    put("source", hadith.source)
+                }.toString()
+                it[longPreferencesKey(CACHED_HADITH_ID_KEY)] = hadith.id.toLong()
+                it[longPreferencesKey(CACHED_HADITH_TIMESTAMP_KEY)] = System.currentTimeMillis()
+            }
+        } catch (e: Exception) {
+            System.err.println("Failed to cache hadith: ${e.message}")
+        }
+    }
+
+    suspend fun fetchTodaysHadith(context: Context): HadithItem = withContext(Dispatchers.IO) {
+        val todayId = Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % embeddedHadiths.size + 1
+        if (isHadithCacheValid()) {
+            getCachedHadith()?.let { if (it.id == todayId) return@withContext it }
+        }
+        val fetched = tryFetchHadith(todayId) ?: embeddedHadiths.firstOrNull { it.id == todayId } ?: embeddedHadiths.first()
+        try { cacheHadith(fetched) } catch (_: Exception) { }
+        fetched
+    }
+
+    private suspend fun tryFetchHadith(id: Int): HadithItem? = withContext(Dispatchers.IO) {
+        val urls = listOf("$HADEETH_ENC_API/$id", "$HADEETH_ENC_PAGE/$id")
+        for (url in urls) {
+            val raw = httpGet(url) ?: continue
+            try {
+                val obj = JSONObject(raw)
+                val text = obj.optString("hadith_arabic")
+                    .ifBlank { obj.optString("arabic") }
+                    .ifBlank { obj.optString("text") }
+                    .ifBlank { obj.optString("hadith") }
+                    .ifBlank { obj.optString("content") }
+                val explanation = obj.optString("explanation")
+                    .ifBlank { obj.optString("sharh") }
+                    .ifBlank { obj.optString("tafsir") }
+                    .ifBlank { obj.optString("description") }
+                val benefits = obj.optString("benefits")
+                    .ifBlank { obj.optString("fawaid") }
+                    .ifBlank { obj.optString("reasons") }
+                    .ifBlank { obj.optString("lessons") }
+                val source = obj.optString("source")
+                    .ifBlank { obj.optString("reference") }
+                    .ifBlank { obj.optString("book") }
+                    .ifBlank { obj.optString("collector") }
+                if (text.isNotBlank()) {
+                    return@withContext HadithItem(id, text, explanation, benefits, source)
+                }
+            } catch (_: Exception) { continue }
+        }
+        null
+    }
 
     private var cachedSurahList: List<SurahHeader>? = null
     private val cachedSurahTexts = mutableMapOf<Int, FullSurahContent>()
@@ -530,14 +648,70 @@ private val surahDataStore by lazy { preferencesDataStore(name = "quran_surah_pr
     suspend fun fetchCityWeather(lat: Double, lon: Double, timeZoneId: String): Triple<String, String, String>? = withContext(Dispatchers.IO) {
         try {
             val encodedTz = URLEncoder.encode(timeZoneId, "UTF-8")
-            val raw = httpGet("https://open-meteo.com")
+            val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=$encodedTz"
+            val raw = httpGet(url)
                 ?: return@withContext null
             val json = JSONObject(raw)
-            val current = json.getJSONObject("current_weather").getDouble("temperature").toInt().toString()
-            val daily = json.getJSONObject("daily")
-            val max = daily.getJSONArray("temperature_2m_max").getDouble(0).toInt().toString()
-            val min = daily.getJSONArray("temperature_2m_min").getDouble(0).toInt().toString()
-            Triple(current, max, min)
+            val current = json.optJSONObject("current_weather")
+            val currentTemp = current?.optDouble("temperature", 0.0)?.toInt()?.toString() ?: "0"
+            val daily = json.optJSONObject("daily") ?: JSONObject()
+            val max = daily.optJSONArray("temperature_2m_max")?.optDouble(0, 0.0)?.toInt()?.toString() ?: "0"
+            val min = daily.optJSONArray("temperature_2m_min")?.optDouble(0, 0.0)?.toInt()?.toString() ?: "0"
+            Triple(currentTemp, max, min)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun fetchCityWeatherDetailed(lat: Double, lon: Double, timeZoneId: String): WeatherDetail? = withContext(Dispatchers.IO) {
+        try {
+            val encodedTz = URLEncoder.encode(timeZoneId, "UTF-8")
+            val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=$encodedTz"
+            val raw = httpGet(url)
+                ?: return@withContext null
+            val json = JSONObject(raw)
+
+            val current = json.optJSONObject("current_weather")
+            val currentTemp = current?.optDouble("temperature", 0.0)?.toInt()?.toString() ?: "0"
+
+            val hourlyObj = json.optJSONObject("hourly") ?: JSONObject()
+            val hourlyTimes = hourlyObj.optJSONArray("time") ?: JSONArray()
+            val hourlyTemps = hourlyObj.optJSONArray("temperature_2m") ?: JSONArray()
+            val hourlyProbs = hourlyObj.optJSONArray("precipitation_probability") ?: JSONArray()
+            val hourly = mutableListOf<WeatherHour>()
+            val limit = hourlyTimes.length().coerceAtMost(hourlyTemps.length()).coerceAtMost(hourlyProbs.length())
+            for (i in 0 until limit) {
+                hourly.add(
+                    WeatherHour(
+                        hourlyTimes.optString(i),
+                        hourlyTemps.optDouble(i, 0.0).toInt().toString(),
+                        hourlyProbs.optInt(i, 0)
+                    )
+                )
+            }
+
+            val dailyObj = json.optJSONObject("daily") ?: JSONObject()
+            val dailyDates = dailyObj.optJSONArray("time") ?: JSONArray()
+            val dailyMaxs = dailyObj.optJSONArray("temperature_2m_max") ?: JSONArray()
+            val dailyMins = dailyObj.optJSONArray("temperature_2m_min") ?: JSONArray()
+            val dailyProbs = dailyObj.optJSONArray("precipitation_probability_max") ?: JSONArray()
+            val daily = mutableListOf<WeatherDay>()
+            val dLimit = dailyDates.length().coerceAtMost(dailyMaxs.length()).coerceAtMost(dailyMins.length()).coerceAtMost(dailyProbs.length())
+            for (i in 0 until dLimit) {
+                daily.add(
+                    WeatherDay(
+                        dailyDates.optString(i),
+                        dailyMaxs.optDouble(i, 0.0).toInt().toString(),
+                        dailyMins.optDouble(i, 0.0).toInt().toString(),
+                        dailyProbs.optInt(i, 0)
+                    )
+                )
+            }
+
+            val precipProb = current?.optInt("precipitation_probability", 0)
+                ?: dailyProbs.optInt(0, 0)
+
+            WeatherDetail(currentTemp, hourly, daily, precipProb)
         } catch (_: Exception) {
             null
         }
