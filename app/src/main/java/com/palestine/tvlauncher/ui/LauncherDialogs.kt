@@ -1388,8 +1388,29 @@ item {
                                }
                            }
 
-                           item {
-                               SettingsCategoryBox("التركيز والتكبير والوهج") {
+item {
+                                SettingsCategoryBox("إدارة مصادر الأخبار والرياضة") {
+                                    val selectedCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "Palestine"
+                                    val allSources = (LiveRepository.countryNewsSources[selectedCountry] ?: emptyList()) + LiveRepository.worldNewsSources + LiveRepository.techNewsSources
+                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(allSources) { source ->
+                                            val enabled = source.id !in config.disabledNewsSources
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("${source.name}  •  ${source.country}", color = Color.White, fontSize = 14.sp)
+                                                SettingOptionPill(if (enabled) "تشغيل" else "إيقاف", enabled) {
+                                                    scope.launch { prefs.toggleNewsSource(source.id, !enabled) }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            item {
                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                        SettingOptionPill("تكبير عند التركيز", config.focusScaleEnabled) {
                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_SCALE_ENABLED] = !config.focusScaleEnabled } }
