@@ -622,7 +622,6 @@ val mediaPlayer = remember { MediaPlayer() }
                     isWifiConnected = isWifiConnected,
                     isQuranPlaying = isQuranPlaying,
                     isQuranBuffering = isQuranBuffering,
-                    isVpnActive = isVpnActive,
                     updateInfo = updateInfo,
                     onOpenWifi = { try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) } catch (_: Exception) {} },
                     onToggleQuran = {
@@ -636,32 +635,9 @@ val mediaPlayer = remember { MediaPlayer() }
                     },
                     onOpenQuranBook = { showQuranDialog = true },
                     onOpenScreensaver = { isScreensaverMode = true },
-                    onOpenVpn = { try { context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) } catch (_: Exception) {} },
                     onOpenSettings = { showSettingsDrawer = true },
                     onTriggerUpdate = { showUpdateDialog = true }
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PillActionButton(
-                        label = "المهام",
-                        icon = Icons.Default.CheckCircle,
-                        onClick = { tabCardExpanded = true }
-                    )
-                    PillActionButton(
-                        label = "التذكيرات",
-                        icon = Icons.Default.EventNote,
-                        onClick = { tabCardExpanded = true }
-                    )
-                    PillActionButton(
-                        label = "البطاقة الشاملة",
-                        icon = Icons.Default.ViewCompact,
-                        onClick = { tabCardExpanded = !tabCardExpanded }
-                    )
-                }
 
                 if (config.showBottomBar && config.tickerBarPosition == 1) {
                     BottomTickerBar(config = config, prayerInfo = prayerInfo, liveFeed = liveFeed)

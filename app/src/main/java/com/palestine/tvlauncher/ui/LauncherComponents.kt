@@ -42,13 +42,11 @@ fun TopControlBar(
     isWifiConnected: Boolean,
     isQuranPlaying: Boolean,
     isQuranBuffering: Boolean,
-    isVpnActive: Boolean,
     updateInfo: GitHubUpdateInfo?,
     onOpenWifi: () -> Unit,
     onToggleQuran: () -> Unit,
     onOpenQuranBook: () -> Unit,
     onOpenScreensaver: () -> Unit,
-    onOpenVpn: () -> Unit,
     onOpenSettings: () -> Unit,
     onTriggerUpdate: () -> Unit
 ) {
@@ -61,60 +59,45 @@ fun TopControlBar(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (config.showTopWifi) {
+            var toolsExpanded by remember { mutableStateOf(false) }
+            Box {
                 TopPillButton(
-                    icon = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
-                    label = if (isWifiConnected) "متصل" else "غير متصل",
-                    activeColor = if (isWifiConnected) Color(0xFF34D399) else Color(0xFFF87171),
-                    isHighlighted = isWifiConnected,
-                    onClick = onOpenWifi
-                )
-            }
-            if (config.showTopQuranRadio) {
-                val radioLabel = when {
-                    isQuranBuffering -> "جاري الاتصال..."
-                    isQuranPlaying -> "إذاعة القرآن (يعمل)"
-                    else -> "إذاعة القرآن"
-                }
-                val radioColor = when {
-                    isQuranBuffering -> Color(0xFFFBBF24)
-                    isQuranPlaying -> Color(0xFF10B981)
-                    else -> Color.White
-                }
-                TopPillButton(
-                    icon = if (isQuranPlaying) Icons.Default.GraphicEq else Icons.Default.Radio,
-                    label = radioLabel,
-                    activeColor = radioColor,
-                    isHighlighted = isQuranPlaying || isQuranBuffering,
-                    onClick = onToggleQuran
-                )
-            }
-            if (config.showTopQuranBook) {
-                TopPillButton(
-                    icon = Icons.Default.MenuBook,
-                    label = "المصحف الشريف",
-                    activeColor = Color(0xFFFBBF24),
-                    isHighlighted = false,
-                    onClick = onOpenQuranBook
-                )
-            }
-            if (config.showTopScreensaver) {
-                TopPillButton(
-                    icon = Icons.Default.Bedtime,
-                    label = "شاشة التوقف",
+                    icon = Icons.Default.Apps,
+                    label = "الأدوات",
                     activeColor = Color(0xFF38BDF8),
                     isHighlighted = false,
-                    onClick = onOpenScreensaver
+                    onClick = { toolsExpanded = true }
                 )
-            }
-            if (config.showTopVpn) {
-                TopPillButton(
-                    icon = Icons.Default.VpnLock,
-                    label = if (isVpnActive) "VPN نشط" else "VPN",
-                    activeColor = if (isVpnActive) Color(0xFF38BDF8) else Color(0xFFCBD5E1),
-                    isHighlighted = isVpnActive,
-                    onClick = onOpenVpn
-                )
+                DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
+                    if (config.showTopWifi) {
+                        DropdownMenuItem(
+                            text = { Text(if (isWifiConnected) "متصل" else "غير متصل") },
+                            leadingIcon = { Icon(if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff, contentDescription = null) },
+                            onClick = { toolsExpanded = false; onOpenWifi() }
+                        )
+                    }
+                    if (config.showTopQuranRadio) {
+                        DropdownMenuItem(
+                            text = { Text(when { isQuranBuffering -> "جاري الاتصال..."; isQuranPlaying -> "إذاعة القرآن (يعمل)"; else -> "إذاعة القرآن" }) },
+                            leadingIcon = { Icon(if (isQuranPlaying) Icons.Default.GraphicEq else Icons.Default.Radio, contentDescription = null) },
+                            onClick = { toolsExpanded = false; onToggleQuran() }
+                        )
+                    }
+                    if (config.showTopQuranBook) {
+                        DropdownMenuItem(
+                            text = { Text("المصحف الشريف") },
+                            leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
+                            onClick = { toolsExpanded = false; onOpenQuranBook() }
+                        )
+                    }
+                    if (config.showTopScreensaver) {
+                        DropdownMenuItem(
+                            text = { Text("شاشة التوقف") },
+                            leadingIcon = { Icon(Icons.Default.Bedtime, contentDescription = null) },
+                            onClick = { toolsExpanded = false; onOpenScreensaver() }
+                        )
+                    }
+                }
             }
             if (updateInfo?.hasUpdate == true) {
                 TopPillButton(
