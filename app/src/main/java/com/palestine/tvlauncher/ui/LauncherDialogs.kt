@@ -1,5 +1,6 @@
 package com.palestine.tvlauncher.ui
 import com.palestine.tvlauncher.data.quranRadioStations
+import com.palestine.tvlauncher.network.LiveRepository.QuranRadio
 import com.palestine.tvlauncher.network.*
 
 import android.app.ActivityManager
@@ -899,8 +900,20 @@ fun SettingsModalDrawer(
     var locationStatus by remember { mutableStateOf("الموقع الحالي: ${config.cityName}") }
     val allPairs = listOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD")
     val closeFocus = remember { FocusRequester() }
+    var quranRadios by remember { mutableStateOf<List<QuranRadio>>(emptyList()) }
+    var isLoadingRadios by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { closeFocus.requestFocus() }
+    LaunchedEffect(Unit) {
+        closeFocus.requestFocus()
+        if (quranRadios.isEmpty() && !isLoadingRadios) {
+            isLoadingRadios = true
+            scope.launch {
+                val radios = LiveRepository.fetchQuranRadios(context)
+                quranRadios = radios
+                isLoadingRadios = false
+            }
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1094,11 +1107,30 @@ fun SettingsModalDrawer(
                                         }
                                     }
                                 }
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(quranRadioStations) { (title, urls) ->
-                                        val primaryUrl = urls.first()
-                                        SettingOptionPill(title, config.quranStreamUrl == primaryUrl) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = primaryUrl } }
+                                if (isLoadingRadios) {
+                                    Text("جاري تحميل قائمة الإذاعات...", color = Color(0xFFFBBF24), fontSize = 13.sp)
+                                } else if (quranRadios.isNotEmpty()) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(quranRadios) { radio ->
+                                            SettingOptionPill(radio.name, config.quranStreamUrl == radio.url) {
+                                                scope.launch {
+                                                    prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = radio.url }
+                                                    prefs.saveLastQuranRadioUrl(radio.url)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Text("تعذر تحميل الإذاعات، يتم استخدام القائمة الافتراضية", color = Color(0xFFF87171), fontSize = 13.sp)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(quranRadioStations) { (title, urls) ->
+                                            val primaryUrl = urls.first()
+                                            SettingOptionPill(title, config.quranStreamUrl == primaryUrl) {
+                                                scope.launch {
+                                                    prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = primaryUrl }
+                                                    prefs.saveLastQuranRadioUrl(primaryUrl)
+                                                }
+                                            }
                                         }
                                     }
                                 }

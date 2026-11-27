@@ -18,6 +18,7 @@ data class LauncherConfig(
     val dateDisplayMode: Int = 0,
     val quranPlayMode: Int = 0,
     val quranStreamUrl: String = "https://stream.radiojar.com/8s5u5tpdtwzuv",
+    val lastSelectedQuranRadioUrl: String = "",
     val quranScheduleStartHour: Int = 6,
     val quranScheduleEndHour: Int = 9,
     val wallpaperIndex: Int = 0,
@@ -52,16 +53,16 @@ data class LauncherConfig(
 
     // Adhan settings
     val adhanEnabled: Boolean = true,
-    val adhanVolume: Int = 70, // 10-100
-    val adhanMuadhinId: String = "makkah_alimla", // makkah_alimla, madinah_osamabakhri, abdulbasit, afasy, alaqsa
-    val adhanLengthMode: Int = 0, // 0 = full, 1 = short (15s)
-    val adhanReminderMinutes: Int = 5, // 0 = off, 5, 10, 15, 20
-    val adhanPlayFajrOnly: Boolean = false, // if true, only play Fajr adhan
+    val adhanVolume: Int = 70,
+    val adhanMuadhinId: String = "makkah_alimla",
+    val adhanLengthMode: Int = 0,
+    val adhanReminderMinutes: Int = 5,
+    val adhanPlayFajrOnly: Boolean = false,
 
     // Ticker bar customization
-    val tickerBarPosition: Int = 0, // 0 = bottom, 1 = top
-    val tickerBarHeight: Int = 56, // dp
-    val tickerBarFontSize: Int = 13, // sp
+    val tickerBarPosition: Int = 0,
+    val tickerBarHeight: Int = 56,
+    val tickerBarFontSize: Int = 13,
     val tickerBarOpacity: Float = 0.65f,
     val tickerShowNextPrayer: Boolean = true,
     val tickerShowRamadan: Boolean = true,
@@ -87,7 +88,7 @@ data class LauncherConfig(
     // Background live wallpapers
     val liveWallpaperEnabled: Boolean = false,
     val liveWallpaperIntervalMinutes: Int = 10,
-    val liveWallpaperSource: Int = 0, // 0 = curated, 1 = unsplash, 2 = device images
+    val liveWallpaperSource: Int = 0,
     val liveWallpaperType: String = "none",
 
     // Favorite team
@@ -122,6 +123,7 @@ class LauncherPreferences(private val context: Context) {
         val DATE_MODE = intPreferencesKey("date_mode")
         val QURAN_PLAY_MODE = intPreferencesKey("quran_play_mode")
         val QURAN_URL = stringPreferencesKey("quran_url")
+        val LAST_QURAN_RADIO_URL = stringPreferencesKey("last_quran_radio_url")
         val QURAN_SCHED_START = intPreferencesKey("quran_sched_start")
         val QURAN_SCHED_END = intPreferencesKey("quran_sched_end")
         val WALLPAPER_IDX = intPreferencesKey("wallpaper_idx")
@@ -221,6 +223,7 @@ class LauncherPreferences(private val context: Context) {
             dateDisplayMode = p[DATE_MODE] ?: 0,
             quranPlayMode = p[QURAN_PLAY_MODE] ?: 0,
             quranStreamUrl = p[QURAN_URL] ?: "https://stream.radiojar.com/8s5u5tpdtwzuv",
+            lastSelectedQuranRadioUrl = p[LAST_QURAN_RADIO_URL] ?: "",
             quranScheduleStartHour = p[QURAN_SCHED_START] ?: 6,
             quranScheduleEndHour = p[QURAN_SCHED_END] ?: 9,
             wallpaperIndex = p[WALLPAPER_IDX] ?: 0,
@@ -316,5 +319,9 @@ class LauncherPreferences(private val context: Context) {
         context.dataStore.edit {
             it[REMINDERS_RAW] = reminders.joinToString("||") { r -> "${r.id}::${r.name}::${r.month}::${r.day}" }
         }
+    }
+
+    suspend fun saveLastQuranRadioUrl(url: String) {
+        context.dataStore.edit { it[LAST_QURAN_RADIO_URL] = url }
     }
 }

@@ -1,8 +1,12 @@
 package com.palestine.tvlauncher.network
 
+import android.content.Context
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.PalestinianCity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,6 +24,8 @@ import javax.net.ssl.X509TrustManager
 
 data class MatchItem(val name: String, val status: String)
 data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, val apkDownloadUrl: String, val releaseNotes: String)
+
+data class QuranRadio(val name: String, val url: String)
 
 data class LiveFeedState(
     val currentTemp: String = "26",
@@ -185,6 +191,112 @@ object LiveRepository {
         "الشيخ عبدالباسط عبدالصمد" to "https://qurango.net",
         "الشيخ مشاري العفاسي" to "https://qurango.net",
         "الشيخ ياسر الدوسري" to "https://qurango.net"
+    )
+
+    private const val MP3QURAN_RADIOS_URL = "https://mp3quran.net/api/v3/radios"
+    private const val CACHED_RADIOS_KEY = "cached_quran_radios"
+    private const val CACHED_RADIOS_TIMESTAMP_KEY = "cached_quran_radios_timestamp"
+    private const val CACHE_VALIDITY_HOURS = 24
+
+    private val radiosDataStore by lazy { preferencesDataStore(name = "quran_radios_prefs") }
+
+    suspend fun fetchQuranRadios(context: Context): List<QuranRadio> = withContext(Dispatchers.IO) {
+        val cached = getCachedRadios()
+        if (cached.isNotEmpty() && isCacheValid()) {
+            return@withContext cached
+        }
+
+        val fetched = try {
+            val raw = httpGet(MP3QURAN_RADIOS_URL) ?: emptyList()
+            if (raw.isNotEmpty()) {
+                val json = JSONObject(raw)
+                val radiosArray = json.optJSONArray("radios") ?: json.optJSONArray("data") ?: JSONArray()
+                val result = mutableListOf<QuranRadio>()
+                for (i in 0 until radiosArray.length()) {
+                    val obj = radiosArray.getJSONObject(i)
+                    val name = obj.optString("name").ifBlank { null }
+                        ?: obj.optString("radio_name").ifBlank { null }
+                        ?: obj.optString("title").ifBlank { null }
+                    val url = obj.optString("url").ifBlank { null }
+                        ?: obj.optString("radio_url").ifBlank { null }
+                        ?: obj.optString("stream_url").ifBlank { null }
+                    if (name != null && url != null && url.startsWith("http")) {
+                        result.add(QuranRadio(name, url))
+                    }
+                }
+                if (result.isNotEmpty()) {
+                    cacheRadios(result)
+                    result
+                } else {
+                    getCachedRadios().ifEmpty { getDefaultRadios() }
+                }
+            } else {
+                getCachedRadios().ifEmpty { getDefaultRadios() }
+            }
+        } catch (e: Exception) {
+            System.err.println("Failed to fetch radios from mp3quran.net: ${e.message}")
+            getCachedRadios().ifEmpty { getDefaultRadios() }
+        }
+        fetched
+    }
+
+    private suspend fun getCachedRadios(): List<QuranRadio> = withContext(Dispatchers.IO) {
+        try {
+            val jsonStr = radiosDataStore.data.map { it[stringPreferencesKey(CACHED_RADIOS_KEY)] ?: "" }.first()
+            if (jsonStr.isNotBlank()) {
+                val array = JSONArray(jsonStr)
+                val result = mutableListOf<QuranRadio>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    result.add(QuranRadio(obj.getString("name"), obj.getString("url")))
+                }
+                result
+            } else emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private suspend fun isCacheValid(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val timestamp = radiosDataStore.data.map { it[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] ?: 0L }.first()
+            val now = System.currentTimeMillis()
+            (now - timestamp) < (CACHE_VALIDITY_HOURS * 60 * 60 * 1000L)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun cacheRadios(radios: List<QuranRadio>) = withContext(Dispatchers.IO) {
+        try {
+            val array = JSONArray()
+            for (radio in radios) {
+                array.put(JSONObject().apply {
+                    put("name", radio.name)
+                    put("url", radio.url)
+                })
+            }
+            radiosDataStore.edit {
+                it[stringPreferencesKey(CACHED_RADIOS_KEY)] = array.toString()
+                it[longPreferencesKey(CACHED_RADIOS_TIMESTAMP_KEY)] = System.currentTimeMillis()
+            }
+        } catch (e: Exception) {
+            System.err.println("Failed to cache radios: ${e.message}")
+        }
+    }
+
+    private fun getDefaultRadios(): List<QuranRadio> = listOf(
+        QuranRadio("إذاعة القرآن الكريم - مكة المكرمة", "https://stream.radiojar.com/8s5u5tpdtwzuv"),
+        QuranRadio("إذاعة القرآن الكريم - المدينة المنورة", "https://stream.radiojar.com/medinah"),
+        QuranRadio("إذاعة القرآن الكريم - القاهرة", "https://stream.radiojar.com/8s5u5tpdtwzuv"),
+        QuranRadio("إذاعة القرآن الكريم - نابلس", "https://nablus.radiojar.com/stream"),
+        QuranRadio("إذاعة القرآن الكريم - القدس", "https://quds.radiojar.com/stream"),
+        QuranRadio("إذاعة القرآن الكريم - السعودية (إخبارية)", "https://radio.qurango.net/saudi"),
+        QuranRadio("تراتيل قصيرة خاشعة (mp3quran)", "https://qurango.net/radio/short.mp3"),
+        QuranRadio("الشيخ ماهر المعيقلي (mp3quran)", "https://qurango.net/radio/maher.mp3"),
+        QuranRadio("الشيخ عبدالباسط عبدالصمد", "https://qurango.net/radio/abdulbasit.mp3"),
+        QuranRadio("الشيخ مشاري العفاسي", "https://qurango.net/radio/afasy.mp3"),
+        QuranRadio("الشيخ ياسر الدوسري", "https://qurango.net/radio/dosari.mp3")
     )
 
     private var cachedSurahList: List<SurahHeader>? = null
