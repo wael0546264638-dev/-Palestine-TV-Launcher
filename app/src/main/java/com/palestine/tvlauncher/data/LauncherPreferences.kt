@@ -36,7 +36,7 @@ data class LauncherConfig(
     val showTopVpn: Boolean = true,
     val showBottomBar: Boolean = true,
     val autoRotateTabs: Boolean = false,
-    val activeTickerPairs: Set<String> = setOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD"),
+    val cardFlipMode: Int = 0,
     val clockOffsetX: Float = 0f,
     val clockOffsetY: Float = 0f,
     val clockScale: Float = 1.0f,
@@ -142,6 +142,7 @@ class LauncherPreferences(private val context: Context) {
         val SHOW_VPN = booleanPreferencesKey("show_vpn")
         val SHOW_BOTTOM = booleanPreferencesKey("show_bottom")
         val AUTO_ROTATE = booleanPreferencesKey("auto_rotate")
+        val CARD_FLIP_MODE = intPreferencesKey("card_flip_mode")
         val TICKER_PAIRS = stringSetPreferencesKey("ticker_pairs")
         val CLOCK_X = floatPreferencesKey("clock_x")
         val CLOCK_Y = floatPreferencesKey("clock_y")
@@ -243,6 +244,7 @@ class LauncherPreferences(private val context: Context) {
             showTopVpn = p[SHOW_VPN] ?: true,
             showBottomBar = p[SHOW_BOTTOM] ?: true,
             autoRotateTabs = p[AUTO_ROTATE] ?: false,
+            cardFlipMode = p[CARD_FLIP_MODE] ?: 0,
             activeTickerPairs = p[TICKER_PAIRS] ?: setOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD"),
             clockOffsetX = p[CLOCK_X] ?: 0f,
             clockOffsetY = p[CLOCK_Y] ?: 0f,

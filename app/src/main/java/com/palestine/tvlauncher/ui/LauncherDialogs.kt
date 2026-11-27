@@ -1227,9 +1227,10 @@ fun SettingsModalDrawer(
                                     item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
                                 }
 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("تقليب تلقائي للتبويبات", config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = true } } }
-                                     SettingOptionPill("تقليب يدوي فقط", !config.autoRotateTabs) { scope.launch { prefs.updateConfig { it[LauncherPreferences.AUTO_ROTATE] = false } } }
-                                 }
+                                      SettingOptionPill("تلقائي", config.cardFlipMode == 0) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 0 } } }
+                                      SettingOptionPill("يدوي", config.cardFlipMode == 1) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 1 } } }
+                                      SettingOptionPill("تلقائي (يدوي عند الوقوف)", config.cardFlipMode == 2) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 2 } } }
+                                  }
                                  if (config.autoRotateTabs) {
                                      Text("فاصل التقليب التلقائي (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
                                      val rotateIntervals = listOf(1 to "دقيقة واحدة", 2 to "دقيقتان", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 30 to "٣٠ دقيقة")
