@@ -652,7 +652,8 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                          }
                          item {
                              Spacer(modifier = Modifier.height(32.dp))
-    }
+                         }
+                    }
 
                     Surface(
                         modifier = Modifier.weight(0.72f).fillMaxHeight(),
@@ -811,7 +812,6 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
             }
         }
     }
-}
 }
 @Composable
 fun LiveLayoutEditorOverlay(
