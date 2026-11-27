@@ -72,6 +72,7 @@ data class LauncherConfig(
     val tickerShowPrices: Boolean = true,
     val tickerShowMatches: Boolean = true,
     val tickerElementOrder: List<String> = listOf("prayer", "ramadan", "birthday", "prices", "matches"),
+    val activeTickerPairs: Set<String> = setOf("USD/ILS", "JOD/ILS", "EUR/ILS", "GOLD"),
 
     // Focus effects
     val focusScaleEnabled: Boolean = true,
