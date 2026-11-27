@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -34,6 +37,11 @@ data class GitHubUpdateInfo(val hasUpdate: Boolean, val latestVersion: String, v
 data class QuranRadio(val name: String, val url: String)
 
 data class HadithItem(val id: Int, val text: String, val explanation: String, val benefits: String, val source: String = "")
+
+data class NewsArticle(val source: String, val title: String, val link: String, val description: String, val pubDate: String)
+
+data class EspnStanding(val position: Int, val team: String, val played: Int, val won: Int, val drawn: Int, val lost: Int, val points: Int, val league: String)
+data class EspnMatch(val league: String, val homeTeam: String, val awayTeam: String, val homeScore: String?, val awayScore: String?, val status: String, val utcDate: String?)
 
 data class LiveFeedState(
     val currentTemp: String = "26",
@@ -797,6 +805,127 @@ try {
         } catch (_: Exception) {
             LiveFeedState()
         }
+    }
+
+    suspend fun fetchNewsArticles(source: NewsSource): List<NewsArticle> = withContext(Dispatchers.IO) {
+        val raw = httpGet(source.url) ?: return@withContext emptyList()
+        val articles = mutableListOf<NewsArticle>()
+        try {
+            val factory = XmlPullParserFactory.newInstance()
+            val parser = factory.newPullParser()
+            parser.setInput(StringReader(raw))
+            var title = ""
+            var link = ""
+            var description = ""
+            var pubDate = ""
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.TEXT -> {
+                        val text = parser.text ?: ""
+                        when (parser.name) {
+                            "title" -> title = text
+                            "link" -> link = text
+                            "description", "content:encoded" -> description = text
+                            "pubDate", "dc:date", "iso:date" -> pubDate = text
+                        }
+                    }
+                    XmlPullParser.END_TAG -> {
+                        if (parser.name == "item") {
+                            articles.add(NewsArticle(source.name, title, link, description, pubDate))
+                            title = ""
+                            link = ""
+                            description = ""
+                            pubDate = ""
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+        } catch (_: Exception) { }
+        return@withContext articles.ifEmpty { emptyList() }
+    }
+
+    suspend fun fetchEspnLeagueTable(league: String = "eng.1"): List<EspnStanding> = withContext(Dispatchers.IO) {
+        val raw = httpGet("https://site.web.api.espn.com/apis/fittwo/v3/sports/soccer/$league/standings") ?: return@withContext emptyList()
+        return@withContext try {
+            val json = JSONObject(raw)
+            val standings = mutableListOf<EspnStanding>()
+            var position = 0
+            val stages = json.optJSONArray("stages") ?: JSONArray()
+            for (i in 0 until stages.length()) {
+                val stage = stages.getJSONObject(i)
+                val tables = stage.optJSONArray("tables") ?: JSONArray()
+                for (j in 0 until tables.length()) {
+                    val table = tables.getJSONObject(j)
+                    val entries = table.optJSONArray("entries") ?: JSONArray()
+                    for (k in 0 until entries.length()) {
+                        val entry = entries.getJSONObject(k)
+                        position++
+                        val team = entry.optJSONObject("team") ?: JSONObject()
+                        standings.add(EspnStanding(
+                            position,
+                            team.optString("displayName", team.optString("name", "فريق غير معروف")),
+                            entry.optInt("playedGames", 0),
+                            entry.optInt("won", 0),
+                            entry.optInt("drawn", 0),
+                            entry.optInt("lost", 0),
+                            entry.optInt("points", 0),
+                            league
+                        ))
+                    }
+                }
+            }
+            standings
+        } catch (_: Exception) { emptyList() }
+    }
+
+    suspend fun fetchEspnTeamMatches(teamId: String): List<EspnMatch> = withContext(Dispatchers.IO) {
+        if (teamId.isBlank()) return@withContext emptyList()
+        val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+        val raw = httpGet("https://site.web.api.espn.com/apis/fittwo/v3/sports/soccer/eng.1/scoreboard?dates=$today") ?: return@withContext emptyList()
+        return@withContext try {
+            val json = JSONObject(raw)
+            val matches = mutableListOf<EspnMatch>()
+            val events = json.optJSONArray("events") ?: JSONArray()
+            for (i in 0 until events.length()) {
+                val event = events.getJSONObject(i)
+                val comps = event.optJSONArray("competitions") ?: JSONArray()
+                for (j in 0 until comps.length()) {
+                    val comp = comps.getJSONObject(j)
+                    val competitors = comp.optJSONArray("competitors") ?: JSONArray()
+                    var home = ""
+                    var away = ""
+                    var homeScore: String? = null
+                    var awayScore: String? = null
+                    for (k in 0 until competitors.length()) {
+                        val c = competitors.getJSONObject(k)
+                        val team = c.optJSONObject("team") ?: JSONObject()
+                        val name = team.optString("displayName", team.optString("name", ""))
+                        val score = c.optJSONObject("score") ?: JSONObject()
+                        val value = score.optString("value", "")
+                        if (c.optString("homeOrAway") == "home") {
+                            home = name
+                            homeScore = value.ifBlank { null }
+                        } else {
+                            away = name
+                            awayScore = value.ifBlank { null }
+                        }
+                    }
+                    val status = event.optJSONObject("status")?.optJSONObject("type")?.optString("shortDetail", "") ?: ""
+                    matches.add(EspnMatch(
+                        league = "",
+                        homeTeam = home,
+                        awayTeam = away,
+                        homeScore = homeScore,
+                        awayScore = awayScore,
+                        status = status,
+                        utcDate = event.optString("date", null)
+                    ))
+                }
+            }
+            matches
+        } catch (_: Exception) { emptyList() }
     }
 
     suspend fun fetchInstantPrices(): Map<String, Pair<String, Boolean>> = withContext(Dispatchers.IO) {

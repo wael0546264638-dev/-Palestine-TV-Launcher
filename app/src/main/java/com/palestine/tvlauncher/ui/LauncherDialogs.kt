@@ -60,6 +60,7 @@ import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.SurahHeader
 import com.palestine.tvlauncher.network.Verse
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -90,6 +91,42 @@ fun InteractiveTabsCard(
     var cardHasFocus by remember { mutableStateOf(false) }
     val cardFocusRequester = remember { FocusRequester() }
     var textFieldFocused by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    var todaysHadith by remember { mutableStateOf<HadithItem?>(null) }
+    var weatherDetail by remember { mutableStateOf<WeatherDetail?>(null) }
+    var newsArticles by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
+    var espnStandings by remember { mutableStateOf<List<EspnStanding>>(emptyList()) }
+    var espnMatches by remember { mutableStateOf<List<EspnMatch>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            todaysHadith = LiveRepository.fetchTodaysHadith(context)
+        }
+        scope.launch {
+            weatherDetail = LiveRepository.fetchCityWeatherDetailed(config.cityLat, config.cityLon, config.cityTimeZone)
+        }
+        scope.launch {
+            val cityCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "فلسطين"
+            val countryKey = when (cityCountry) {
+                "فلسطين" -> "Palestine"
+                "الأردن" -> "Jordan"
+                "مصر" -> "Egypt"
+                "السعودية" -> "Saudi Arabia"
+                else -> cityCountry
+            }
+            val sources = LiveRepository.sourcesForCountry(countryKey, config.disabledNewsSources)
+            val allArticles = mutableListOf<NewsArticle>()
+            for (source in sources.take(5)) {
+                allArticles.addAll(LiveRepository.fetchNewsArticles(source))
+            }
+            newsArticles = allArticles
+        }
+        scope.launch {
+            espnStandings = LiveRepository.fetchEspnLeagueTable()
+            espnMatches = LiveRepository.fetchEspnTeamMatches(config.favoriteTeamId)
+        }
+    }
 
     LaunchedEffect(expanded) {
         if (expanded) {
@@ -126,17 +163,17 @@ fun InteractiveTabsCard(
                     .focusable()
                     .onPreviewKeyEvent { event ->
                         if (expanded && !textFieldFocused && event.type == KeyEventType.KeyDown) {
-                            when (event.key) {
-                                Key.DirectionRight -> {
-                                    selectedTab = (selectedTab + 1) % tabTitles.size
-                                    true
+                                when (event.key) {
+                                    Key.DirectionLeft -> {
+                                        selectedTab = (selectedTab + 1) % tabTitles.size
+                                        true
+                                    }
+                                    Key.DirectionRight -> {
+                                        selectedTab = (selectedTab - 1 + tabTitles.size) % tabTitles.size
+                                        true
+                                    }
+                                    else -> false
                                 }
-                                Key.DirectionLeft -> {
-                                    selectedTab = (selectedTab - 1 + tabTitles.size) % tabTitles.size
-                                    true
-                                }
-                                else -> false
-                            }
                         } else false
                     }
                 else Modifier
@@ -342,29 +379,84 @@ fun InteractiveTabsCard(
  }
                          }
                      }
-                     1 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                         Text(
-                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
-                             color = Color(0xFF38BDF8),
-                             fontWeight = FontWeight.Bold,
-                             fontSize = 16.sp
-                         )
-                         liveFeed.forecastDays.forEachIndexed { idx, (maxT, minT) ->
-                             Row(
-                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                 horizontalArrangement = Arrangement.SpaceBetween
-                             ) {
-                                 Text(PalestineData.toArabicDigits("اليوم +${idx + 1}"), color = Color.White)
-                                 Text(PalestineData.toArabicDigits("العظمى $maxT° / الصغرى $minT°"), color = Color(0xFFFBBF24))
+                     1 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                         val detail = weatherDetail
+                         if (detail != null) {
+                             Text(
+                                 PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${detail.currentTemp}°"),
+                                 color = Color(0xFF38BDF8),
+                                 fontWeight = FontWeight.Bold,
+                                 fontSize = 16.sp
+                             )
+                             Text(
+                                 PalestineData.toArabicDigits("احتمالية المطر: ${detail.precipitationProbability}%"),
+                                 color = Color(0xFF90CAF9),
+                                 fontSize = 14.sp
+                             )
+                             Spacer(modifier = Modifier.height(8.dp))
+                             Text("توقعات الطقس على مدار الساعات", color = Color(0xFF38BDF8), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 items(detail.hourly.take(12)) { hour ->
+                                     Column(modifier = Modifier.width(70.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                         Text(PalestineData.toArabicDigits(hour.time.substringAfterLast("T").take(5)), color = Color.White, fontSize = 12.sp)
+                                         Text(PalestineData.toArabicDigits("${hour.temp}°"), color = Color(0xFF38BDF8), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                         Text("${hour.precipProb}%", color = Color(0xFF64B5F6), fontSize = 11.sp)
+                                     }
+                                 }
+                             }
+                             Spacer(modifier = Modifier.height(10.dp))
+                             Text("توقعات الأيام القادمة", color = Color(0xFF38BDF8), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                             LazyColumn {
+                                 items(detail.daily) { day ->
+                                     Row(
+                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                         horizontalArrangement = Arrangement.SpaceBetween,
+                                         verticalAlignment = Alignment.CenterVertically
+                                     ) {
+                                         Text(day.date, color = Color.White, fontSize = 14.sp)
+                                         Text(
+                                             PalestineData.toArabicDigits("العظمى ${day.max}° / الصغرى ${day.min}°  •  مطر ${day.precipProb}%"),
+                                             color = Color(0xFFFBBF24),
+                                             fontSize = 14.sp
+                                         )
+                                     }
+                                 }
+                             }
+                         } else {
+                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                 Text("جاري تحميل تفاصيل الطقس من المصدر المباشر...", color = Color(0xFF38BDF8), fontSize = 16.sp)
                              }
                          }
                      }
-                     2 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                         items(liveFeed.matches) { m ->
-                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                 Text(m.name, color = Color.White)
-                                 Text(m.status, color = Color(0xFF34D399))
+                     2 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                         Text("جدول ترتيب الدوري", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                         LazyColumn {
+                             items(espnStandings) { standing ->
+                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                     Text(PalestineData.toArabicDigits("${standing.position}. ${standing.team}"), color = Color.White)
+                                     Text(PalestineData.toArabicDigits("لعب ${standing.played} • رصيد ${standing.points} نقطة"), color = Color(0xFF34D399))
+                                 }
                              }
+                         }
+                         Spacer(modifier = Modifier.height(12.dp))
+                         Text("مباريات ${config.favoriteTeamName.ifBlank { "الفريق المفضل" }}", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                         if (espnMatches.isNotEmpty()) {
+                             LazyColumn {
+                                 items(espnMatches) { match ->
+                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                         Column {
+                                             Text(match.homeTeam, color = Color.White, fontSize = 14.sp)
+                                             Text(match.awayTeam, color = Color(0xFF94A3B8), fontSize = 12.sp)
+                                         }
+                                         Column {
+                                             Text("${match.homeScore ?: "-"} - ${match.awayScore ?: "- "}", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                             Text(match.status, color = Color(0xFF64B5F6), fontSize = 12.sp)
+                                         }
+                                     }
+                                 }
+                             }
+                         } else {
+                             Text("لا توجد مباريات متاحة للفريق في الوقت الحالي", color = Color(0xFF94A3B8), fontSize = 14.sp)
                          }
                      }
                      3 -> Column(
@@ -381,15 +473,48 @@ fun InteractiveTabsCard(
                      4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                          Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
                      }
-                     5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                         Text(PalestineData.dailyHadiths.first(), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
-                     }
+                     5 -> val hadith = todaysHadith
+                         if (hadith != null) {
+                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 Text("حديث اليوم", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                 Text(hadith.text, color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
+                                 Spacer(modifier = Modifier.height(10.dp))
+                                 Text("الشرح: ${hadith.explanation.ifBlank { "غير متوفر" }}", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                                 Text("الفوائد: ${hadith.benefits.ifBlank { "غير متوفرة" }}", color = Color(0xFFE1BEE7), fontSize = 14.sp)
+                                 Spacer(modifier = Modifier.height(6.dp))
+                                 Text("المصدر: ${hadith.source.ifBlank { "مستنبط" }}", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                             }
+                         } else {
+                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                 Text("جاري تحميل حديث اليوم...", color = Color(0xFF38BDF8), fontSize = 16.sp)
+                             }
+                         }
                      6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                          items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
                      }
-                     7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                         items(liveFeed.news) { headline ->
-                             Text("▪ $headline", color = Color.White, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                     7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                         items(newsArticles) { article ->
+                             Surface(
+                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+                                 shape = RoundedCornerShape(12.dp),
+                                 color = Color.White.copy(alpha = 0.06f)
+                             ) {
+                                 Column(modifier = Modifier.padding(14.dp)) {
+                                     Text("${article.source} - ${article.title}", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                     if (article.description.isNotBlank()) {
+                                         Spacer(modifier = Modifier.height(8.dp))
+                                         Text(article.description, color = Color(0xFFCBD5E1), fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                                     }
+                                     Spacer(modifier = Modifier.height(8.dp))
+                                     Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                         Text("المصدر: ${article.source}", color = Color(0xFF38BDF8), fontSize = 11.sp)
+                                         Text(PalestineData.toArabicDigits(article.pubDate.takeIf { it.isNotBlank() } ?: "تاريخ النشر غير محدد"), color = Color(0xFF94A3B8), fontSize = 11.sp)
+                                     }
+                                 }
+                             }
+                         }
+                         if (newsArticles.isEmpty()) {
+                             item { Text("جاري تحميل الأخبار من مصادر الدولة...", color = Color(0xFF94A3B8), fontSize = 14.sp) }
                          }
                      }
                      8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
