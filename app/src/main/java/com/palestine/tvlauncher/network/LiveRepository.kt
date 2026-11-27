@@ -245,15 +245,15 @@ object LiveRepository {
     )
 
     private const val MP3QURAN_RADIOS_URL = "https://mp3quran.net/api/v3/radios"
-    private const val CACHED_RADIOS_KEY = "cached_quran_radios"
-    private const val CACHED_RADIOS_TIMESTAMP_KEY = "cached_quran_radios_timestamp"
+    private const val CACHED_RADIOS_KEY = "cached_quran_radios_v3"
+    private const val CACHED_RADIOS_TIMESTAMP_KEY = "cached_quran_radios_timestamp_v3"
     private const val CACHE_VALIDITY_HOURS = 24
 
     private const val HADEETH_ENC_API = "https://hadeethenc.com/api/v1/hadith"
     private const val HADEETH_ENC_PAGE = "https://hadeethenc.com"
-    private const val CACHED_HADITH_KEY = "cached_hadith"
-    private const val CACHED_HADITH_ID_KEY = "cached_hadith_id"
-    private const val CACHED_HADITH_TIMESTAMP_KEY = "cached_hadith_timestamp"
+    private const val CACHED_HADITH_KEY = "cached_hadith_v3"
+    private const val CACHED_HADITH_ID_KEY = "cached_hadith_id_v3"
+    private const val CACHED_HADITH_TIMESTAMP_KEY = "cached_hadith_timestamp_v3"
     private const val HADITH_CACHE_HOURS = 24
 
     private val embeddedHadiths = listOf(
@@ -536,7 +536,7 @@ try {
     }
 
     suspend fun fetchSurahWithAudio(context: Context, surahNumber: Int): List<Verse>? = withContext(Dispatchers.IO) {
-        val cacheKey = stringPreferencesKey("surah_${surahNumber}")
+        val cacheKey = stringPreferencesKey("surah_${surahNumber}_v3")
         // Offline-first: return cached if present
         try {
             val cachedJson = context.liveDataStore.data.first()[cacheKey] ?: ""
@@ -917,7 +917,7 @@ try {
 
     private suspend fun getCachedLiveWallpapers(context: Context, category: LiveWallpaperCategory): List<String> = withContext(Dispatchers.IO) {
         try {
-            val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey("cached_live_walls_${category.key}")] ?: ""
+            val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey("cached_live_walls_${category.key}_v3")] ?: ""
             if (jsonStr.isNotBlank()) {
                 val arr = JSONArray(jsonStr)
                 (0 until arr.length()).map { index -> arr.getString(index) }
@@ -927,7 +927,7 @@ try {
 
     private suspend fun isLiveWallpaperCacheValid(context: Context, category: LiveWallpaperCategory): Boolean = withContext(Dispatchers.IO) {
         try {
-            val ts = context.liveDataStore.data.first()[longPreferencesKey("cached_live_walls_${category.key}_ts")] ?: 0L
+            val ts = context.liveDataStore.data.first()[longPreferencesKey("cached_live_walls_${category.key}_ts_v3")] ?: 0L
             System.currentTimeMillis() - ts < LIVE_WALLPAPER_CACHE_HOURS * 60 * 60 * 1000L
         } catch (_: Exception) { false }
     }
@@ -937,8 +937,8 @@ try {
             val arr = JSONArray()
             list.forEach { arr.put(it) }
             context.liveDataStore.edit { prefs ->
-                prefs[stringPreferencesKey("cached_live_walls_${category.key}")] = arr.toString()
-                prefs[longPreferencesKey("cached_live_walls_${category.key}_ts")] = System.currentTimeMillis()
+                prefs[stringPreferencesKey("cached_live_walls_${category.key}_v3")] = arr.toString()
+                prefs[longPreferencesKey("cached_live_walls_${category.key}_ts_v3")] = System.currentTimeMillis()
             }
         } catch (_: Exception) { }
     }
