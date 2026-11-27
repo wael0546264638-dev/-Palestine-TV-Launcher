@@ -1,6 +1,6 @@
 package com.palestine.tvlauncher.ui
 import com.palestine.tvlauncher.data.quranRadioStations
-import com.palestine.tvlauncher.network.LiveRepository.QuranRadio
+import com.palestine.tvlauncher.network.QuranRadio
 import com.palestine.tvlauncher.network.*
 
 import android.app.ActivityManager
@@ -652,8 +652,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                          }
                          item {
                              Spacer(modifier = Modifier.height(32.dp))
-                         }
-                     }
+    }
 
                     Surface(
                         modifier = Modifier.weight(0.72f).fillMaxHeight(),
@@ -1557,19 +1556,17 @@ item {
                                }
                            }
 
-                           item {
-                               SettingsCategoryBox("البطاقة المخصصة الشاملة") {
-                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                       SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
-                                       }
-                                       SettingOptionPill("إيقاف", !config.customCardAllTabs) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
-                                       }
-                                   }
-                                   Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
-                               }
-                           }
+                                SettingsCategoryBox("البطاقة المخصصة الشاملة") {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
+                                        }
+                                        SettingOptionPill("إيقاف", !config.customCardAllTabs) {
+                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
+                                        }
+                                    }
+                                    Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                                }
                       }
                 }
             }

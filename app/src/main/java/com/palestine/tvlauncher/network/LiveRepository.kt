@@ -275,7 +275,7 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
         }
 
         val fetched = try {
-            val raw = httpGet(MP3QURAN_RADIOS_URL) ?: emptyList()
+            val raw = httpGet(MP3QURAN_RADIOS_URL) ?: ""
             if (raw.isNotEmpty()) {
                 val json = JSONObject(raw)
                 val radiosArray = json.optJSONArray("radios") ?: json.optJSONArray("data") ?: JSONArray()
