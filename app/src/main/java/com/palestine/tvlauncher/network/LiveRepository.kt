@@ -714,7 +714,6 @@ try {
 
     suspend fun fetchCityWeatherDetailed(lat: Double, lon: Double, timeZoneId: String): WeatherDetail? = withContext(Dispatchers.IO) {
         try {
-            val encodedTz = URLEncoder.encode(timeZoneId, "UTF-8")
             val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
             val raw = httpGet(url)
                 ?: return@withContext null
@@ -901,9 +900,6 @@ try {
     }
 
     suspend fun fetchLiveWallpapers(context: Context, category: LiveWallpaperCategory = LiveWallpaperCategory.ALL): List<String> = withContext(Dispatchers.IO) {
-        val cached = getCachedLiveWallpapers(context, category)
-        if (cached.isNotEmpty() && isLiveWallpaperCacheValid(context, category)) return@withContext cached
-
         val result = mutableListOf<String>()
         if (category == LiveWallpaperCategory.BING || category == LiveWallpaperCategory.ALL) {
             appendBingWallpapers(result)
@@ -916,7 +912,7 @@ try {
         }
         val filtered = result.distinct().shuffled()
         if (filtered.isNotEmpty()) cacheLiveWallpapers(context, category, filtered)
-        filtered.ifEmpty { cached.ifEmpty { emptyList() } }
+        filtered.ifEmpty { emptyList() }
     }
 
     private suspend fun getCachedLiveWallpapers(context: Context, category: LiveWallpaperCategory): List<String> = withContext(Dispatchers.IO) {
