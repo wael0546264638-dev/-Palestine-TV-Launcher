@@ -39,6 +39,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -1053,20 +1057,45 @@ fun SettingsModalDrawer(
                                     }
                                 }
                                 Text(locationStatus, color = Color(0xFFFBBF24), fontSize = 13.sp)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        placeholder = { Text("ابحث عن مدينة أو قرية...", color = Color.Gray) },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true
-                                    )
-                                    SettingOptionPill("بحث", false) {
-                                        if (searchQuery.isNotBlank()) {
-                                            scope.launch { searchResults = LiveRepository.searchLocationByName(searchQuery) }
-                                        }
-                                    }
-                                }
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                     var searchFieldFocused by remember { mutableStateOf(false) }
+                                     val searchFocusRequester = remember { FocusRequester() }
+                                     OutlinedTextField(
+                                         value = searchQuery,
+                                         onValueChange = { searchQuery = it },
+                                         placeholder = { Text("ابحث عن مدينة أو قرية...", color = Color.Gray) },
+                                         modifier = Modifier
+                                             .weight(1f)
+                                             .focusRequester(searchFocusRequester)
+                                             .onFocusChanged { searchFieldFocused = it.isFocused }
+                                             .onPreviewKeyEvent { event ->
+                                                 if (event.type == KeyEventType.KeyDown && !searchFieldFocused) {
+                                                     when (event.key) {
+                                                         Key.DirectionCenter, Key.Enter -> {
+                                                             searchFocusRequester.requestFocus()
+                                                             searchFieldFocused = true
+                                                             true
+                                                         }
+                                                         Key.Back -> {
+                                                             if (searchFieldFocused) {
+                                                                 searchFieldFocused = false
+                                                                 true
+                                                             } else false
+                                                         }
+                                                         else -> false
+                                                     }
+                                                 } else false
+                                             },
+                                         singleLine = true,
+                                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, keyboardType = KeyboardType.Text),
+                                         visualTransformation = VisualTransformation { TextFieldValue(it.text) }
+                                     )
+                                     SettingOptionPill("بحث", false) {
+                                         if (searchQuery.isNotBlank()) {
+                                             scope.launch { searchResults = LiveRepository.searchLocationByName(searchQuery) }
+                                         }
+                                     }
+                                 }
                                 if (searchResults.isNotEmpty()) {
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         items(searchResults) { res ->
@@ -1531,45 +1560,27 @@ item {
                                                     scope.launch { prefs.toggleNewsSource(source.id, !enabled) }
                                                 }
                                             }
-                                        }
-                                    }
-                                }
-                            }
 
-                            item {
-                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                       SettingOptionPill("تكبير عند التركيز", config.focusScaleEnabled) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_SCALE_ENABLED] = !config.focusScaleEnabled } }
+                           item {
+                               SettingsCategoryBox("البطاقة المخصصة الشاملة") {
+                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                       SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
                                        }
-                                       SettingOptionPill("وهج عند التركيز", config.focusGlowEnabled) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_GLOW_ENABLED] = !config.focusGlowEnabled } }
-                                       }
-                                   }
-                                   Text("عامل التكبير:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                   val scaleFactors = listOf(1.05f to "١٫٠٥", 1.10f to "١٫١٠", 1.15f to "١٫١٥", 1.20f to "١٫٢٠")
-                                   LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                       items(scaleFactors) { (factor, label) ->
-                                           SettingOptionPill(label, config.focusScaleFactor == factor) {
-                                               scope.launch { prefs.updateConfig { it[LauncherPreferences.FOCUS_SCALE_FACTOR] = factor } }
-                                           }
+                                       SettingOptionPill("إيقاف", !config.customCardAllTabs) {
+                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
                                        }
                                    }
+                                   Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
                                }
                            }
-
-                                SettingsCategoryBox("البطاقة المخصصة الشاملة") {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
-                                        }
-                                        SettingOptionPill("إيقاف", !config.customCardAllTabs) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
-                                        }
-                                    }
-                                    Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
-                                }
-                      }
-                }
-            }
-        }      
-    }
+                           item {
+                               Spacer(modifier = Modifier.height(40.dp))
+                           }
+                       }
+                   }
+               }
+           }
+       }
+   }
+}
