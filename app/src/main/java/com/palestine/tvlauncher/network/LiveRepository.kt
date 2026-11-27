@@ -372,7 +372,7 @@ object LiveRepository {
     private suspend fun getCachedHadith(context: Context): HadithItem? = withContext(Dispatchers.IO) {
         try {
             val jsonStr = context.liveDataStore.data.first()[stringPreferencesKey(CACHED_HADITH_KEY)] ?: ""
-            val id = context.liveDataStore.data.first()[longPreferencesKey(CACHED_HADITH_ID_KEY)] ?: 0L
+            val id = (context.liveDataStore.data.first()[longPreferencesKey(CACHED_HADITH_ID_KEY)] ?: 0L).toInt()
             if (jsonStr.isNotBlank()) {
                 val obj = JSONObject(jsonStr)
                 return@withContext HadithItem(
