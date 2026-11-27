@@ -248,243 +248,244 @@ fun InteractiveTabsCard(
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (selectedTab) {
                      0 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                         Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                         val rows = listOf(
-                             "الفجر" to prayerInfo.fajr,
-                             "الشروق" to prayerInfo.sunrise,
-                             "الظهر" to prayerInfo.dhuhr,
-                             "العصر" to prayerInfo.asr,
-                             "المغرب" to prayerInfo.maghrib,
-                             "العشاء" to prayerInfo.isha
+                          Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                          val rows = listOf(
+                              "الفجر" to prayerInfo.fajr,
+                              "الشروق" to prayerInfo.sunrise,
+                              "الظهر" to prayerInfo.dhuhr,
+                              "العصر" to prayerInfo.asr,
+                              "المغرب" to prayerInfo.maghrib,
+                              "العشاء" to prayerInfo.isha
+                          )
+ rows.forEach { (name, time) ->
+                               val isNext = prayerInfo.nextPrayerName == name
+                               Row(
+                                   modifier = Modifier
+                                       .fillMaxWidth()
+                                       .clip(RoundedCornerShape(12.dp))
+                                       .then(
+                                           if (isNext) Modifier
+                                               .background(
+                                                   Brush.horizontalGradient(
+                                                       listOf(
+                                                           Color(0xFFFBBF24).copy(alpha = 0.45f),
+                                                           Color(0xFFF59E0B).copy(alpha = 0.25f),
+                                                           Color(0xFFEF4444).copy(alpha = 0.15f)
+                                                       )
+                                                   )
+                                               )
+                                               .border(2.5.dp, Color(0xFFFBBF24), RoundedCornerShape(12.dp))
+                                               .graphicsLayer {
+                                                   shadowElevation = 8.dp.toPx()
+                                                   spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
+                                               }
+                                           else Modifier
+                                       )
+                                       .padding(horizontal = 12.dp, vertical = if (isNext) 8.dp else 5.dp),
+                                   horizontalArrangement = Arrangement.SpaceBetween,
+                                   verticalAlignment = Alignment.CenterVertically
+                               ) {
+                                   Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                       if (isNext) {
+                                           Box(
+                                               modifier = Modifier.size(22.dp),
+                                               contentAlignment = Alignment.Center
+                                           ) {
+                                               Icon(
+                                                   Icons.Default.NotificationsActive,
+                                                   contentDescription = null,
+                                                   tint = Color(0xFFFBBF24),
+                                                   modifier = Modifier
+                                                       .size(18.dp)
+                                                       .graphicsLayer {
+                                                           shadowElevation = 4.dp.toPx()
+                                                           spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.6f)
+                                                       }
+                                               )
+                                           }
+                                       }
+                                       Text(
+                                           name,
+                                           color = if (isNext) Color(0xFFFBBF24) else Color.White,
+                                           fontWeight = if (isNext) FontWeight.Bold else FontWeight.Medium,
+                                           fontSize = if (isNext) 15.sp else 14.sp
+                                       )
+                                       if (isNext) {
+                                           Text(
+                                               "القادمة",
+                                               color = Color(0xFF0F172A),
+                                               fontSize = 11.sp,
+                                               fontWeight = FontWeight.ExtraBold,
+                                               modifier = Modifier
+                                                   .clip(RoundedCornerShape(8.dp))
+                                                   .background(
+                                                       Brush.horizontalGradient(
+                                                           listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+                                                       )
+                                                   )
+                                                   .padding(horizontal = 10.dp, vertical = 2.dp)
+                                                   .graphicsLayer {
+                                                       shadowElevation = 3.dp.toPx()
+                                                       spotShadowColor = Color(0xFFF59E0B).copy(alpha = 0.5f)
+                                                   }
+                                           )
+                                       }
+                                   }
+                                   Text(
+                                       time,
+                                       color = if (isNext) Color(0xFFFBBF24) else Color(0xFFE2E8F0),
+                                       fontWeight = FontWeight.Bold,
+                                       fontSize = if (isNext) 15.sp else 14.sp
+                                   )
+ }
+                         }
+                     }
+                     1 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                         Text(
+                             PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
+                             color = Color(0xFF38BDF8),
+                             fontWeight = FontWeight.Bold,
+                             fontSize = 16.sp
                          )
-rows.forEach { (name, time) ->
-                              val isNext = prayerInfo.nextPrayerName == name
-                              Row(
-                                  modifier = Modifier
-                                      .fillMaxWidth()
-                                      .clip(RoundedCornerShape(12.dp))
-                                      .then(
-                                          if (isNext) Modifier
-                                              .background(
-                                                  Brush.horizontalGradient(
-                                                      listOf(
-                                                          Color(0xFFFBBF24).copy(alpha = 0.45f),
-                                                          Color(0xFFF59E0B).copy(alpha = 0.25f),
-                                                          Color(0xFFEF4444).copy(alpha = 0.15f)
-                                                      )
-                                                  )
-                                              )
-                                              .border(2.5.dp, Color(0xFFFBBF24), RoundedCornerShape(12.dp))
-                                              .graphicsLayer {
-                                                  shadowElevation = 8.dp.toPx()
-                                                  spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.4f)
-                                              }
-                                          else Modifier
-                                      )
-                                      .padding(horizontal = 12.dp, vertical = if (isNext) 8.dp else 5.dp),
-                                  horizontalArrangement = Arrangement.SpaceBetween,
-                                  verticalAlignment = Alignment.CenterVertically
-                              ) {
-                                  Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                      if (isNext) {
-                                          Box(
-                                              modifier = Modifier.size(22.dp),
-                                              contentAlignment = Alignment.Center
-                                          ) {
-                                              Icon(
-                                                  Icons.Default.NotificationsActive,
-                                                  contentDescription = null,
-                                                  tint = Color(0xFFFBBF24),
-                                                  modifier = Modifier
-                                                      .size(18.dp)
-                                                      .graphicsLayer {
-                                                          shadowElevation = 4.dp.toPx()
-                                                          spotShadowColor = Color(0xFFFBBF24).copy(alpha = 0.6f)
-                                                      }
-                                              )
-                                          }
-                                      }
-                                      Text(
-                                          name,
-                                          color = if (isNext) Color(0xFFFBBF24) else Color.White,
-                                          fontWeight = if (isNext) FontWeight.Bold else FontWeight.Medium,
-                                          fontSize = if (isNext) 15.sp else 14.sp
-                                      )
-                                      if (isNext) {
-                                          Text(
-                                              "القادمة",
-                                              color = Color(0xFF0F172A),
-                                              fontSize = 11.sp,
-                                              fontWeight = FontWeight.ExtraBold,
-                                              modifier = Modifier
-                                                  .clip(RoundedCornerShape(8.dp))
-                                                  .background(
-                                                      Brush.horizontalGradient(
-                                                          listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
-                                                      )
-                                                  )
-                                                  .padding(horizontal = 10.dp, vertical = 2.dp)
-                                                  .graphicsLayer {
-                                                      shadowElevation = 3.dp.toPx()
-                                                      spotShadowColor = Color(0xFFF59E0B).copy(alpha = 0.5f)
-                                                  }
-                                          )
-                                      }
-                                  }
-                                  Text(
-                                      time,
-                                      color = if (isNext) Color(0xFFFBBF24) else Color(0xFFE2E8F0),
-                                      fontWeight = FontWeight.Bold,
-                                      fontSize = if (isNext) 15.sp else 14.sp
-                                  )
-}
-        }
-    }
-                    1 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            PalestineData.toArabicDigits("الطقس في ${config.cityName}: ${liveFeed.currentTemp}° (العظمى ${liveFeed.dailyMax}° / الصغرى ${liveFeed.dailyMin}°)"),
-                            color = Color(0xFF38BDF8),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        liveFeed.forecastDays.forEachIndexed { idx, (maxT, minT) ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(PalestineData.toArabicDigits("اليوم +${idx + 1}"), color = Color.White)
-                                Text(PalestineData.toArabicDigits("العظمى $maxT° / الصغرى $minT°"), color = Color(0xFFFBBF24))
-                            }
-                        }
-                    }
-                    2 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(liveFeed.matches) { m ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(m.name, color = Color.White)
-                                Text(m.status, color = Color(0xFF34D399))
-                            }
-                        }
-                    }
-                    3 -> Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
-                        Text(hijriDate, color = Color.White, fontSize = 22.sp)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
-                        Text(gregorianDate, color = Color.White, fontSize = 20.sp)
-                    }
-                    4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
-                    }
-                    5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(PalestineData.dailyHadiths.first(), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
-                    }
-                    6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
-                    }
-                    7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(liveFeed.news) { headline ->
-                            Text("▪ $headline", color = Color.White, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        liveFeed.prices.forEach { (pair, info) ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(pair, color = Color.White)
-                                Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
-                            }
-                        }
-                    }
-                    9 -> {
-                        val daysToRamadan = PalestineData.getDaysUntilRamadan()
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
-                            Text(PalestineData.toArabicDigits("• رمضان المبارك: بعد $daysToRamadan يوم"), color = Color.White)
-                            Text(PalestineData.toArabicDigits("• عيد الفطر: بعد ${daysToRamadan + 30} يوم"), color = Color(0xFFCBD5E1))
-                        }
-                    }
-                    10 -> {
-                        var avail = 0L
-                        var total = 0L
-                        var gb = 0L
-                        try {
-                            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                            val mi = ActivityManager.MemoryInfo()
-                            am.getMemoryInfo(mi)
-                            avail = mi.availMem / (1024 * 1024)
-                            total = mi.totalMem / (1024 * 1024)
-                        } catch (e: Exception) {
-                        }
-                        try {
-                            val stat = StatFs(Environment.getDataDirectory().path)
-                            gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
-                        } catch (e: Exception) {
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
-                            Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
-                            Text(PalestineData.toArabicDigits("المساحة المتبقية: $gb GB"), color = Color.White)
-                        }
-                    }
-                    11 -> {
-                        var taskInput by remember { mutableStateOf("") }
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = taskInput,
-                                    onValueChange = { taskInput = it },
-                                    placeholder = { Text("أضف مهمة...", color = Color.Gray) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .onFocusChanged { textFieldFocused = it.isFocused },
-                                    singleLine = true
-                                )
-                                Button(onClick = {
-                                    if (taskInput.isNotBlank()) { onAddTask(taskInput.trim()); taskInput = "" }
-                                }) { Text("إضافة") }
-                            }
-                            LazyColumn {
-                                items(config.tasks) { t ->
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("✓ $t", color = Color.White)
-                                        TextButton(onClick = { onRemoveTask(t) }) { Text("حذف", color = Color(0xFFF87171)) }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    12 -> {
-                        var nameIn by remember { mutableStateOf("") }
-                        var dayIn by remember { mutableStateOf("") }
-                        var monthIn by remember { mutableStateOf("") }
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
-                                OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
-                                OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
-                                Button(onClick = {
-                                    val d = dayIn.toIntOrNull(); val m = monthIn.toIntOrNull()
-                                    if (nameIn.isNotBlank() && d != null && m != null) {
-                                        onAddReminder(FamilyReminder(UUID.randomUUID().toString(), nameIn.trim(), m, d))
-                                        nameIn = ""; dayIn = ""; monthIn = ""
-                                    }
-                                }) { Text("حفظ") }
-                            }
-                            LazyColumn {
-                                items(config.reminders) { r ->
-                                    val left = calculateDaysUntilDate(r.month, r.day)
-                                    Text(PalestineData.toArabicDigits("🎂 ${r.name} (${r.day}/${r.month}) - متبقي $left يوم"), color = Color.White, fontSize = 14.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+                         liveFeed.forecastDays.forEachIndexed { idx, (maxT, minT) ->
+                             Row(
+                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                 horizontalArrangement = Arrangement.SpaceBetween
+                             ) {
+                                 Text(PalestineData.toArabicDigits("اليوم +${idx + 1}"), color = Color.White)
+                                 Text(PalestineData.toArabicDigits("العظمى $maxT° / الصغرى $minT°"), color = Color(0xFFFBBF24))
+                             }
+                         }
+                     }
+                     2 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                         items(liveFeed.matches) { m ->
+                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                 Text(m.name, color = Color.White)
+                                 Text(m.status, color = Color(0xFF34D399))
+                             }
+                         }
+                     }
+                     3 -> Column(
+                         modifier = Modifier.fillMaxSize(),
+                         verticalArrangement = Arrangement.Center,
+                         horizontalAlignment = Alignment.CenterHorizontally
+                     ) {
+                         Text("التقويم الهجري", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                         Text(hijriDate, color = Color.White, fontSize = 22.sp)
+                         Spacer(modifier = Modifier.height(12.dp))
+                         Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
+                         Text(gregorianDate, color = Color.White, fontSize = 20.sp)
+                     }
+                     4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                         Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
+                     }
+                     5 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                         Text(PalestineData.dailyHadiths.first(), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
+                     }
+                     6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                         items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
+                     }
+                     7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                         items(liveFeed.news) { headline ->
+                             Text("▪ $headline", color = Color.White, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                         }
+                     }
+                     8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                         liveFeed.prices.forEach { (pair, info) ->
+                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                 Text(pair, color = Color.White)
+                                 Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
+                             }
+                         }
+                     }
+                     9 -> {
+                         val daysToRamadan = PalestineData.getDaysUntilRamadan()
+                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                             Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
+                             Text(PalestineData.toArabicDigits("• رمضان المبارك: بعد $daysToRamadan يوم"), color = Color.White)
+                             Text(PalestineData.toArabicDigits("• عيد الفطر: بعد ${daysToRamadan + 30} يوم"), color = Color(0xFFCBD5E1))
+                         }
+                     }
+                     10 -> {
+                         var avail = 0L
+                         var total = 0L
+                         var gb = 0L
+                         try {
+                             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                             val mi = ActivityManager.MemoryInfo()
+                             am.getMemoryInfo(mi)
+                             avail = mi.availMem / (1024 * 1024)
+                             total = mi.totalMem / (1024 * 1024)
+                         } catch (e: Exception) {
+                         }
+                         try {
+                             val stat = StatFs(Environment.getDataDirectory().path)
+                             gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+                         } catch (e: Exception) {
+                         }
+                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                             Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
+                             Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
+                             Text(PalestineData.toArabicDigits("المساحة المتبقية: $gb GB"), color = Color.White)
+                         }
+                     }
+                     11 -> {
+                         var taskInput by remember { mutableStateOf("") }
+                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 OutlinedTextField(
+                                     value = taskInput,
+                                     onValueChange = { taskInput = it },
+                                     placeholder = { Text("أضف مهمة...", color = Color.Gray) },
+                                     modifier = Modifier
+                                         .weight(1f)
+                                         .onFocusChanged { textFieldFocused = it.isFocused },
+                                     singleLine = true
+                                 )
+                                 Button(onClick = {
+                                     if (taskInput.isNotBlank()) { onAddTask(taskInput.trim()); taskInput = "" }
+                                 }) { Text("إضافة") }
+                             }
+                             LazyColumn {
+                                 items(config.tasks) { t ->
+                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                         Text("✓ $t", color = Color.White)
+                                         TextButton(onClick = { onRemoveTask(t) }) { Text("حذف", color = Color(0xFFF87171)) }
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                     12 -> {
+                         var nameIn by remember { mutableStateOf("") }
+                         var dayIn by remember { mutableStateOf("") }
+                         var monthIn by remember { mutableStateOf("") }
+                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                 OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                 OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                 OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                 Button(onClick = {
+                                     val d = dayIn.toIntOrNull(); val m = monthIn.toIntOrNull()
+                                     if (nameIn.isNotBlank() && d != null && m != null) {
+                                         onAddReminder(FamilyReminder(UUID.randomUUID().toString(), nameIn.trim(), m, d))
+                                         nameIn = ""; dayIn = ""; monthIn = ""
+                                     }
+                                 }) { Text("حفظ") }
+                             }
+                             LazyColumn {
+                                 items(config.reminders) { r ->
+                                     val left = calculateDaysUntilDate(r.month, r.day)
+                                     Text(PalestineData.toArabicDigits("🎂 ${r.name} (${r.day}/${r.month}) - متبقي $left يوم"), color = Color.White, fontSize = 14.sp)
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
+         }
+     }
+ }
 }
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
@@ -780,8 +781,8 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                  item {
                                      Spacer(modifier = Modifier.height(32.dp))
                                  }
-                             }
-                            
+                            }
+                           
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             Row(
@@ -803,7 +804,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                                     SettingOptionPill("إعادة المحاولة", false) {
                                         scope.launch {
                                             isLoading = true
-        val result = LiveRepository.fetchSurahWithAudio(context, selectedSurahNum)
+                val result = LiveRepository.fetchSurahWithAudio(context, selectedSurahNum)
                                             verses = result ?: emptyList()
                                             isLoading = false
                                         }
@@ -923,60 +924,96 @@ fun ScreensaverView(
             Text("$hijri  |  $gregorian", color = Color(0xFFCBD5E1), fontSize = 20.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(20.dp))
             if (isEditMode) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Text("حرك بالأسهم ثم اضغط OK للحفظ", color = Color(0xFFFBBF24), fontSize = 15.sp)
+                Text("الأسهم: تحريك  |  OK/رجوع: حفظ", color = Color(0xFF94A3B8), fontSize = 13.sp)
             }
         }
     }
 }
 
 @Composable
-fun SettingOptionPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val focused by interaction.collectIsFocusedAsState()
-    Surface(
-        modifier = Modifier.clip(CircleShape).clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        shape = CircleShape,
-        color = when { focused -> Color.White; selected -> Color(0xFF38BDF8); else -> Color.White.copy(alpha = 0.12f) },
-        border = BorderStroke(if (focused) 2.dp else 1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.22f))
-    ) {
-        Text(
-            text = label,
-            color = if (focused || selected) Color(0xFF0F172A) else Color.White,
-            fontSize = 13.sp,
-            fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
-        )
-    }
-}
-
-@Composable
-private fun SettingsCategoryBox(title: String, content: @Composable ColumnScope.() -> Unit) {
+fun SettingsCategoryBox(title: String, content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+        color = Color.White.copy(alpha = 0.04f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
             content()
         }
     }
 }
 
 @Composable
-private fun StepAdjustRow(title: String, valueLabel: String, onDecrease: () -> Unit, onIncrease: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = Color.White, fontSize = 14.sp)
+fun SettingOptionPill(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    Surface(
+        modifier = Modifier
+            .focusable()
+            .clickable(interactionSource = interaction, indication = null) { onClick() }
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .graphicsLayer {
+                if (focused) {
+                    scaleX = 1.05f
+                    scaleY = 1.05f
+                }
+            },
+        shape = RoundedCornerShape(10.dp),
+        color = when {
+            focused -> Color.White
+            selected -> Color(0xFF38BDF8).copy(alpha = 0.25f)
+            else -> Color.White.copy(alpha = 0.06f)
+        },
+        border = BorderStroke(
+            width = if (focused) 2.dp else if (selected) 1.5.dp else 1.dp,
+            color = when {
+                focused -> Color(config.focusGlowColor)
+                selected -> Color(0xFF38BDF8)
+                else -> Color.White.copy(alpha = 0.12f)
+            }
+        )
+    ) {
+        Text(
+            text = text,
+            color = if (focused) Color(0xFF0F172A) else if (selected) Color(0xFF38BDF8) else Color.White,
+            fontSize = 13.sp,
+            fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun StepAdjustRow(
+    title: String,
+    valueLabel: String,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            SettingOptionPill("-", false, onClick = onDecrease)
+            Text(title, color = Color.White, fontSize = 14.sp)
             Text(valueLabel, color = Color(0xFFFBBF24), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SettingOptionPill("−", false, onClick = onDecrease)
             SettingOptionPill("+", false, onClick = onIncrease)
         }
     }
 }
+
 @Composable
 fun SettingsModalDrawer(
     config: LauncherConfig,
@@ -995,6 +1032,7 @@ fun SettingsModalDrawer(
     val closeFocus = remember { FocusRequester() }
     var quranRadios by remember { mutableStateOf<List<QuranRadio>>(emptyList()) }
     var isLoadingRadios by remember { mutableStateOf(false) }
+    var selectedSection by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         closeFocus.requestFocus()
@@ -1012,7 +1050,7 @@ fun SettingsModalDrawer(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true, dismissOnClickOutside = true)
     ) {
-        BackHandler(onBack = onDismiss)
+        BackHandler(onBack = { if (selectedSection != null) selectedSection = null else onDismiss() })
         Box(
             modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)),
             contentAlignment = Alignment.CenterEnd
@@ -1037,550 +1075,820 @@ fun SettingsModalDrawer(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        item {
-                            SettingsCategoryBox("١. تعيين اللانشر والموقع") {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("تعيين كلانشر افتراضي للتلفاز", false) {
-                                        try { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
-                                        catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
-                                    }
-                                    SettingOptionPill("تعرف تلقائي على موقعي", false) {
-                                        locationStatus = "جاري تحديد الموقع..."
-                                        scope.launch {
-                                            val detected = LiveRepository.autoDetectLocation()
-                                            if (detected != null) {
-                                                prefs.setLocation(detected)
-                                                locationStatus = "تم الضبط: ${detected.name}"
-                                            } else locationStatus = "تعذر التحديد التلقائي"
-                                        }
-                                    }
-                                }
-                                Text(locationStatus, color = Color(0xFFFBBF24), fontSize = 13.sp)
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                     var searchFieldFocused by remember { mutableStateOf(false) }
-                                     val searchFocusRequester = remember { FocusRequester() }
-                                     OutlinedTextField(
-                                         value = searchQuery,
-                                         onValueChange = { searchQuery = it },
-                                         placeholder = { Text("ابحث عن مدينة أو قرية...", color = Color.Gray) },
-                                         modifier = Modifier
-                                             .weight(1f)
-                                             .focusRequester(searchFocusRequester)
-                                             .onFocusChanged { searchFieldFocused = it.isFocused }
-                                             .onPreviewKeyEvent { event ->
-                                                 if (event.type == KeyEventType.KeyDown && !searchFieldFocused) {
-                                                     when (event.key) {
-                                                         Key.DirectionCenter, Key.Enter -> {
-                                                             searchFocusRequester.requestFocus()
-                                                             searchFieldFocused = true
-                                                             true
-                                                         }
-                                                         Key.Back -> {
-                                                             if (searchFieldFocused) {
-                                                                 searchFieldFocused = false
-                                                                 true
-                                                             } else false
-                                                         }
-                                                         else -> false
-                                                     }
-                                                 } else false
-                                             },
-                                         singleLine = true,
-                                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, keyboardType = KeyboardType.Text),
-                                         visualTransformation = VisualTransformation { TextFieldValue(it.text) }
-                                     )
-                                     SettingOptionPill("بحث", false) {
-                                         if (searchQuery.isNotBlank()) {
-                                             scope.launch { searchResults = LiveRepository.searchLocationByName(searchQuery) }
-                                         }
-                                     }
-                                 }
-                                if (searchResults.isNotEmpty()) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(searchResults) { res ->
-                                            SettingOptionPill("${res.name} (${res.country})", false) {
-                                                scope.launch {
-                                                    prefs.setLocation(res)
-                                                    locationStatus = "تم اختيار: ${res.name}"
-                                                    searchResults = emptyList()
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                Text("مدن وقرى فلسطين:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(PalestineData.palestineCities) { city ->
-                                        SettingOptionPill(city.name, config.cityName == city.name) {
-                                            scope.launch { prefs.setLocation(city); locationStatus = "الموقع: ${city.name}" }
-                                        }
-                                    }
-                                }
-                                Text("البلدان والعواصم العالمية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(PalestineData.worldCapitals) { city ->
-                                        SettingOptionPill("${city.name} (${city.country})", config.cityName == city.name) {
-                                            scope.launch { prefs.setLocation(city); locationStatus = "الموقع: ${city.name}" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        item {
-                            SettingsCategoryBox("٢. الخلفيات والمؤقت التلقائي وصور الجهاز") {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SettingOptionPill("اختر صورة من الجهاز", config.customWallpaperUri.isNotEmpty(), onClick = onPickDeviceImage)
-                                    if (config.customWallpaperUri.isNotEmpty()) {
-                                        SettingOptionPill("إلغاء صورة الجهاز", false) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = "" } }
-                                        }
-                                    }
-                                }
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(LiveRepository.natureWallpapers.size) { idx ->
-                                        val title = LiveRepository.natureWallpapers[idx].first
-                                        SettingOptionPill(title, config.customWallpaperUri.isEmpty() && config.wallpaperIndex == idx) {
-                                            scope.launch {
-                                                prefs.updateConfig {
-                                                    it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
-                                                    it[LauncherPreferences.WALLPAPER_IDX] = idx
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                Text("مؤقت تغيير الخلفية تلقائياً:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                val intervals = listOf(0 to "إيقاف", 1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 15 to "كل ١٥ دقيقة", 30 to "كل ٣٠ دقيقة")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(intervals) { (mins, label) ->
-                                        SettingOptionPill(label, config.wallpaperIntervalMinutes == mins) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
-                                        }
-                                    }
-                                }
-                            }
-                         }
-
-                         item {
-                             SettingsCategoryBox("مكتبة الخلفيات الحية المتجددة") {
-                                 Text("اختر المكتبة الحية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(LiveRepository.LiveWallpaperCategory.values()) { cat ->
-                                         val selected = config.liveWallpaperCategory == cat.title
-                                         SettingOptionPill(cat.title, selected) {
-                                             scope.launch {
-                                                 prefs.saveLiveWallpaperCategory(cat.title)
-                                                 val list = LiveRepository.fetchLiveWallpapers(context, cat)
-                                                 if (list.isNotEmpty()) {
-                                                     prefs.updateConfig {
-                                                         it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
-                                                         it[LauncherPreferences.WALLPAPER_IDX] = 0
-                                                     }
-                                                 }
-                                             }
-                                         }
-                                     }
-                                 }
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("تغيير الخلفية الآن", false) {
-                                         scope.launch {
-                                             val cat = LiveRepository.LiveWallpaperCategory.fromTitle(config.liveWallpaperCategory)
-                                             val list = LiveRepository.fetchLiveWallpapers(context, cat)
-                                             if (list.isNotEmpty()) {
-                                                 val next = (config.wallpaperIndex + 1) % list.size
-                                                 prefs.updateConfig {
-                                                     it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
-                                                     it[LauncherPreferences.WALLPAPER_IDX] = next
-                                                 }
-                                             }
-                                         }
-                                     }
-                                 }
-                                 Text("مدة التقليب التلقائي:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 val libIntervals = listOf(1 to "كل دقيقة", 5 to "٥ دقائق", 0 to "عند الفتح")
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(libIntervals) { (mins, label) ->
-                                         SettingOptionPill(label, config.wallpaperIntervalMinutes == mins || (mins == 0 && config.wallpaperIntervalMinutes == 0)) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
-                                         }
-                                     }
-                                 }
-                             }
-                         }
-
-                         item {
-                             SettingsCategoryBox("الخلفيات الحية المتحركة") {
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                     SettingOptionPill("تفعيل الخلفية الحية", config.liveWallpaperEnabled) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = !config.liveWallpaperEnabled } }
-                                     }
-                                     SettingOptionPill("إيقاف", !config.liveWallpaperEnabled) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = false } }
-                                     }
-                                 }
-                                 Text("نوع الحركة:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(liveWallpapers.size) { idx ->
-                                         val opt = liveWallpapers[idx]
-                                         SettingOptionPill(opt.title, config.liveWallpaperType == opt.id) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_TYPE] = opt.id } }
-                                         }
-                                     }
-                                 }
-                                 Text("فاصل التجديد (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 val intervals = listOf(1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 10 to "كل ١٠ دقائق", 30 to "كل ٣٠ دقيقة", 60 to "كل ساعة")
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(intervals) { (mins, label) ->
-                                         SettingOptionPill(label, config.liveWallpaperIntervalMinutes == mins) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_INTERVAL] = mins } }
-                                         }
-                                     }
-                                 }
-                             }
-                         }
-
-                         item {
-                             SettingsCategoryBox("٣. أشكال الساعة والتاريخ") {
-                                val styles = listOf("رقمي عصري", "بطاقة زجاجية", "عقارب دائرية", "عمودي كبير")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(styles.size) { idx ->
-                                        SettingOptionPill(styles[idx], config.clockStyle == idx) {
-                                                                                        scope.launch { prefs.updateConfig { it[LauncherPreferences.CLOCK_STYLE] = idx } }
-                                        }
-                                    }
-                                }
-                                val dateModes = listOf("هجري وميلادي", "هجري فقط", "ميلادي فقط", "إخفاء التاريخ")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(dateModes.size) { idx ->
-                                        SettingOptionPill(dateModes[idx], config.dateDisplayMode == idx) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx } }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        item {
-                            SettingsCategoryBox("٤. إذاعة القرآن الكريم") {
-                                val modes = listOf("يدوي / دائم", "الشاشة الرئيسية فقط", "شاشة التوقف فقط", "تشغيل مجدول")
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(modes.size) { idx ->
-                                        SettingOptionPill(modes[idx], config.quranPlayMode == idx) {
-                                            scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_PLAY_MODE] = idx } }
-                                        }
-                                    }
-                                }
-                                if (isLoadingRadios) {
-                                    Text("جاري تحميل قائمة الإذاعات...", color = Color(0xFFFBBF24), fontSize = 13.sp)
-                                } else if (quranRadios.isNotEmpty()) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(quranRadios) { radio ->
-                                            SettingOptionPill(radio.name, config.quranStreamUrl == radio.url) {
-                                                scope.launch {
-                                                    prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = radio.url }
-                                                    prefs.saveLastQuranRadioUrl(radio.url)
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Text("تعذر تحميل الإذاعات، يتم استخدام القائمة الافتراضية", color = Color(0xFFF87171), fontSize = 13.sp)
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(quranRadioStations) { (title, urls) ->
-                                            val primaryUrl = urls.first()
-                                            SettingOptionPill(title, config.quranStreamUrl == primaryUrl) {
-                                                scope.launch {
-                                                    prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = primaryUrl }
-                                                    prefs.saveLastQuranRadioUrl(primaryUrl)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                         item {
-                             SettingsCategoryBox("٥. إعدادات الأذان") {
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("تشغيل الأذان", config.adhanEnabled) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_ENABLED] = !config.adhanEnabled } }
-                                     }
-                                     SettingOptionPill("الفجر فقط", config.adhanPlayFajrOnly) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_FAJR_ONLY] = !config.adhanPlayFajrOnly } }
-                                     }
-                                 }
-                                 Text("المؤذن:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(AdhanManager.muadhinList) { (id, label) ->
-                                         SettingOptionPill(label, config.adhanMuadhinId == id) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_MUADHIN_ID] = id } }
-                                         }
-                                     }
-                                 }
-                                 StepAdjustRow(
-                                     title = "مستوى صوت الأذان",
-                                     valueLabel = PalestineData.toArabicDigits("${config.adhanVolume}%"),
-                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume - 10).coerceIn(10, 100) } } },
-                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume + 10).coerceIn(10, 100) } } }
-                                 )
-                                 Text("مدة الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 val lengthModes = listOf(0 to "كامل", 1 to "مختصر (١٥ ثانية)")
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(lengthModes) { (mode, label) ->
-                                         SettingOptionPill(label, config.adhanLengthMode == mode) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_LENGTH_MODE] = mode } }
-                                         }
-                                     }
-                                 }
-                                 Text("التذكير قبل الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                 val reminderMins = listOf(0 to "إيقاف", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 20 to "٢٠ دقيقة")
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(reminderMins) { (mins, label) ->
-                                         SettingOptionPill(label, config.adhanReminderMinutes == mins) {
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_REMINDER_MINUTES] = mins } }
-                                         }
-                                     }
-                                 }
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("تجربة الأذان", false) {
-                                         scope.launch {
-                                             val next = AdhanManager.getNextPrayer()
-                                             val pname = next?.name ?: "الفجر"
-                                             AdhanManager.playAdhan(context, pname, config.adhanMuadhinId, config.adhanLengthMode, config.adhanVolume)
-                                         }
-                                     }
-                                     if (AdhanManager.isPlaying) {
-                                         SettingOptionPill("إيقاف", false) { AdhanManager.stop() }
-                                     }
-                                 }
-                             }
-                         }
-
-                         item {
-                             SettingsCategoryBox("٦. الشفافية والأحجام والشريط العلوي") {
-                                StepAdjustRow(
-                                    title = "شفافية البطاقة",
-                                    valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
-                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
-                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
-                                )
-                                StepAdjustRow(
-                                    title = "حجم أيقونات التطبيقات",
-                                    valueLabel = PalestineData.toArabicDigits("${(config.appBaseScale * 100).toInt()}%"),
-                                    onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale - 0.05f).coerceIn(0.75f, 1.3f) } } },
-                                    onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale + 0.05f).coerceIn(0.75f, 1.3f) } } }
-                                )
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    item { SettingOptionPill("الشبكة", config.showTopWifi) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } } }
-                                    item { SettingOptionPill("إذاعة القرآن", config.showTopQuranRadio) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio } } } }
-                                    item { SettingOptionPill("المصحف", config.showTopQuranBook) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook } } } }
-                                    item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
-                                    item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
-                                }
-Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                      SettingOptionPill("تلقائي", config.cardFlipMode == 0) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 0 } } }
-                                      SettingOptionPill("يدوي", config.cardFlipMode == 1) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 1 } } }
-                                      SettingOptionPill("تلقائي (يدوي عند الوقوف)", config.cardFlipMode == 2) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 2 } } }
-                                  }
-                                 if (config.cardFlipMode != 1) {
-                                     Text("فاصل التقليب التلقائي (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                     val rotateIntervals = listOf(1 to "دقيقة واحدة", 2 to "دقيقتان", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 30 to "٣٠ دقيقة")
-                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                         items(rotateIntervals) { (mins, label) ->
-                                             SettingOptionPill(label, config.tabAutoRotateIntervalMinutes == mins) {
-                                                 scope.launch { prefs.updateConfig { it[LauncherPreferences.TAB_ROTATE_INTERVAL_MINUTES] = mins } }
-                                             }
-                                         }
-                                     }
-                                 }
-                            }
-                        }
-
-item {
-                             SettingsCategoryBox("٧. شريط الأسعار والتخطيط المباشر") {
-                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     items(allPairs) { pair ->
-                                         val active = config.activeTickerPairs.contains(pair)
-                                         SettingOptionPill(pair, active) {
-                                             val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
-                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
-                                         }
-                                     }
-                                 }
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
-                                     SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
-                                 }
-                             }
-                         }
-
-                         item {
-                             SettingsCategoryBox("٨. شريط التذكير (الأسفل/الأعلى)") {
-                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                     SettingOptionPill("أسفل الشاشة", config.tickerBarPosition == 0) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 0 } }
-                                     }
-                                     SettingOptionPill("أعلى الشاشة", config.tickerBarPosition == 1) {
-                                         scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 1 } }
-                                     }
-                                 }
-                                 StepAdjustRow(
-                                     title = "ارتفاع شريط التذكير",
-                                     valueLabel = PalestineData.toArabicDigits("${config.tickerBarHeight} dp"),
-                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight - 4).coerceAtLeast(24) } } },
-                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight + 4).coerceAtMost(120) } } }
-                                 )
-                                 StepAdjustRow(
-                                     title = "حجم خط شريط التذكير",
-                                     valueLabel = PalestineData.toArabicDigits("${config.tickerBarFontSize} sp"),
-                                     onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize - 2).coerceAtLeast(10) } } },
-                                     onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize + 2).coerceAtMost(22) } } }
-                                 )
-                                  StepAdjustRow(
-                                      title = "شفافية شريط التذكير",
-                                      valueLabel = PalestineData.toArabicDigits("${(config.tickerBgOpacity * 100).toInt()}%"),
-                                      onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
-                                      onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
-                                  )
-                              }
-                          }
-
-                          item {
-                              SettingsCategoryBox("٩. عناصر الشريط المتحرك") {
-                                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                      SettingOptionPill("الصلاة القادمة", config.tickerShowNextPrayer) {
-                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_NEXT_PRAYER] = !config.tickerShowNextPrayer } }
-                                      }
-                                      SettingOptionPill("رمضان", config.tickerShowRamadan) {
-                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_RAMADAN] = !config.tickerShowRamadan } }
-                                      }
-                                      SettingOptionPill("أعياد الميلاد", config.tickerShowBirthday) {
-                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_BIRTHDAY] = !config.tickerShowBirthday } }
-                                      }
-                                      SettingOptionPill("العملات", config.tickerShowPrices) {
-                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_PRICES] = !config.tickerShowPrices } }
-                                      }
-                                      SettingOptionPill("المباريات", config.tickerShowMatches) {
-                                          scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_MATCHES] = !config.tickerShowMatches } }
-                                      }
-                                  }
-                                  Text("ترتيب العناصر:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                  val orderLabels = mapOf(
-                                      "prayer" to "الصلاة القادمة",
-                                      "ramadan" to "رمضان",
-                                      "birthday" to "أعياد الميلاد",
-                                      "prices" to "العملات",
-                                      "matches" to "المباريات"
-                                  )
-                                  var order by remember { mutableStateOf(config.tickerElementOrder.toMutableList()) }
-                                  LaunchedEffect(config.tickerElementOrder) {
-                                      order = config.tickerElementOrder.toMutableList()
-                                  }
-                                  val move = { i: Int, j: Int ->
-                                      val n = order.toMutableList()
-                                      val t = n[i]
-                                      n[i] = n[j]
-                                      n[j] = t
-                                      order = n
-                                  }
-                                  LazyColumn {
-                                      items(order.size) { i ->
-                                          Row(
-                                              modifier = Modifier.fillMaxWidth(),
-                                              horizontalArrangement = Arrangement.SpaceBetween,
-                                              verticalAlignment = Alignment.CenterVertically
-                                          ) {
-                                              Text("${i + 1}. ${orderLabels[order[i]] ?: order[i]}", color = Color.White, fontSize = 14.sp)
-                                              Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                  if (i > 0) {
-                                                      SettingOptionPill("↑", false) { move(i, i - 1) }
-                                                  }
-                                                  if (i < order.size - 1) {
-                                                      SettingOptionPill("↓", false) { move(i, i + 1) }
-                                                  }
-                                              }
-                                          }
-                                      }
-                                  }
-                                   Button(onClick = {
-                                       scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
-                                   }) {
-                                       Text("حفظ الترتيب", color = Color(0xFF34D399))
-                                   }
-                               }
-                           }
-
-                           item {
-                               SettingsCategoryBox("الفريق الرياضي المفضل") {
-                                   Text("اختر فريقك المفضل لعرضه في شريط المباريات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-                                   LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(config.favoriteTeams) { team ->
-                                           val selected = config.favoriteTeamId == team.id
-                                           SettingOptionPill("${team.name}  •  ${team.league}", selected) {
-                                               scope.launch { prefs.updateConfig {
-                                                   it[LauncherPreferences.FAVORITE_TEAM_ID] = team.id
-                                                   it[LauncherPreferences.FAVORITE_TEAM_NAME] = team.name
-                                                   it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = team.league
-                                               } }
-                                           }
+                    if (selectedSection == null) {
+                        MainSectionsView(onSectionClick = { name -> selectedSection = name })
+                    } else {
+                        SectionContentView(
+                            sectionName = selectedSection,
+                            onBackClick = { selectedSection = null },
+                            config = config,
+                            prefs = prefs,
+                            scope = scope,
+                            context = context,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            searchResults = searchResults,
+                            onSearchResultsChange = { searchResults = it },
+                            locationStatus = locationStatus,
+                            onLocationStatusChange = { locationStatus = it },
+                            allPairs = allPairs,
+                            quranRadios = quranRadios,
+                            isLoadingRadios = isLoadingRadios,
+                            onIsLoadingRadiosChange = { isLoadingRadios = it },
+                            onPickDeviceImage = onPickDeviceImage,
+                            onOpenLiveEditor = onOpenLiveEditor,
+                            onOpenScreensaverEditor = onOpenScreensaverEditor
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
-                                        item {
-                                            if (config.favoriteTeamId.isNotBlank()) {
-                                                Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
-                                                SettingOptionPill("إلغاء التحديد", false) {
-                                                    scope.launch { prefs.updateConfig {
-                                                        it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
-                                                        it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
-                                                        it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
-                                                    } }
-                                                }
-                                            }
-                                        }
-                                    }
-                               }
-                           }
 
-item {
-                                SettingsCategoryBox("إدارة مصادر الأخبار والرياضة") {
-                                    val selectedCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "Palestine"
-                                    val allSources = (LiveRepository.countryNewsSources[selectedCountry] ?: emptyList()) + LiveRepository.worldNewsSources + LiveRepository.techNewsSources
-                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(allSources) { source ->
-                                            val enabled = source.id !in config.disabledNewsSources
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("${source.name}  •  ${source.country}", color = Color.White, fontSize = 14.sp)
-                                                SettingOptionPill(if (enabled) "تشغيل" else "إيقاف", enabled) {
-                                                    scope.launch { prefs.toggleNewsSource(source.id, !enabled) }
-                                                }
-                                            }
+@Composable
+fun MainSectionsView(onSectionClick: (String) -> Unit) {
+    val sections = listOf(
+        "عام والموقع" to Icons.Default.Settings,
+        "المظهر والخلفيات" to Icons.Default.Palette,
+        "البطاقة والتوسعة" to Icons.Default.DashboardCustomize,
+        "شريط التطبيقات" to Icons.Default.Apps,
+        "الأذان والعبادات" to Icons.Default.MusicNote,
+        "مصادر الأخبار والرياضة" to Icons.Default.Newspaper,
+        "الشريط السفلي" to Icons.Default.FormatListBulleted,
+        "حالة الجهاز" to Icons.Default.Memory
+    )
+    Column(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("اختر قسم الإعدادات", color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(20.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(sections) { (title, icon) ->
+                val interaction = remember { MutableInteractionSource() }
+                val focused by interaction.collectIsFocusedAsState()
+                val scale = if (focused) 1.08f else 1f
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp)
+                        .focusable()
+                        .clickable(interactionSource = interaction, indication = null) { onSectionClick(title) }
+                        .graphicsLayer { scaleX = scale; scaleY = scale },
+                    shape = RoundedCornerShape(16.dp),
+                    color = when {
+                        focused -> Color.White.copy(alpha = 0.12f)
+                        else -> Color.White.copy(alpha = 0.05f)
+                    },
+                    border = BorderStroke(if (focused) 2.dp else 1.dp, if (focused) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.1f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(icon, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(28.dp))
+                            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium)
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+        }
+    }
+}
 
-                           item {
-                               SettingsCategoryBox("البطاقة المخصصة الشاملة") {
-                                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                       SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
-                                       }
-                                       SettingOptionPill("إيقاف", !config.customCardAllTabs) {
-                                           scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
-                                       }
-                                   }
-                                   Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
-                               }
-                           }
-                           item {
-                               Spacer(modifier = Modifier.height(40.dp))
-                           }
-                       }
-                   }
-               }
-           }
-       }
-   }
+@Composable
+fun SectionContentView(
+    sectionName: String,
+    onBackClick: () -> Unit,
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: Context,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    searchResults: List<PalestinianCity>,
+    onSearchResultsChange: (List<PalestinianCity>) -> Unit,
+    locationStatus: String,
+    onLocationStatusChange: (String) -> Unit,
+    allPairs: List<String>,
+    quranRadios: List<QuranRadio>,
+    isLoadingRadios: Boolean,
+    onIsLoadingRadiosChange: (Boolean) -> Unit,
+    onPickDeviceImage: () -> Unit,
+    onOpenLiveEditor: () -> Unit,
+    onOpenScreensaverEditor: () -> Unit
+) {
+    Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF38BDF8).copy(alpha = 0.1f),
+            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(sectionName, color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                SettingOptionPill("◀ رجوع للأقسام الرئيسية", false, onClick = onBackClick)
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when (sectionName) {
+                "عام والموقع" -> item { GeneralLocationSection(
+                    config = config, prefs = prefs, scope = scope, context = context,
+                    searchQuery = searchQuery, onSearchQueryChange = onSearchQueryChange,
+                    searchResults = searchResults, onSearchResultsChange = onSearchResultsChange,
+                    locationStatus = locationStatus, onLocationStatusChange = onLocationStatusChange
+                ) }
+                "المظهر والخلفيات" -> {
+                    item { WallpapersSection(config = config, prefs = prefs, scope = scope, onPickDeviceImage = onPickDeviceImage) }
+                    item { LiveWallpaperLibrarySection(config = config, prefs = prefs, scope = scope, context = context) }
+                    item { AnimatedWallpapersSection(config = config, prefs = prefs, scope = scope) }
+                }
+                "البطاقة والتوسعة" -> {
+                    item { ClockStylesSection(config = config, prefs = prefs, scope = scope) }
+                    item { CardTransparencySection(config = config, prefs = prefs, scope = scope) }
+                    item { CardFlipSection(config = config, prefs = prefs, scope = scope) }
+                }
+                "شريط التطبيقات" -> item { AppBarSection(config = config, prefs = prefs, scope = scope, allPairs = allPairs, onOpenLiveEditor = onOpenLiveEditor, onOpenScreensaverEditor = onOpenScreensaverEditor) }
+                "الأذان والعبادات" -> {
+                    item { QuranRadioSection(config = config, prefs = prefs, scope = scope, quranRadios = quranRadios, isLoadingRadios = isLoadingRadios, onIsLoadingRadiosChange = onIsLoadingRadiosChange) }
+                    item { AdhanSection(config = config, prefs = prefs, scope = scope, context = context) }
+                }
+                "مصادر الأخبار والرياضة" -> {
+                    item { TickerElementsSection(config = config, prefs = prefs, scope = scope) }
+                    item { FavoriteTeamSection(config = config, prefs = prefs, scope = scope) }
+                    item { NewsSourcesSection(config = config, prefs = prefs, scope = scope) }
+                }
+                "الشريط السفلي" -> item { BottomBarSection(config = config, prefs = prefs, scope = scope) }
+                "حالة الجهاز" -> item { DeviceStatusSection(config = config, prefs = prefs, scope = scope, context = context) }
+            }
+        }
+    }
+}
+
+@Composable
+fun GeneralLocationSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: Context,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    searchResults: List<PalestinianCity>,
+    onSearchResultsChange: (List<PalestinianCity>) -> Unit,
+    locationStatus: String,
+    onLocationStatusChange: (String) -> Unit
+) {
+    SettingsCategoryBox("تعيين اللانشر والموقع") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تعيين كلانشر افتراضي للتلفاز", false) {
+                try { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+                catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
+            }
+            SettingOptionPill("تعرف تلقائي على موقعي", false) {
+                onLocationStatusChange("جاري تحديد الموقع...")
+                scope.launch {
+                    val detected = LiveRepository.autoDetectLocation()
+                    if (detected != null) {
+                        prefs.setLocation(detected)
+                        onLocationStatusChange("تم الضبط: ${detected.name}")
+                    } else onLocationStatusChange("تعذر التحديد التلقائي")
+                }
+            }
+        }
+        Text(locationStatus, color = Color(0xFFFBBF24), fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            var searchFieldFocused by remember { mutableStateOf(false) }
+            val searchFocusRequester = remember { FocusRequester() }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("ابحث عن مدينة أو قرية...", color = Color.Gray) },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(searchFocusRequester)
+                    .onFocusChanged { searchFieldFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && !searchFieldFocused) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> {
+                                    searchFocusRequester.requestFocus()
+                                    searchFieldFocused = true
+                                    true
+                                }
+                                Key.Back -> {
+                                    if (searchFieldFocused) {
+                                        searchFieldFocused = false
+                                        true
+                                    } else false
+                                }
+                                else -> false
+                            }
+                        } else false
+                    },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, keyboardType = KeyboardType.Text),
+                visualTransformation = VisualTransformation { TextFieldValue(it.text) }
+            )
+            SettingOptionPill("بحث", false) {
+                if (searchQuery.isNotBlank()) {
+                    scope.launch { onSearchResultsChange(LiveRepository.searchLocationByName(searchQuery)) }
+                }
+            }
+        }
+        if (searchResults.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(searchResults) { res ->
+                    SettingOptionPill("${res.name} (${res.country})", false) {
+                        scope.launch {
+                            prefs.setLocation(res)
+                            onLocationStatusChange("تم اختيار: ${res.name}")
+                            onSearchResultsChange(emptyList())
+                        }
+                    }
+                }
+            }
+        }
+        Text("مدن وقرى فلسطين:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(PalestineData.palestineCities) { city ->
+                SettingOptionPill(city.name, config.cityName == city.name) {
+                    scope.launch { prefs.setLocation(city); onLocationStatusChange("الموقع: ${city.name}") }
+                }
+            }
+        }
+        Text("البلدان والعواصم العالمية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(PalestineData.worldCapitals) { city ->
+                SettingOptionPill("${city.name} (${city.country})", config.cityName == city.name) {
+                    scope.launch { prefs.setLocation(city); onLocationStatusChange("الموقع: ${city.name}") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WallpapersSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onPickDeviceImage: () -> Unit
+) {
+    SettingsCategoryBox("الخلفيات والمؤقت التلقائي وصور الجهاز") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("اختر صورة من الجهاز", config.customWallpaperUri.isNotEmpty(), onClick = onPickDeviceImage)
+            if (config.customWallpaperUri.isNotEmpty()) {
+                SettingOptionPill("إلغاء صورة الجهاز", false) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = "" } }
+                }
+            }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(LiveRepository.natureWallpapers.size) { idx ->
+                val title = LiveRepository.natureWallpapers[idx].first
+                SettingOptionPill(title, config.customWallpaperUri.isEmpty() && config.wallpaperIndex == idx) {
+                    scope.launch {
+                        prefs.updateConfig {
+                            it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                            it[LauncherPreferences.WALLPAPER_IDX] = idx
+                        }
+                    }
+                }
+            }
+        }
+        Text("مؤقت تغيير الخلفية تلقائياً:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val intervals = listOf(0 to "إيقاف", 1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 15 to "كل ١٥ دقيقة", 30 to "كل ٣٠ دقيقة")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(intervals) { (mins, label) ->
+                SettingOptionPill(label, config.wallpaperIntervalMinutes == mins) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LiveWallpaperLibrarySection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: Context
+) {
+    SettingsCategoryBox("مكتبة الخلفيات الحية المتجددة") {
+        Text("اختر المكتبة الحية:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(LiveRepository.LiveWallpaperCategory.values()) { cat ->
+                val selected = config.liveWallpaperCategory == cat.title
+                SettingOptionPill(cat.title, selected) {
+                    scope.launch {
+                        prefs.saveLiveWallpaperCategory(cat.title)
+                        val list = LiveRepository.fetchLiveWallpapers(context, cat)
+                        if (list.isNotEmpty()) {
+                            prefs.updateConfig {
+                                it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                                it[LauncherPreferences.WALLPAPER_IDX] = 0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تغيير الخلفية الآن", false) {
+                scope.launch {
+                    val cat = LiveRepository.LiveWallpaperCategory.fromTitle(config.liveWallpaperCategory)
+                    val list = LiveRepository.fetchLiveWallpapers(context, cat)
+                    if (list.isNotEmpty()) {
+                        val next = (config.wallpaperIndex + 1) % list.size
+                        prefs.updateConfig {
+                            it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                            it[LauncherPreferences.WALLPAPER_IDX] = next
+                        }
+                    }
+                }
+            }
+        }
+        Text("مدة التقليب التلقائي:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val libIntervals = listOf(1 to "كل دقيقة", 5 to "٥ دقائق", 0 to "عند الفتح")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(libIntervals) { (mins, label) ->
+                SettingOptionPill(label, config.wallpaperIntervalMinutes == mins || (mins == 0 && config.wallpaperIntervalMinutes == 0)) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedWallpapersSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("الخلفيات الحية المتحركة") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            SettingOptionPill("تفعيل الخلفية الحية", config.liveWallpaperEnabled) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = !config.liveWallpaperEnabled } }
+            }
+            SettingOptionPill("إيقاف", !config.liveWallpaperEnabled) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_ENABLED] = false } }
+            }
+        }
+        Text("نوع الحركة:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(liveWallpapers.size) { idx ->
+                val opt = liveWallpapers[idx]
+                SettingOptionPill(opt.title, config.liveWallpaperType == opt.id) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_TYPE] = opt.id } }
+                }
+            }
+        }
+        Text("فاصل التجديد (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val intervals = listOf(1 to "كل ١ دقيقة", 5 to "كل ٥ دقائق", 10 to "كل ١٠ دقائق", 30 to "كل ٣٠ دقيقة", 60 to "كل ساعة")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(intervals) { (mins, label) ->
+                SettingOptionPill(label, config.liveWallpaperIntervalMinutes == mins) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.LIVE_WALLPAPER_INTERVAL] = mins } }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClockStylesSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("أشكال الساعة والتاريخ") {
+        val styles = listOf("رقمي عصري", "بطاقة زجاجية", "عقارب دائرية", "عمودي كبير")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(styles.size) { idx ->
+                SettingOptionPill(styles[idx], config.clockStyle == idx) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.CLOCK_STYLE] = idx } }
+                }
+            }
+        }
+        val dateModes = listOf("هجري وميلادي", "هجري فقط", "ميلادي فقط", "إخفاء التاريخ")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(dateModes.size) { idx ->
+                SettingOptionPill(dateModes[idx], config.dateDisplayMode == idx) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.DATE_MODE] = idx } }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CardTransparencySection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("الشفافية والأحجام") {
+        StepAdjustRow(
+            title = "شفافية البطاقة",
+            valueLabel = PalestineData.toArabicDigits("${(config.cardBgOpacity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_OPACITY] = (config.cardBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+        )
+        StepAdjustRow(
+            title = "حجم أيقونات التطبيقات",
+            valueLabel = PalestineData.toArabicDigits("${(config.appBaseScale * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale - 0.05f).coerceIn(0.75f, 1.3f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_SCALE] = (config.appBaseScale + 0.05f).coerceIn(0.75f, 1.3f) } } }
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            item { SettingOptionPill("الشبكة", config.showTopWifi) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_WIFI] = !config.showTopWifi } } } }
+            item { SettingOptionPill("إذاعة القرآن", config.showTopQuranRadio) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_QURAN] = !config.showTopQuranRadio } } } }
+            item { SettingOptionPill("المصحف", config.showTopQuranBook) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_BOOK] = !config.showTopQuranBook } } } }
+            item { SettingOptionPill("شاشة التوقف", config.showTopScreensaver) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_SS] = !config.showTopScreensaver } } } }
+            item { SettingOptionPill("VPN", config.showTopVpn) { scope.launch { prefs.updateConfig { it[LauncherPreferences.SHOW_VPN] = !config.showTopVpn } } } }
+        }
+    }
+}
+
+@Composable
+fun CardFlipSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("تقليب البطاقة التفاعلية") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تلقائي", config.cardFlipMode == 0) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 0 } } }
+            SettingOptionPill("يدوي", config.cardFlipMode == 1) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 1 } } }
+            SettingOptionPill("تلقائي (يدوي عند الوقوف)", config.cardFlipMode == 2) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 2 } } }
+        }
+        if (config.cardFlipMode != 1) {
+            Text("فاصل التقليب التلقائي (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+            val rotateIntervals = listOf(1 to "دقيقة واحدة", 2 to "دقيقتان", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 30 to "٣٠ دقيقة")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(rotateIntervals) { (mins, label) ->
+                    SettingOptionPill(label, config.tabAutoRotateIntervalMinutes == mins) {
+                        scope.launch { prefs.updateConfig { it[LauncherPreferences.TAB_ROTATE_INTERVAL_MINUTES] = mins } }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AppBarSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    allPairs: List<String>,
+    onOpenLiveEditor: () -> Unit,
+    onOpenScreensaverEditor: () -> Unit
+) {
+    SettingsCategoryBox("شريط الأسعار والتخطيط المباشر") {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(allPairs) { pair ->
+                val active = config.activeTickerPairs.contains(pair)
+                SettingOptionPill(pair, active) {
+                    val newSet = if (active) config.activeTickerPairs - pair else config.activeTickerPairs + pair
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_PAIRS] = newSet } }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تحريك العناصر بالريموت", false, onClick = onOpenLiveEditor)
+            SettingOptionPill("تعديل شاشة التوقف", false, onClick = onOpenScreensaverEditor)
+        }
+    }
+}
+
+@Composable
+fun QuranRadioSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    quranRadios: List<QuranRadio>,
+    isLoadingRadios: Boolean,
+    onIsLoadingRadiosChange: (Boolean) -> Unit
+) {
+    SettingsCategoryBox("إذاعة القرآن الكريم") {
+        val modes = listOf("يدوي / دائم", "الشاشة الرئيسية فقط", "شاشة التوقف فقط", "تشغيل مجدول")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(modes.size) { idx ->
+                SettingOptionPill(modes[idx], config.quranPlayMode == idx) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.QURAN_PLAY_MODE] = idx } }
+                }
+            }
+        }
+        if (isLoadingRadios) {
+            Text("جاري تحميل قائمة الإذاعات...", color = Color(0xFFFBBF24), fontSize = 13.sp)
+        } else if (quranRadios.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(quranRadios) { radio ->
+                    SettingOptionPill(radio.name, config.quranStreamUrl == radio.url) {
+                        scope.launch {
+                            prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = radio.url }
+                            prefs.saveLastQuranRadioUrl(radio.url)
+                        }
+                    }
+                }
+            }
+        } else {
+            Text("تعذر تحميل الإذاعات، يتم استخدام القائمة الافتراضية", color = Color(0xFFF87171), fontSize = 13.sp)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(quranRadioStations) { (title, urls) ->
+                    val primaryUrl = urls.first()
+                    SettingOptionPill(title, config.quranStreamUrl == primaryUrl) {
+                        scope.launch {
+                            prefs.updateConfig { it[LauncherPreferences.QURAN_URL] = primaryUrl }
+                            prefs.saveLastQuranRadioUrl(primaryUrl)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdhanSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: Context
+) {
+    SettingsCategoryBox("إعدادات الأذان") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تشغيل الأذان", config.adhanEnabled) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_ENABLED] = !config.adhanEnabled } }
+            }
+            SettingOptionPill("الفجر فقط", config.adhanPlayFajrOnly) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_FAJR_ONLY] = !config.adhanPlayFajrOnly } }
+            }
+        }
+        Text("المؤذن:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(AdhanManager.muadhinList) { (id, label) ->
+                SettingOptionPill(label, config.adhanMuadhinId == id) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_MUADHIN_ID] = id } }
+                }
+            }
+        }
+        StepAdjustRow(
+            title = "مستوى صوت الأذان",
+            valueLabel = PalestineData.toArabicDigits("${config.adhanVolume}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume - 10).coerceIn(10, 100) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_VOLUME] = (config.adhanVolume + 10).coerceIn(10, 100) } } }
+        )
+        Text("مدة الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val lengthModes = listOf(0 to "كامل", 1 to "مختصر (١٥ ثانية)")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(lengthModes) { (mode, label) ->
+                SettingOptionPill(label, config.adhanLengthMode == mode) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_LENGTH_MODE] = mode } }
+                }
+            }
+        }
+        Text("التذكير قبل الأذان:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val reminderMins = listOf(0 to "إيقاف", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 20 to "٢٠ دقيقة")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(reminderMins) { (mins, label) ->
+                SettingOptionPill(label, config.adhanReminderMinutes == mins) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.ADHAN_REMINDER_MINUTES] = mins } }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("تجربة الأذان", false) {
+                scope.launch {
+                    val next = AdhanManager.getNextPrayer()
+                    val pname = next?.name ?: "الفجر"
+                    AdhanManager.playAdhan(context, pname, config.adhanMuadhinId, config.adhanLengthMode, config.adhanVolume)
+                }
+            }
+            if (AdhanManager.isPlaying) {
+                SettingOptionPill("إيقاف", false) { AdhanManager.stop() }
+            }
+        }
+    }
+}
+
+@Composable
+fun TickerElementsSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("عناصر الشريط المتحرك") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            SettingOptionPill("الصلاة القادمة", config.tickerShowNextPrayer) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_NEXT_PRAYER] = !config.tickerShowNextPrayer } }
+            }
+            SettingOptionPill("رمضان", config.tickerShowRamadan) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_RAMADAN] = !config.tickerShowRamadan } }
+            }
+            SettingOptionPill("أعياد الميلاد", config.tickerShowBirthday) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_BIRTHDAY] = !config.tickerShowBirthday } }
+            }
+            SettingOptionPill("العملات", config.tickerShowPrices) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_PRICES] = !config.tickerShowPrices } }
+            }
+            SettingOptionPill("المباريات", config.tickerShowMatches) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_SHOW_MATCHES] = !config.tickerShowMatches } }
+            }
+        }
+        Text("ترتيب العناصر:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        val orderLabels = mapOf(
+            "prayer" to "الصلاة القادمة",
+            "ramadan" to "رمضان",
+            "birthday" to "أعياد الميلاد",
+            "prices" to "العملات",
+            "matches" to "المباريات"
+        )
+        var order by remember { mutableStateOf(config.tickerElementOrder.toMutableList()) }
+        LaunchedEffect(config.tickerElementOrder) {
+            order = config.tickerElementOrder.toMutableList()
+        }
+        val move = { i: Int, j: Int ->
+            val n = order.toMutableList()
+            val t = n[i]
+            n[i] = n[j]
+            n[j] = t
+            order = n
+        }
+        LazyColumn {
+            items(order.size) { i ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${i + 1}. ${orderLabels[order[i]] ?: order[i]}", color = Color.White, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (i > 0) {
+                            SettingOptionPill("↑", false) { move(i, i - 1) }
+                        }
+                        if (i < order.size - 1) {
+                            SettingOptionPill("↓", false) { move(i, i + 1) }
+                        }
+                    }
+                }
+            }
+        }
+        Button(onClick = {
+            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
+        }) {
+            Text("حفظ الترتيب", color = Color(0xFF34D399))
+        }
+    }
+}
+
+@Composable
+fun FavoriteTeamSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("الفريق الرياضي المفضل") {
+        Text("اختر فريقك المفضل لعرضه في شريط المباريات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(config.favoriteTeams) { team ->
+                val selected = config.favoriteTeamId == team.id
+                SettingOptionPill("${team.name}  •  ${team.league}", selected) {
+                    scope.launch { prefs.updateConfig {
+                        it[LauncherPreferences.FAVORITE_TEAM_ID] = team.id
+                        it[LauncherPreferences.FAVORITE_TEAM_NAME] = team.name
+                        it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = team.league
+                    } }
+                }
+            }
+            item {
+                if (config.favoriteTeamId.isNotBlank()) {
+                    Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
+                    SettingOptionPill("إلغاء التحديد", false) {
+                        scope.launch { prefs.updateConfig {
+                            it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
+                            it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
+                            it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
+                        } }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsSourcesSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("إدارة مصادر الأخبار والرياضة") {
+        val selectedCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "Palestine"
+        val allSources = (LiveRepository.countryNewsSources[selectedCountry] ?: emptyList()) + LiveRepository.worldNewsSources + LiveRepository.techNewsSources
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(allSources) { source ->
+                val enabled = source.id !in config.disabledNewsSources
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("${source.name}  •  ${source.country}", color = Color.White, fontSize = 14.sp)
+                    SettingOptionPill(if (enabled) "تشغيل" else "إيقاف", enabled) {
+                        scope.launch { prefs.toggleNewsSource(source.id, !enabled) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BottomBarSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("شريط التذكير (الأسفل/الأعلى)") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingOptionPill("أسفل الشاشة", config.tickerBarPosition == 0) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 0 } }
+            }
+            SettingOptionPill("أعلى الشاشة", config.tickerBarPosition == 1) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 1 } }
+            }
+        }
+        StepAdjustRow(
+            title = "ارتفاع شريط التذكير",
+            valueLabel = PalestineData.toArabicDigits("${config.tickerBarHeight} dp"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight - 4).coerceAtLeast(24) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight + 4).coerceAtMost(120) } } }
+        )
+        StepAdjustRow(
+            title = "حجم خط شريط التذكير",
+            valueLabel = PalestineData.toArabicDigits("${config.tickerBarFontSize} sp"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize - 2).coerceAtLeast(10) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize + 2).coerceAtMost(22) } } }
+        )
+        StepAdjustRow(
+            title = "شفافية شريط التذكير",
+            valueLabel = PalestineData.toArabicDigits("${(config.tickerBgOpacity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+        )
+    }
+}
+
+@Composable
+fun DeviceStatusSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: Context
+) {
+    SettingsCategoryBox("حالة الجهاز") {
+        var avail by remember { mutableStateOf(0L) }
+        var total by remember { mutableStateOf(0L) }
+        var gb by remember { mutableStateOf(0L) }
+        LaunchedEffect(Unit) {
+            try {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val mi = ActivityManager.MemoryInfo()
+                am.getMemoryInfo(mi)
+                avail = mi.availMem / (1024 * 1024)
+                total = mi.totalMem / (1024 * 1024)
+            } catch (e: Exception) {}
+            try {
+                val stat = StatFs(Environment.getDataDirectory().path)
+                gb = (stat.availableBlocksLong * stat.blockSizeLong) / (1024 * 1024 * 1024)
+            } catch (e: Exception) {}
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("حالة جهاز TV Box:", color = Color(0xFF38BDF8))
+            Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
+            Text(PalestineData.toArabicDigits("المساحة المتبقية: $gb GB"), color = Color.White)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("البطاقة المخصصة الشاملة", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            SettingOptionPill("تفعيل البطاقة الشاملة لجميع التبويبات", config.customCardAllTabs) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = !config.customCardAllTabs } }
+            }
+            SettingOptionPill("إيقاف", !config.customCardAllTabs) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.CUSTOM_CARD_ALL_TABS] = false } }
+            }
+        }
+        Text("عند التفعيل، يعرض التبويب الأخير (الكل) جميع المحتويات في بطاقة واحدة قابلة للتمرير.", color = Color(0xFF94A3B8), fontSize = 12.sp)
+    }
 }
