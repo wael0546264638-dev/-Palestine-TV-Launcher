@@ -1135,6 +1135,35 @@ fun SettingsModalDrawer(
                          }
 
                          item {
+                             SettingsCategoryBox("مكتبة الخلفيات الحية المتجددة") {
+                                 SettingOptionPill("مكتبة الخلفيات الحية المتجددة", true) { }
+                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                     SettingOptionPill("تغيير الخلفية الآن", false) {
+                                         scope.launch {
+                                             val list = LiveRepository.fetchLiveWallpapers(context)
+                                             if (list.isNotEmpty()) {
+                                                 val next = (config.wallpaperIndex + 1) % list.size
+                                                 prefs.updateConfig {
+                                                     it[LauncherPreferences.CUSTOM_WALLPAPER_URI] = ""
+                                                     it[LauncherPreferences.WALLPAPER_IDX] = next
+                                                 }
+                                             }
+                                         }
+                                     }
+                                 }
+                                 Text("مدة التقليب التلقائي:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+                                 val libIntervals = listOf(1 to "كل دقيقة", 5 to "٥ دقائق", 0 to "عند الفتح")
+                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     items(libIntervals) { (mins, label) ->
+                                         SettingOptionPill(label, config.wallpaperIntervalMinutes == mins || (mins == 0 && config.wallpaperIntervalMinutes == 0)) {
+                                             scope.launch { prefs.updateConfig { it[LauncherPreferences.WALLPAPER_INTERVAL] = mins } }
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+
+                         item {
                              SettingsCategoryBox("الخلفيات الحية المتحركة") {
                                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                      SettingOptionPill("تفعيل الخلفية الحية", config.liveWallpaperEnabled) {

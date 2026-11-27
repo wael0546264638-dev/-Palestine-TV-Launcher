@@ -474,9 +474,16 @@ val mediaPlayer = remember { MediaPlayer() }
         PalestineData.getFormattedDates(config.cityTimeZone)
     }
 
-    val activeWallpaperModel: Any? = remember(config.customWallpaperUri, config.wallpaperIndex) {
+    var liveWallpapers by remember { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        liveWallpapers = LiveRepository.fetchLiveWallpapers(context)
+    }
+
+    val activeWallpaperModel: Any? = remember(config.customWallpaperUri, config.wallpaperIndex, liveWallpapers) {
         if (config.customWallpaperUri.isNotEmpty()) {
             Uri.parse(config.customWallpaperUri)
+        } else if (liveWallpapers.isNotEmpty()) {
+            liveWallpapers.getOrElse(config.wallpaperIndex % liveWallpapers.size) { liveWallpapers.first() }
         } else {
             val url = LiveRepository.natureWallpapers
                 .getOrElse(config.wallpaperIndex) { LiveRepository.natureWallpapers.first() }
@@ -544,15 +551,23 @@ val mediaPlayer = remember { MediaPlayer() }
 
     if (activeWallpaperModel != null) {
             val bundledWallpaperFallback = painterResource(id = R.drawable.ic_banner_hd)
-            AsyncImage(
-                model = effectiveWallpaperModel,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                error = bundledWallpaperFallback,
-                fallback = bundledWallpaperFallback,
-                onError = { wallpaperLoadFailed = true },
-                modifier = Modifier.fillMaxSize()
-            )
+            val imageRequest = remember(effectiveWallpaperModel) {
+                coil.request.ImageRequest.Builder(context)
+                    .data(effectiveWallpaperModel)
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android TV; PalestineTVLauncher) AppleWebKit/537.36")
+                    .build()
+            }
+            androidx.compose.animation.Crossfade(targetState = imageRequest, label = "wallpaperCrossfade") { req ->
+                AsyncImage(
+                    model = req,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    error = bundledWallpaperFallback,
+                    fallback = bundledWallpaperFallback,
+                    onError = { wallpaperLoadFailed = true },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()

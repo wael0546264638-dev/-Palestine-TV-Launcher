@@ -222,11 +222,11 @@ object LiveRepository {
     }
 
     val natureWallpapers = listOf(
-        "غروب هادئ" to "https://unsplash.com",
-        "جبال الضباب" to "https://unsplash.com",
-        "غابة خضراء" to "https://unsplash.com",
-        "شاطئ ليلي" to "https://unsplash.com",
-        "صحراء ذهبية" to "https://unsplash.com",
+        "غروب هادئ" to "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
+        "جبال الضباب" to "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80",
+        "غابة خضراء" to "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80",
+        "شاطئ ليلي" to "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80",
+        "صحراء ذهبية" to "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1920&q=80",
         "بدون خلفية (داكن)" to ""
     )
 
@@ -822,5 +822,79 @@ private val hadithDataStore by lazy { preferencesDataStore(name = "hadith_prefs"
         } catch (_: Exception) {
             null
         }
+    }
+    private val liveWallpapersDataStore by lazy { preferencesDataStore(name = "live_wallpapers_lib_prefs") }
+    private const val CACHED_LIVE_WALLPAPERS_KEY = "cached_live_wallpapers"
+    private const val CACHED_LIVE_WALLPAPERS_TS_KEY = "cached_live_wallpapers_ts"
+    private const val LIVE_WALLPAPER_CACHE_HOURS = 6
+
+    suspend fun fetchLiveWallpapers(context: Context): List<String> = withContext(Dispatchers.IO) {
+        val cached = getCachedLiveWallpapers()
+        if (cached.isNotEmpty() && isLiveWallpaperCacheValid()) return@withContext cached
+
+        val result = mutableListOf<String>()
+        try {
+            val raw = httpGet("https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US")
+            if (raw != null) {
+                val arr = JSONObject(raw).optJSONArray("images")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val u = arr.getJSONObject(i).optString("url")
+                        if (u.isNotBlank()) {
+                            val full = if (u.startsWith("http")) u else "https://www.bing.com$u"
+                            if (full.startsWith("https") && (full.contains(".jpg") || full.contains(".png"))) result.add(full)
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) { }
+        try {
+            val api = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=Category:Featured_pictures_on_Wikimedia_Commons&gcmnamespace=6&gcmlimit=20&prop=imageinfo&iiprop=url&format=json"
+            val raw = httpGet(api)
+            if (raw != null) {
+                val pages = JSONObject(raw).optJSONObject("query")?.optJSONObject("pages")
+                pages?.keys()?.forEach { k ->
+                    val ii = pages.optJSONObject(k)?.optJSONArray("imageinfo")
+                    val url = ii?.optJSONObject(0)?.optString("url")
+                    if (!url.isNullOrBlank() && url.startsWith("https") && (url.endsWith(".jpg", true) || url.endsWith(".png", true))) result.add(url)
+                }
+            }
+        } catch (_: Exception) { }
+        result += listOf(
+            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
+            "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80",
+            "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80"
+        )
+        val filtered = result.distinct()
+        if (filtered.isNotEmpty()) cacheLiveWallpapers(filtered)
+        filtered.ifEmpty { cached.ifEmpty { emptyList() } }
+    }
+
+    private suspend fun getCachedLiveWallpapers(): List<String> = withContext(Dispatchers.IO) {
+        try {
+            val jsonStr = liveWallpapersDataStore.data.map { it[stringPreferencesKey(CACHED_LIVE_WALLPAPERS_KEY)] ?: "" }.first()
+            if (jsonStr.isNotBlank()) {
+                val arr = JSONArray(jsonStr)
+                (0 until arr.length()).map { arr.getString(it) }
+            } else emptyList()
+        } catch (_: Exception) { emptyList() }
+    }
+
+    private suspend fun isLiveWallpaperCacheValid(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val ts = liveWallpapersDataStore.data.map { it[longPreferencesKey(CACHED_LIVE_WALLPAPERS_TS_KEY)] ?: 0L }.first()
+            System.currentTimeMillis() - ts < LIVE_WALLPAPER_CACHE_HOURS * 60 * 60 * 1000L
+        } catch (_: Exception) { false }
+    }
+
+    private suspend fun cacheLiveWallpapers(list: List<String>) = withContext(Dispatchers.IO) {
+        try {
+            val arr = JSONArray()
+            list.forEach { arr.put(it) }
+            liveWallpapersDataStore.edit {
+                it[stringPreferencesKey(CACHED_LIVE_WALLPAPERS_KEY)] = arr.toString()
+                it[longPreferencesKey(CACHED_LIVE_WALLPAPERS_TS_KEY)] = System.currentTimeMillis()
+            }
+        } catch (_: Exception) { }
     }
 }
