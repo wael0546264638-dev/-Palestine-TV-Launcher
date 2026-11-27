@@ -588,7 +588,7 @@ val mediaPlayer = remember { MediaPlayer() }
                     isQuranBuffering = isQuranBuffering,
                     isVpnActive = isVpnActive,
                     updateInfo = updateInfo,
-                    onOpenWifi = { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) },
+                    onOpenWifi = { try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) } catch (_: Exception) {} },
                     onToggleQuran = {
                         if (isQuranPlaying || isQuranBuffering) {
                             manualQuranOverride = false
@@ -600,7 +600,7 @@ val mediaPlayer = remember { MediaPlayer() }
                     },
                     onOpenQuranBook = { showQuranDialog = true },
                     onOpenScreensaver = { isScreensaverMode = true },
-                    onOpenVpn = { context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) },
+                    onOpenVpn = { try { context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) } catch (_: Exception) {} },
                     onOpenSettings = { showSettingsDrawer = true },
                     onTriggerUpdate = { showUpdateDialog = true }
                 )
@@ -728,7 +728,7 @@ val mediaPlayer = remember { MediaPlayer() }
                         translationX = config.dockOffsetX
                         translationY = config.dockOffsetY
                     },
-                    onLaunchApp = { app -> AppManager.launchApp(context, app.packageName) }
+                    onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} }
           )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -795,7 +795,12 @@ val mediaPlayer = remember { MediaPlayer() }
                 onDismissRequest = { showUpdateDialog = false },
                 confirmButton = {
                     Button(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo!!.apkDownloadUrl)))
+                        val url = updateInfo?.apkDownloadUrl
+                        if (url != null && url.isNotEmpty()) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            } catch (_: Exception) {}
+                        }
                         showUpdateDialog = false
                     }) { Text("تحميل وتثبيت الآن") }
                 },

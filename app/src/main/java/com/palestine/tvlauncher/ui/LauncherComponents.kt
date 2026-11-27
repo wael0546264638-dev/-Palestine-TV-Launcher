@@ -252,7 +252,7 @@ fun AppDockRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             items(apps, key = { it.packageName }) { app ->
-                TvAppTile(app = app, config = config, onClick = { onLaunchApp(app) })
+                TvAppTile(app = app, config = config, onClick = { try { onLaunchApp(app) } catch (_: Exception) {} })
             }
         }
     }
