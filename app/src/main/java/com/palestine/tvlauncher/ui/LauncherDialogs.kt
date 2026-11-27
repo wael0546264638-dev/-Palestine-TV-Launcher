@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -81,22 +82,27 @@ fun InteractiveTabsCard(
     )
     var selectedTab by remember { mutableIntStateOf(0) }
     var isExpanded by remember { mutableStateOf(false) }
+    var cardHasFocus by remember { mutableStateOf(false) }
 
     LaunchedEffect(config.customCardAllTabs) {
         if (config.customCardAllTabs) selectedTab = tabTitles.lastIndex
     }
 
-    LaunchedEffect(config.autoRotateTabs, config.tabAutoRotateIntervalMinutes) {
-        if (config.autoRotateTabs && config.tabAutoRotateIntervalMinutes > 0) {
-            while (true) {
-                delay(config.tabAutoRotateIntervalMinutes * 60_000L)
-                selectedTab = (selectedTab + 1) % tabTitles.size
-            }
+    // التقليب التلقائي: الوضع 0 = تلقائي دائماً، الوضع 1 = يدوي فقط،
+    // الوضع 2 = تلقائي ويتوقف فوراً عند دخول التركيز للبطاقة ثم يعود عند الخروج.
+    LaunchedEffect(config.cardFlipMode, config.tabAutoRotateIntervalMinutes, cardHasFocus) {
+        val autoEnabled = config.cardFlipMode == 0 || config.cardFlipMode == 2
+        if (!autoEnabled) return@LaunchedEffect
+        if (config.cardFlipMode == 2 && cardHasFocus) return@LaunchedEffect
+        if (config.tabAutoRotateIntervalMinutes <= 0) return@LaunchedEffect
+        while (true) {
+            delay(config.tabAutoRotateIntervalMinutes * 60_000L)
+            selectedTab = (selectedTab + 1) % tabTitles.size
         }
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { cardHasFocus = it.hasFocus },
         shape = RoundedCornerShape(24.dp),
         color = Color.Black.copy(alpha = config.cardBgOpacity),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
@@ -114,29 +120,46 @@ fun InteractiveTabsCard(
                         val active = selectedTab == idx
                         val interaction = remember { MutableInteractionSource() }
                         val focused by interaction.collectIsFocusedAsState()
-                        val focusScale = if (config.focusScaleEnabled && focused) config.focusScaleFactor else 1f
+                        val focusScale = when {
+                            focused && config.focusScaleEnabled -> config.focusScaleFactor
+                            focused -> 1.12f
+                            else -> 1f
+                        }
                         val glow = config.focusGlowEnabled && focused
+                        // إطار تركيز بارز + خلفية مميزة + تكبير خفيف حول عنوان التبويب المحدد
+                        val tabBg = when {
+                            focused -> Color.White
+                            active -> Color(0xFF38BDF8)
+                            else -> Color.White.copy(alpha = 0.10f)
+                        }
+                        val tabBorderColor = when {
+                            focused -> Color(config.focusGlowColor)
+                            active -> Color(config.focusBorderColor)
+                            else -> Color.Transparent
+                        }
+                        val tabBorderWidth = when {
+                            focused -> maxOf(config.focusBorderWidth, 3f)
+                            active && config.focusBorderEnabled -> config.focusBorderWidth
+                            else -> 0f
+                        }
                         Surface(
                             modifier = Modifier
                                 .clip(CircleShape)
                                 .focusable()
+                                .onFocusChanged { if (it.isFocused) selectedTab = idx }
                                 .clickable(interactionSource = interaction, indication = null) { selectedTab = idx }
                                 .graphicsLayer {
                                     scaleX = focusScale
                                     scaleY = focusScale
                                     if (glow) {
-                                        shadowElevation = 12.dp.toPx()
-                                        spotShadowColor = Color(config.focusGlowColor).copy(alpha = 0.5f)
+                                        shadowElevation = 16.dp.toPx()
+                                        spotShadowColor = Color(config.focusGlowColor).copy(alpha = 0.6f)
                                     }
                                 },
                             shape = CircleShape,
-                            color = when {
-                                focused -> Color.White
-                                active -> Color(0xFF38BDF8)
-                                else -> Color.White.copy(alpha = 0.10f)
-                            },
-                            border = if (config.focusBorderEnabled && (focused || active)) {
-                                BorderStroke(config.focusBorderWidth.dp, Color(config.focusBorderColor))
+                            color = tabBg,
+                            border = if (tabBorderWidth > 0f) {
+                                BorderStroke(tabBorderWidth.dp, tabBorderColor)
                             } else BorderStroke(0.dp, Color.Transparent)
                         ) {
                             Text(
@@ -1231,7 +1254,7 @@ Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                       SettingOptionPill("يدوي", config.cardFlipMode == 1) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 1 } } }
                                       SettingOptionPill("تلقائي (يدوي عند الوقوف)", config.cardFlipMode == 2) { scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_FLIP_MODE] = 2 } } }
                                   }
-                                 if (config.autoRotateTabs) {
+                                 if (config.cardFlipMode != 1) {
                                      Text("فاصل التقليب التلقائي (بالدقائق):", color = Color(0xFFCBD5E1), fontSize = 13.sp)
                                      val rotateIntervals = listOf(1 to "دقيقة واحدة", 2 to "دقيقتان", 5 to "٥ دقائق", 10 to "١٠ دقائق", 15 to "١٥ دقيقة", 30 to "٣٠ دقيقة")
                                      LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
