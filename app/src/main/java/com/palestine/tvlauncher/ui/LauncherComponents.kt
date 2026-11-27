@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.palestine.tvlauncher.data.LauncherConfig
+import com.palestine.tvlauncher.data.TabItem
+import com.palestine.tvlauncher.data.cardTabs
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.TvAppInfo
 import com.palestine.tvlauncher.network.GitHubUpdateInfo

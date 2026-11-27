@@ -56,6 +56,8 @@ import com.palestine.tvlauncher.data.FamilyReminder
 import com.palestine.tvlauncher.data.LauncherConfig
 import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.PalestinianCity
+import com.palestine.tvlauncher.data.TabItem
+import com.palestine.tvlauncher.data.cardTabs
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.SurahHeader
@@ -80,13 +82,19 @@ fun InteractiveTabsCard(
     expanded: Boolean = false
 ) {
     val context = LocalContext.current
-    val tabTitles = listOf(
-        "أوقات الصلاة", "الطقس", "المباريات", "التاريخ",
-        "آية اليوم", "حديث اليوم", "الأذكار", "الأخبار",
-        "العملات والذهب", "المناسبات", "حالة الجهاز", "المهام", "التذكيرات",
-        "الكل"
-    )
+    val tabs = cardTabs
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // التبويبات الفعالة حسب القسم: البطاقة الرئيسية أو نافذة التوسعة، مع الإظهار والإخفاء والترتيب المستقل لكل منهما
+    val effectiveTabs = remember(
+        config.cardTabOrder, config.cardTabVisible,
+        config.expansionTabOrder, config.expansionTabVisible,
+        expanded
+    ) {
+        val order = if (expanded) config.expansionTabOrder else config.cardTabOrder
+        val visible = if (expanded) config.expansionTabVisible else config.cardTabVisible
+        order.filter { visible.contains(it) }.mapNotNull { key -> tabs.firstOrNull { it.key == key } }
+    }
     var isExpanded by remember { mutableStateOf(false) }
     var cardHasFocus by remember { mutableStateOf(false) }
     val cardFocusRequester = remember { FocusRequester() }
@@ -137,8 +145,14 @@ fun InteractiveTabsCard(
         BackHandler(onBack = { onExpand(false) })
     }
 
-    LaunchedEffect(config.customCardAllTabs) {
-        if (config.customCardAllTabs) selectedTab = tabTitles.lastIndex
+    LaunchedEffect(effectiveTabs.size, config.customCardAllTabs) {
+        if (effectiveTabs.isEmpty()) {
+            selectedTab = 0
+        } else if (config.customCardAllTabs) {
+            selectedTab = effectiveTabs.lastIndex
+        } else if (selectedTab >= effectiveTabs.size) {
+            selectedTab = effectiveTabs.lastIndex
+        }
     }
 
     // التقليب التلقائي: الوضع 0 = تلقائي دائماً، الوضع 1 = يدوي فقط،
@@ -150,7 +164,9 @@ fun InteractiveTabsCard(
         if (config.tabAutoRotateIntervalMinutes <= 0) return@LaunchedEffect
         while (true) {
             delay(config.tabAutoRotateIntervalMinutes * 60_000L)
-            selectedTab = (selectedTab + 1) % tabTitles.size
+            if (effectiveTabs.isNotEmpty()) {
+                selectedTab = (selectedTab + 1) % effectiveTabs.size
+            }
         }
     }
 
@@ -163,15 +179,19 @@ fun InteractiveTabsCard(
                     .focusable()
                     .onPreviewKeyEvent { event ->
                         if (expanded && !textFieldFocused && event.type == KeyEventType.KeyDown) {
-                                when (event.key) {
-                                    Key.DirectionLeft -> {
-                                        selectedTab = (selectedTab + 1) % tabTitles.size
-                                        true
-                                    }
-                                    Key.DirectionRight -> {
-                                        selectedTab = (selectedTab - 1 + tabTitles.size) % tabTitles.size
-                                        true
-                                    }
+                                    when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            if (effectiveTabs.isNotEmpty()) {
+                                                selectedTab = (selectedTab + 1) % effectiveTabs.size
+                                            }
+                                            true
+                                        }
+                                        Key.DirectionRight -> {
+                                            if (effectiveTabs.isNotEmpty()) {
+                                                selectedTab = (selectedTab - 1 + effectiveTabs.size) % effectiveTabs.size
+                                            }
+                                            true
+                                        }
                                     else -> false
                                 }
                         } else false
@@ -222,8 +242,9 @@ fun InteractiveTabsCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    items(tabTitles.size) { idx ->
+                    items(effectiveTabs.size) { idx ->
                         val active = selectedTab == idx
+                        val tab = effectiveTabs[idx]
                         val interaction = remember { MutableInteractionSource() }
                         val focused by interaction.collectIsFocusedAsState()
                         val focusScale = when {
@@ -271,7 +292,7 @@ fun InteractiveTabsCard(
                             } else BorderStroke(0.dp, Color.Transparent)
                         ) {
                             Text(
-                                text = tabTitles[idx],
+                                text = tab.title,
                                 color = if (focused || active) Color(0xFF0F172A) else Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = if (active || focused) FontWeight.Bold else FontWeight.Medium,
@@ -285,8 +306,9 @@ fun InteractiveTabsCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                when (selectedTab) {
-                     0 -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                val currentTab = effectiveTabs.getOrElse(selectedTab) { null }
+                when (currentTab?.key) {
+                     "prayer" -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                           Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                           val rows = listOf(
                               "الفجر" to prayerInfo.fajr,
@@ -379,7 +401,7 @@ fun InteractiveTabsCard(
  }
                          }
                      }
-                     1 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                     "weather" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                          val detail = weatherDetail
                          if (detail != null) {
                              Text(
@@ -428,7 +450,7 @@ fun InteractiveTabsCard(
                              }
                          }
                      }
-                     2 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                     "matches" -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                          Text("جدول ترتيب الدوري", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                          LazyColumn {
                              items(espnStandings) { standing ->
@@ -459,7 +481,7 @@ fun InteractiveTabsCard(
                              Text("لا توجد مباريات متاحة للفريق في الوقت الحالي", color = Color(0xFF94A3B8), fontSize = 14.sp)
                          }
                      }
-                     3 -> Column(
+                     "date" -> Column(
                          modifier = Modifier.fillMaxSize(),
                          verticalArrangement = Arrangement.Center,
                          horizontalAlignment = Alignment.CenterHorizontally
@@ -470,10 +492,10 @@ fun InteractiveTabsCard(
                          Text("التقويم الميلادي", color = Color(0xFF38BDF8), fontSize = 14.sp)
                          Text(gregorianDate, color = Color.White, fontSize = 20.sp)
                      }
-                     4 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                     "verse" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                          Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
                      }
-                     5 -> val hadith = todaysHadith
+                     "hadith" -> val hadith = todaysHadith
                          if (hadith != null) {
                              Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                  Text("حديث اليوم", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -489,10 +511,10 @@ fun InteractiveTabsCard(
                                  Text("جاري تحميل حديث اليوم...", color = Color(0xFF38BDF8), fontSize = 16.sp)
                              }
                          }
-                     6 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                     "adhkar" -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                          items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
                      }
-                     7 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                     "news" -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                          items(newsArticles) { article ->
                              Surface(
                                  modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
@@ -517,24 +539,24 @@ fun InteractiveTabsCard(
                              item { Text("جاري تحميل الأخبار من مصادر الدولة...", color = Color(0xFF94A3B8), fontSize = 14.sp) }
                          }
                      }
-                     8 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                     "prices" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                          liveFeed.prices.forEach { (pair, info) ->
                              Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                  Text(pair, color = Color.White)
                                  Text("${info.first} ${if (info.second) "▲" else "▼"}", color = if (info.second) Color(0xFF34D399) else Color(0xFFF87171))
                              }
                          }
-                     }
-                     9 -> {
-                         val daysToRamadan = PalestineData.getDaysUntilRamadan()
+                      }
+                      "occasions" -> {
+                          val daysToRamadan = PalestineData.getDaysUntilRamadan()
                          Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                              Text("المناسبات الإسلامية:", color = Color(0xFF38BDF8))
                              Text(PalestineData.toArabicDigits("• رمضان المبارك: بعد $daysToRamadan يوم"), color = Color.White)
                              Text(PalestineData.toArabicDigits("• عيد الفطر: بعد ${daysToRamadan + 30} يوم"), color = Color(0xFFCBD5E1))
                          }
-                     }
-                     10 -> {
-                         var avail = 0L
+                      }
+                      "device" -> {
+                          var avail = 0L
                          var total = 0L
                          var gb = 0L
                          try {
@@ -555,9 +577,9 @@ fun InteractiveTabsCard(
                              Text(PalestineData.toArabicDigits("الذاكرة المتاحة: $avail MB / $total MB"), color = Color.White)
                              Text(PalestineData.toArabicDigits("المساحة المتبقية: $gb GB"), color = Color.White)
                          }
-                     }
-                     11 -> {
-                         var taskInput by remember { mutableStateOf("") }
+                      }
+                      "tasks" -> {
+                          var taskInput by remember { mutableStateOf("") }
                          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                              Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                  OutlinedTextField(
@@ -582,9 +604,9 @@ fun InteractiveTabsCard(
                                  }
                              }
                          }
-                     }
-                     12 -> {
-                         var nameIn by remember { mutableStateOf("") }
+                      }
+                      "reminders" -> {
+                          var nameIn by remember { mutableStateOf("") }
                          var dayIn by remember { mutableStateOf("") }
                          var monthIn by remember { mutableStateOf("") }
                          Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1341,6 +1363,8 @@ fun SectionContentView(
                     item { ClockStylesSection(config = config, prefs = prefs, scope = scope) }
                     item { CardTransparencySection(config = config, prefs = prefs, scope = scope) }
                     item { CardFlipSection(config = config, prefs = prefs, scope = scope) }
+                    item { CardTabsSection(config = config, prefs = prefs, scope = scope) }
+                    item { ExpansionTabsSection(config = config, prefs = prefs, scope = scope) }
                 }
                 "شريط التطبيقات" -> item { AppBarSection(config = config, prefs = prefs, scope = scope, allPairs = allPairs, onOpenLiveEditor = onOpenLiveEditor, onOpenScreensaverEditor = onOpenScreensaverEditor) }
                 "الأذان والعبادات" -> {
@@ -1685,6 +1709,110 @@ fun CardFlipSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun TabOrderEditor(
+    tabs: List<TabItem>,
+    order: List<String>,
+    visible: Set<String>,
+    onVisibilityToggle: (String, Boolean) -> Unit,
+    onOrderChange: (List<String>) -> Unit
+) {
+    val labels = tabs.associate { it.key to it.title }
+    var currentOrder by remember { mutableStateOf(order.toMutableList()) }
+    var currentVisible by remember { mutableStateOf(visible.toMutableSet()) }
+    LaunchedEffect(order, visible) {
+        currentOrder = order.toMutableList()
+        currentVisible = visible.toMutableSet()
+    }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(currentOrder.size) { i ->
+            val key = currentOrder[i]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SettingOptionPill("${i + 1}. ${labels[key] ?: key}", currentVisible.contains(key)) {
+                        val next = if (currentVisible.contains(key)) currentVisible - key else currentVisible + key
+                        currentVisible = next
+                        onVisibilityToggle(key, next.contains(key))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (i > 0) {
+                        SettingOptionPill("▲", false) {
+                            val n = currentOrder.toMutableList()
+                            val t = n.removeAt(i)
+                            n.add(i - 1, t)
+                            currentOrder = n
+                        }
+                    }
+                    if (i < currentOrder.size - 1) {
+                        SettingOptionPill("▼", false) {
+                            val n = currentOrder.toMutableList()
+                            val t = n.removeAt(i)
+                            n.add(i + 1, t)
+                            currentOrder = n
+                        }
+                    }
+                }
+            }
+        }
+        Button(onClick = { onOrderChange(currentOrder) }) {
+            Text("حفظ الترتيب", color = Color(0xFF34D399))
+        }
+    }
+}
+
+@Composable
+fun CardTabsSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("إظهار وإخفاء وترتيب التبويبات — البطاقة الرئيسية") {
+        TabOrderEditor(
+            tabs = cardTabs,
+            order = config.cardTabOrder,
+            visible = config.cardTabVisible,
+            onVisibilityToggle = { key, enabled ->
+                scope.launch {
+                    val set = if (enabled) config.cardTabVisible + key else config.cardTabVisible - key
+                    prefs.updateConfig { it[LauncherPreferences.CARD_TAB_VISIBLE] = set }
+                }
+            },
+            onOrderChange = { order ->
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.CARD_TAB_ORDER] = order.joinToString("::") } }
+            }
+        )
+    }
+}
+
+@Composable
+fun ExpansionTabsSection(
+    config: LauncherConfig,
+    prefs: LauncherPreferences,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    SettingsCategoryBox("إظهار وإخفاء وترتيب التبويبات — نافذة التوسعة") {
+        TabOrderEditor(
+            tabs = cardTabs,
+            order = config.expansionTabOrder,
+            visible = config.expansionTabVisible,
+            onVisibilityToggle = { key, enabled ->
+                scope.launch {
+                    val set = if (enabled) config.expansionTabVisible + key else config.expansionTabVisible - key
+                    prefs.updateConfig { it[LauncherPreferences.EXPANSION_TAB_VISIBLE] = set }
+                }
+            },
+            onOrderChange = { order ->
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.EXPANSION_TAB_ORDER] = order.joinToString("::") } }
+            }
+        )
     }
 }
 

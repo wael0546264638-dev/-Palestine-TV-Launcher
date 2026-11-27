@@ -978,6 +978,7 @@ try {
         MOSQUES("المساجد والعمارة الإسلامية", "Category:Islamic architecture", "mosques"),
         SPACE("الفضاء والنجوم", "Category:Outer space", "space"),
         BING("صور Bing اليومية", null, "bing"),
+        REDDIT("صور ريديت", null, "reddit"),
         CITIES_NIGHT("المدن والليل", "Category:Cities at night", "cities_night");
 
         companion object {
@@ -1028,12 +1029,30 @@ try {
         } catch (_: Exception) { }
     }
 
+    private suspend fun appendRedditWallpapers(sink: MutableList<String>) {
+        try {
+            val raw = httpGet("https://www.reddit.com/r/wallpaper/.json?limit=50") ?: return
+            val data = JSONObject(raw).optJSONObject("data") ?: return
+            val children = data.optJSONArray("children") ?: return
+            for (i in 0 until children.length()) {
+                val child = children.getJSONObject(i).optJSONObject("data") ?: continue
+                val url = child.optString("url_overridden_by_dest")
+                    .ifBlank { child.optString("url") }
+                    .ifBlank { child.optString("preview") }
+                if (url.isNotBlank() && isValidWallpaperUrl(url)) sink.add(url)
+            }
+        } catch (_: Exception) { }
+    }
+
     suspend fun fetchLiveWallpapers(context: Context, category: LiveWallpaperCategory = LiveWallpaperCategory.ALL): List<String> = withContext(Dispatchers.IO) {
         val result = mutableListOf<String>()
         if (category == LiveWallpaperCategory.BING || category == LiveWallpaperCategory.ALL) {
             appendBingWallpapers(result)
         }
-        if (category != LiveWallpaperCategory.BING) {
+        if (category == LiveWallpaperCategory.REDDIT || category == LiveWallpaperCategory.ALL) {
+            appendRedditWallpapers(result)
+        }
+        if (category != LiveWallpaperCategory.BING && category != LiveWallpaperCategory.REDDIT) {
             appendCommonsWallpapers(category, result)
         }
         if (result.isEmpty()) {

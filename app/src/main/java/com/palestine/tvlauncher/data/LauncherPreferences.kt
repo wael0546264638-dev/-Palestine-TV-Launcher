@@ -8,6 +8,31 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore by preferencesDataStore(name = "palestine_launcher_prefs")
 
+data class TabItem(val key: String, val title: String)
+
+val cardTabs = listOf(
+    TabItem("prayer", "أوقات الصلاة"),
+    TabItem("weather", "الطقس"),
+    TabItem("matches", "المباريات"),
+    TabItem("date", "التاريخ"),
+    TabItem("verse", "آية اليوم"),
+    TabItem("hadith", "حديث اليوم"),
+    TabItem("adhkar", "الأذكار"),
+    TabItem("news", "الأخبار"),
+    TabItem("prices", "العملات والذهب"),
+    TabItem("occasions", "المناسبات"),
+    TabItem("device", "حالة الجهاز"),
+    TabItem("tasks", "المهام"),
+    TabItem("reminders", "التذكيرات"),
+    TabItem("all", "الكل")
+)
+
+private fun tabOrderFromRaw(raw: String?): List<String> {
+    val valid = cardTabs.map { it.key }.toSet()
+    return if (raw?.isBlank() == true) cardTabs.map { it.key }
+    else raw.split("::").filter { it.isNotBlank() && it in valid }
+}
+
 data class LauncherConfig(
     val customCardAllTabs: Boolean = false,
     val cityName: String = "أريحا (الزبيدات)",
@@ -99,6 +124,12 @@ data class LauncherConfig(
     val favoriteTeamLeague: String = "",
     val favoriteTeams: List<FavoriteTeam> = emptyList(),
     val disabledNewsSources: Set<String> = emptySet(),
+
+    // إظهار وإخفاء وترتيب التبويبات بشكل مستقل للبطاقة الرئيسية ونافذة التوسعة
+    val cardTabOrder: List<String> = cardTabs.map { it.key },
+    val cardTabVisible: Set<String> = cardTabs.map { it.key }.toSet(),
+    val expansionTabOrder: List<String> = cardTabs.map { it.key },
+    val expansionTabVisible: Set<String> = cardTabs.map { it.key }.toSet(),
 )
 
 data class FamilyReminder(
@@ -206,6 +237,12 @@ class LauncherPreferences(private val context: Context) {
         val FAVORITE_TEAM_NAME = stringPreferencesKey("favorite_team_name")
         val FAVORITE_TEAM_LEAGUE = stringPreferencesKey("favorite_team_league")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
+
+        // Tab visibility & order (card vs expansion)
+        val CARD_TAB_ORDER = stringPreferencesKey("card_tab_order")
+        val CARD_TAB_VISIBLE = stringSetPreferencesKey("card_tab_visible")
+        val EXPANSION_TAB_ORDER = stringPreferencesKey("expansion_tab_order")
+        val EXPANSION_TAB_VISIBLE = stringSetPreferencesKey("expansion_tab_visible")
     }
 
     val configFlow: Flow<LauncherConfig> = context.dataStore.data.map { p ->
@@ -304,6 +341,11 @@ class LauncherPreferences(private val context: Context) {
             favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: "",
             favoriteTeams = emptyList(),
             disabledNewsSources = p[DISABLED_NEWS_SOURCES] ?: emptySet(),
+
+            cardTabOrder = tabOrderFromRaw(p[CARD_TAB_ORDER]),
+            cardTabVisible = p[CARD_TAB_VISIBLE] ?: cardTabs.map { it.key }.toSet(),
+            expansionTabOrder = tabOrderFromRaw(p[EXPANSION_TAB_ORDER]),
+            expansionTabVisible = p[EXPANSION_TAB_VISIBLE] ?: cardTabs.map { it.key }.toSet(),
         )
     }
 
