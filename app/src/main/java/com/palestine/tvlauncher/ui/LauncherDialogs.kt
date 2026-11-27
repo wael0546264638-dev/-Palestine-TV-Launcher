@@ -812,6 +812,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         }
     }
 }
+}
 @Composable
 fun LiveLayoutEditorOverlay(
     config: LauncherConfig,
@@ -1572,4 +1573,3 @@ item {
             }
         }      
     }
-}
