@@ -71,7 +71,8 @@ fun InteractiveTabsCard(
     onAddTask: (String) -> Unit,
     onRemoveTask: (String) -> Unit,
     onAddReminder: (FamilyReminder) -> Unit,
-    onExpand: (Boolean) -> Unit = {}
+    onExpand: (Boolean) -> Unit = {},
+    expanded: Boolean = false
 ) {
     val context = LocalContext.current
     val tabTitles = listOf(
@@ -83,6 +84,17 @@ fun InteractiveTabsCard(
     var selectedTab by remember { mutableIntStateOf(0) }
     var isExpanded by remember { mutableStateOf(false) }
     var cardHasFocus by remember { mutableStateOf(false) }
+    val cardFocusRequester = remember { FocusRequester() }
+    var textFieldFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            try { cardFocusRequester.requestFocus() } catch (_: Exception) {}
+        }
+    }
+    if (expanded) {
+        BackHandler(onBack = { onExpand(false) })
+    }
 
     LaunchedEffect(config.customCardAllTabs) {
         if (config.customCardAllTabs) selectedTab = tabTitles.lastIndex
@@ -102,12 +114,53 @@ fun InteractiveTabsCard(
     }
 
     Surface(
-        modifier = modifier.onFocusChanged { cardHasFocus = it.hasFocus },
+        modifier = modifier
+            .onFocusChanged { cardHasFocus = it.hasFocus }
+            .then(
+                if (expanded) Modifier
+                    .focusRequester(cardFocusRequester)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
+                        if (expanded && !textFieldFocused && event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionRight -> {
+                                    selectedTab = (selectedTab + 1) % tabTitles.size
+                                    true
+                                }
+                                Key.DirectionLeft -> {
+                                    selectedTab = (selectedTab - 1 + tabTitles.size) % tabTitles.size
+                                    true
+                                }
+                                else -> false
+                            }
+                        } else false
+                    }
+                else Modifier
+            ),
         shape = RoundedCornerShape(24.dp),
         color = Color.Black.copy(alpha = config.cardBgOpacity),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            if (expanded) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                ) {
+                    Text(
+                        text = "◀ ▶ للتبديل  •  ▲ ▼ للتنقل  •  OK للاختيار  •  رجوع للعودة",
+                        color = Color(0xFFE2E8F0),
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -380,7 +433,9 @@ rows.forEach { (name, time) ->
                                     value = taskInput,
                                     onValueChange = { taskInput = it },
                                     placeholder = { Text("أضف مهمة...", color = Color.Gray) },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .onFocusChanged { textFieldFocused = it.isFocused },
                                     singleLine = true
                                 )
                                 Button(onClick = {
@@ -403,9 +458,9 @@ rows.forEach { (name, time) ->
                         var monthIn by remember { mutableStateOf("") }
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f), singleLine = true)
-                                OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f), singleLine = true)
-                                OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f), singleLine = true)
+                                OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
                                 Button(onClick = {
                                     val d = dayIn.toIntOrNull(); val m = monthIn.toIntOrNull()
                                     if (nameIn.isNotBlank() && d != null && m != null) {

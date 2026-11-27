@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import com.palestine.tvlauncher.R
 import com.palestine.tvlauncher.data.TvAppInfo
 import com.palestine.tvlauncher.data.AppManager
 import com.palestine.tvlauncher.data.AdhanManager
@@ -62,6 +64,10 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 private const val QURAN_DEFAULT_STREAM = "https://stream.radiojar.com/8s5u5tpdtwzuv"
+
+// رابط صورة خلفية احتياطي موثوق وعالي الدقة (يُستخدم تلقائياً إذا تعذر تحميل الخلفية الحية/الخارجية)
+private const val FALLBACK_WALLPAPER_URL =
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80"
 
 private fun toLatinDigits(input: String): String {
     val arabic = charArrayOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
@@ -479,6 +485,15 @@ val mediaPlayer = remember { MediaPlayer() }
         }
     }
 
+    // عند تعذر تحميل الخلفية الحية/الخارجية نفعّل الرابط الاحتياطي تلقائياً، ثم صورة محلية HD مضمونة لمنع الشاشة السوداء
+    var wallpaperLoadFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(activeWallpaperModel) { wallpaperLoadFailed = false }
+    val effectiveWallpaperModel: Any? = when {
+        activeWallpaperModel == null -> null
+        wallpaperLoadFailed -> FALLBACK_WALLPAPER_URL
+        else -> activeWallpaperModel
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -528,10 +543,14 @@ val mediaPlayer = remember { MediaPlayer() }
         }
 
     if (activeWallpaperModel != null) {
+            val bundledWallpaperFallback = painterResource(id = R.drawable.ic_banner_hd)
             AsyncImage(
-                model = activeWallpaperModel,
+                model = effectiveWallpaperModel,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                error = bundledWallpaperFallback,
+                fallback = bundledWallpaperFallback,
+                onError = { wallpaperLoadFailed = true },
                 modifier = Modifier.fillMaxSize()
             )
             Box(
@@ -552,7 +571,8 @@ val mediaPlayer = remember { MediaPlayer() }
                 onAddTask = { task -> scope.launch { prefs.saveTasks(config.tasks + task) } },
                 onRemoveTask = { task -> scope.launch { prefs.saveTasks(config.tasks - task) } },
                 onAddReminder = { rem -> scope.launch { prefs.saveReminders(config.reminders + rem) } },
-                onExpand = { tabCardExpanded = it }
+                onExpand = { tabCardExpanded = it },
+                expanded = true
             )
         } else if (isScreensaverMode) {
             ScreensaverView(
