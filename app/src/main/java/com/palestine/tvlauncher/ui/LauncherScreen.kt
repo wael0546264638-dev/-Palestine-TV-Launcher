@@ -771,16 +771,16 @@ val mediaPlayer = remember { MediaPlayer() }
                 config = config,
                 onSave = { cx, cy, cs, kx, ky, ks, ko, dx, dy ->
                     scope.launch {
-                        prefs.updateConfig {
-                            it[LauncherPreferences.CLOCK_X] = cx
-                            it[LauncherPreferences.CLOCK_Y] = cy
-                            it[LauncherPreferences.CLOCK_SCALE] = cs
-                            it[LauncherPreferences.CARD_X] = kx
-                            it[LauncherPreferences.CARD_Y] = ky
-                            it[LauncherPreferences.CARD_SCALE] = ks
-                            it[LauncherPreferences.CARD_OPACITY] = ko
-                            it[LauncherPreferences.DOCK_X] = dx
-                            it[LauncherPreferences.DOCK_Y] = dy
+                        prefs.updateConfig { p ->
+                            p[LauncherPreferences.CLOCK_X] = cx
+                            p[LauncherPreferences.CLOCK_Y] = cy
+                            p[LauncherPreferences.CLOCK_SCALE] = cs
+                            p[LauncherPreferences.CARD_X] = kx
+                            p[LauncherPreferences.CARD_Y] = ky
+                            p[LauncherPreferences.CARD_SCALE] = ks
+                            p[LauncherPreferences.CARD_OPACITY] = ko
+                            p[LauncherPreferences.DOCK_X] = dx
+                            p[LauncherPreferences.DOCK_Y] = dy
                         }
                     }
                     isLiveEditMode = false
