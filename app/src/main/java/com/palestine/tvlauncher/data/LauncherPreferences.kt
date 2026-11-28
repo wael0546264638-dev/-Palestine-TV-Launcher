@@ -176,6 +176,8 @@ data class LauncherConfig(
     val bottomBarOpacity: Float = 0.65f,
     val bottomBarShowEventCounter: Boolean = true,
     val bottomBarShowBirthdayCounter: Boolean = true,
+    val bottomBarShowReligiousEvents: Boolean = true,
+    val bottomBarShowNationalEvents: Boolean = true,
     val bottomBarShowNextPrayer: Boolean = true,
     val customEvents: List<CustomEvent> = emptyList(),
     val birthdays: List<Birthday> = emptyList(),
@@ -328,6 +330,8 @@ class LauncherPreferences(private val context: Context) {
         val BOTTOM_BAR_OPACITY = floatPreferencesKey("bottom_bar_opacity")
         val BOTTOM_BAR_SHOW_EVENT_COUNTER = booleanPreferencesKey("bottom_bar_show_event_counter")
         val BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER = booleanPreferencesKey("bottom_bar_show_birthday_counter")
+        val BOTTOM_BAR_SHOW_RELIGIOUS_EVENTS = booleanPreferencesKey("bottom_bar_show_religious_events")
+        val BOTTOM_BAR_SHOW_NATIONAL_EVENTS = booleanPreferencesKey("bottom_bar_show_national_events")
         val BOTTOM_BAR_SHOW_NEXT_PRAYER = booleanPreferencesKey("bottom_bar_show_next_prayer")
         val CUSTOM_EVENTS_RAW = stringPreferencesKey("custom_events_raw")
         val BIRTHDAYS_RAW = stringPreferencesKey("birthdays_raw")
@@ -452,6 +456,8 @@ class LauncherPreferences(private val context: Context) {
             bottomBarOpacity = p[BOTTOM_BAR_OPACITY] ?: 0.65f,
             bottomBarShowEventCounter = p[BOTTOM_BAR_SHOW_EVENT_COUNTER] ?: true,
             bottomBarShowBirthdayCounter = p[BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER] ?: true,
+            bottomBarShowReligiousEvents = p[BOTTOM_BAR_SHOW_RELIGIOUS_EVENTS] ?: true,
+            bottomBarShowNationalEvents = p[BOTTOM_BAR_SHOW_NATIONAL_EVENTS] ?: true,"""
             bottomBarShowNextPrayer = p[BOTTOM_BAR_SHOW_NEXT_PRAYER] ?: true,
             customEvents = customEventsFromRaw(p[CUSTOM_EVENTS_RAW]),
             birthdays = birthdaysFromRaw(p[BIRTHDAYS_RAW]),

@@ -2195,10 +2195,13 @@ fun BottomBarSection(
             SettingOptionPill("الصلاة القادمة", config.bottomBarShowNextPrayer) {
                 scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_NEXT_PRAYER] = !config.bottomBarShowNextPrayer } }
             }
-            SettingOptionPill("عداد المناسبات", config.bottomBarShowEventCounter) {
-                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_EVENT_COUNTER] = !config.bottomBarShowEventCounter } }
+            SettingOptionPill("المناسبات الدينية", config.bottomBarShowReligiousEvents) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_RELIGIOUS_EVENTS] = !config.bottomBarShowReligiousEvents } }
             }
-            SettingOptionPill("عداد أعياد الميلاد", config.bottomBarShowBirthdayCounter) {
+            SettingOptionPill("المناسبات الوطنية", config.bottomBarShowNationalEvents) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_NATIONAL_EVENTS] = !config.bottomBarShowNationalEvents } }
+            }
+            SettingOptionPill("أعياد الميلاد", config.bottomBarShowBirthdayCounter) {
                 scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER] = !config.bottomBarShowBirthdayCounter } }
             }
         }

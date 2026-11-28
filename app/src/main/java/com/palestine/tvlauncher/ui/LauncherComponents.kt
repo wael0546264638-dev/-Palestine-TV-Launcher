@@ -670,6 +670,28 @@ fun getNextBirthday(birthdays: List<Birthday>): Pair<Birthday, Int>? {
         .minByOrNull { it.second }
 }
 
+data class NationalEvent(val name: String, val month: Int, val day: Int, val daysUntil: Int)
+
+fun getBuiltInNationalEvents(): List<NationalEvent> {
+    val events = listOf(
+        "رأس السنة الميلادية" to (1 to 1),
+        "عيد العمال" to (5 to 1),
+        "يوم الأرض (فلسطين)" to (3 to 30),
+        "يوم النكبة" to (5 to 15),
+        "يوم الاستقلال (فلسطين)" to (11 to 15),
+        "عيد الميلاد" to (12 to 25)
+    )
+    return events.map { (name, (m, d)) ->
+        NationalEvent(name, m, d, calculateDaysUntilDate(m, d))
+    }
+}
+
+fun getNextNationalEvent(): Pair<NationalEvent, Int>? {
+    return getBuiltInNationalEvents()
+        .mapNotNull { e -> if (e.daysUntil >= 0) e to e.daysUntil else null }
+        .minByOrNull { it.second }
+}
+
 @Composable
 fun BottomEventsBar(
     config: LauncherConfig,
@@ -677,8 +699,11 @@ fun BottomEventsBar(
 ) {
     if (!config.bottomBarEnabled) return
 
-    val nextEvent = remember(config.customEvents) {
+    val nextReligious = remember(config.customEvents) {
         getNextIslamicEvent(config.customEvents)
+    }
+    val nextNational = remember {
+        getNextNationalEvent()
     }
     val nextBirthday = remember(config.birthdays) {
         getNextBirthday(config.birthdays)
@@ -688,11 +713,15 @@ fun BottomEventsBar(
     val barFontSize = config.bottomBarFontSize.sp
     val barOpacity = config.bottomBarOpacity
 
-    val eventText = nextEvent?.let { info ->
+    val religiousText = nextReligious?.let { info ->
         val event = info.event
         val label = if (info.isCustom) "📌 ${event.name}" else "🕌 ${event.name}"
         PalestineData.toArabicDigits("$label: بعد ${event.daysUntil} يوم")
-    } ?: PalestineData.toArabicDigits("لا توجد مناسبات قادمة")
+    } ?: PalestineData.toArabicDigits("لا توجد مناسبات دينية قادمة")
+
+    val nationalText = nextNational?.let { (e, days) ->
+        PalestineData.toArabicDigits("🇵🇸 ${e.name}: بعد $days يوم")
+    } ?: PalestineData.toArabicDigits("لا توجد مناسبات وطنية قادمة")
 
     val birthdayText = nextBirthday?.let { (b, days) ->
         PalestineData.toArabicDigits("🎂 ${b.name}: بعد $days يوم")
@@ -726,10 +755,20 @@ fun BottomEventsBar(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (config.bottomBarShowEventCounter) {
+                if (config.bottomBarShowReligiousEvents) {
                     Text(
-                        text = eventText,
+                        text = religiousText,
                         color = Color.White,
+                        fontSize = barFontSize,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = 16.dp)
+                    )
+                }
+                if (config.bottomBarShowNationalEvents) {
+                    Text(
+                        text = nationalText,
+                        color = Color(0xFF34D399),
                         fontSize = barFontSize,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
