@@ -8,12 +8,12 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.LazyVerticalGrid
-import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RectangleShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -595,7 +595,7 @@ data class NextEventInfo(
 
 fun getBuiltInIslamicEvents(): List<IslamicEvent> {
     val today = Calendar.getInstance()
-    val hijri = IslamicCalendar().apply { timeZone = today.timeZone }
+    val hijri = IslamicCalendar().apply { timeZone = android.icu.util.TimeZone.getDefault() }
     val currentHijriYear = hijri.get(IslamicCalendar.YEAR)
     val currentHijriMonth = hijri.get(IslamicCalendar.MONTH)
     val currentHijriDay = hijri.get(IslamicCalendar.DAY_OF_MONTH)
@@ -614,7 +614,7 @@ fun getBuiltInIslamicEvents(): List<IslamicEvent> {
             set(IslamicCalendar.MONTH, month)
             set(IslamicCalendar.DAY_OF_MONTH, day)
         }
-        val currentCal = IslamicCalendar().apply { timeZone = today.timeZone }
+        val currentCal = IslamicCalendar().apply { timeZone = android.icu.util.TimeZone.getDefault() }
         val daysDiff = calculateHijriDaysDiff(currentCal, eventCal)
         IslamicEvent(name, month, day, if (daysDiff < 0) daysDiff + 354 else daysDiff)
     }
@@ -643,14 +643,14 @@ fun getNextIslamicEvent(customEvents: List<CustomEvent>): NextEventInfo? {
     allEvents.addAll(builtIn.map { it to false })
     allEvents.addAll(customEvents.filter { it.isRecurring }.map {
         val today = Calendar.getInstance()
-        val hijri = IslamicCalendar().apply { timeZone = today.timeZone }
+        val hijri = IslamicCalendar().apply { timeZone = android.icu.util.TimeZone.getDefault() }
         val currentHijriYear = hijri.get(IslamicCalendar.YEAR)
         val eventCal = IslamicCalendar().apply {
             set(IslamicCalendar.YEAR, currentHijriYear)
             set(IslamicCalendar.MONTH, it.hijriMonth)
             set(IslamicCalendar.DAY_OF_MONTH, it.hijriDay)
         }
-        val currentCal = IslamicCalendar().apply { timeZone = today.timeZone }
+        val currentCal = IslamicCalendar().apply { timeZone = android.icu.util.TimeZone.getDefault() }
         val daysDiff = calculateHijriDaysDiff(currentCal, eventCal)
         IslamicEvent(it.name, it.hijriMonth, it.hijriDay, if (daysDiff < 0) daysDiff + 354 else daysDiff) to true
     })
