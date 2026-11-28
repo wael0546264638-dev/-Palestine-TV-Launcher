@@ -111,6 +111,7 @@ fun InteractiveTabsCard(
     val cardFocusRequester = remember { FocusRequester() }
     var textFieldFocused by remember { mutableStateOf(false) }
     var isCardEntered by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(1f) }
     val tabFocusRequesters = remember { mutableMapOf<Int, FocusRequester>() }
 
     val scope = rememberCoroutineScope()
@@ -177,13 +178,22 @@ fun InteractiveTabsCard(
 
     // التقليب التلقائي: الوضع 0 = تلقائي دائماً، الوضع 1 = يدوي فقط،
     // الوضع 2 = تلقائي ويتوقف فوراً عند دخول التركيز للبطاقة ثم يعود عند الخروج.
-    LaunchedEffect(config.cardFlipMode, config.tabAutoRotateIntervalMinutes, cardHasFocus) {
+    LaunchedEffect(config.cardFlipMode, config.tabAutoRotateIntervalMinutes, cardHasFocus, isCardEntered) {
         val autoEnabled = config.cardFlipMode == 0 || config.cardFlipMode == 2
         if (!autoEnabled) return@LaunchedEffect
         if (config.cardFlipMode == 2 && cardHasFocus) return@LaunchedEffect
+        if (isCardEntered) return@LaunchedEffect
         if (config.tabAutoRotateIntervalMinutes <= 0) return@LaunchedEffect
         while (true) {
-            delay(config.tabAutoRotateIntervalMinutes * 60_000L)
+            progress = 1f
+            val total = config.tabAutoRotateIntervalMinutes * 60_000L
+            val start = System.currentTimeMillis()
+            while (System.currentTimeMillis() - start < total) {
+                progress = 1f - ((System.currentTimeMillis() - start).toFloat() / total.toFloat())
+                delay(100L)
+                if (isCardEntered) return@LaunchedEffect
+            }
+            progress = 0f
             if (effectiveTabs.isNotEmpty()) {
                 selectedTab = (selectedTab + 1) % effectiveTabs.size
             }
@@ -743,9 +753,15 @@ fun InteractiveTabsCard(
                      }
                  }
              }
-         }
-     }
-  }
+            LinearProgressIndicator(
+                progress = progress,
+                modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(50)),
+                color = Color(0xFF0EA5E9),
+                trackColor = Color.White.copy(alpha = 0.12f)
+            )
+        }
+    }
+}
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
