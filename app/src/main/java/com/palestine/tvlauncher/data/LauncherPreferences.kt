@@ -30,12 +30,12 @@ val cardTabs = listOf(
 private fun tabOrderFromRaw(raw: String?): List<String> {
     val valid = cardTabs.map { it.key }.toSet()
     return if (raw?.isBlank() == true) cardTabs.map { it.key }
-    else raw.split("::").filter { it.isNotBlank() && it in valid }
+    else (raw ?: "").split("::").filter { it.isNotBlank() && it in valid }
 }
 
 private fun appCustomNamesFromRaw(raw: String?): Map<String, String> {
     return if (raw?.isBlank() == true) emptyMap()
-    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+    else (raw ?: "").split("||").filter { it.isNotBlank() }.mapNotNull { item ->
         val parts = item.split("::", limit = 2)
         if (parts.size == 2) parts[0] to parts[1] else null
     }.toMap()
@@ -43,8 +43,8 @@ private fun appCustomNamesFromRaw(raw: String?): Map<String, String> {
 
 private fun customEventsFromRaw(raw: String?): List<CustomEvent> {
     return if (raw?.isBlank() == true) emptyList()
-    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
-        val parts = item.split("::")
+    else (raw ?: "").split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+        val parts: List<String> = item.split("::").toList()
         if (parts.size >= 4) {
             CustomEvent(
                 id = parts[0],
@@ -59,7 +59,7 @@ private fun customEventsFromRaw(raw: String?): List<CustomEvent> {
 
 private fun birthdaysFromRaw(raw: String?): List<Birthday> {
     return if (raw?.isBlank() == true) emptyList()
-    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+    else (raw ?: "").split("||").filter { it.isNotBlank() }.mapNotNull { item ->
         val parts = item.split("::")
         if (parts.size >= 3) {
             Birthday(
