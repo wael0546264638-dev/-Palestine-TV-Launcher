@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -33,8 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.drawable.toBitmap
 import com.palestine.tvlauncher.data.LauncherConfig
+import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.TabItem
 import com.palestine.tvlauncher.data.cardTabs
 import com.palestine.tvlauncher.data.PalestineData
@@ -43,8 +48,11 @@ import com.palestine.tvlauncher.data.CustomEvent
 import com.palestine.tvlauncher.data.Birthday
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
+import android.content.Intent
+import android.net.Uri
 import java.util.*
 import android.icu.util.IslamicCalendar
+import kotlinx.coroutines.launch
 
 @Composable
 fun TopControlBar(
@@ -250,8 +258,8 @@ fun AppDockRow(
                     app = app,
                     config = config,
                     displayName = config.appCustomNames[app.packageName] ?: app.label,
-                    onClick = { try { onLaunchApp(app) } catch (_: Exception) {} },
-                    onLongClick = onLongPress?.invoke(app)
+onClick = { try { onLaunchApp(app) } catch (_: Exception) {} },
+                onLongClick = { onLongPress?.invoke(app) }
                 )
             }
         }
@@ -601,14 +609,15 @@ fun getBuiltInIslamicEvents(): List<IslamicEvent> {
     val currentHijriDay = hijri.get(IslamicCalendar.DAY_OF_MONTH)
 
     val builtInEvents = listOf(
-        "رأس السنة الهجرية" to (IslamicCalendar.MUHARRAM to 1),
-        "الإسراء والمعراج" to (IslamicCalendar.RAJAB to 27),
-        "رمضان المبارك" to (IslamicCalendar.RAMADAN to 1),
-        "عيد الفطر" to (IslamicCalendar.SHAWWAL to 1),
-        "عيد الأضحى" to (IslamicCalendar.DHU_AL_HIJJAH to 10)
+        "رأس السنة الهجرية" to Pair(IslamicCalendar.MUHARRAM, 1),
+        "الإسراء والمعراج" to Pair(IslamicCalendar.RAJAB, 27),
+        "رمضان المبارك" to Pair(IslamicCalendar.RAMADAN, 1),
+        "عيد الفطر" to Pair(IslamicCalendar.SHAWWAL, 1),
+        "عيد الأضحى" to Pair(IslamicCalendar.DHU_AL_HIJJAH, 10)
     )
 
-    return builtInEvents.map { (name, (month, day)) ->
+    return builtInEvents.map { (name, monthDay) ->
+        val (month, day) = monthDay
         val eventCal = IslamicCalendar().apply {
             set(IslamicCalendar.YEAR, currentHijriYear)
             set(IslamicCalendar.MONTH, month)
@@ -674,14 +683,15 @@ data class NationalEvent(val name: String, val month: Int, val day: Int, val day
 
 fun getBuiltInNationalEvents(): List<NationalEvent> {
     val events = listOf(
-        "رأس السنة الميلادية" to (1 to 1),
-        "عيد العمال" to (5 to 1),
-        "يوم الأرض (فلسطين)" to (3 to 30),
-        "يوم النكبة" to (5 to 15),
-        "يوم الاستقلال (فلسطين)" to (11 to 15),
-        "عيد الميلاد" to (12 to 25)
+        "رأس السنة الميلادية" to Pair(1, 1),
+        "عيد العمال" to Pair(5, 1),
+        "يوم الأرض (فلسطين)" to Pair(3, 30),
+        "يوم النكبة" to Pair(5, 15),
+        "يوم الاستقلال (فلسطين)" to Pair(11, 15),
+        "عيد الميلاد" to Pair(12, 25)
     )
-    return events.map { (name, (m, d)) ->
+    return events.map { (name, monthDay) ->
+        val (m, d) = monthDay
         NationalEvent(name, m, d, calculateDaysUntilDate(m, d))
     }
 }
