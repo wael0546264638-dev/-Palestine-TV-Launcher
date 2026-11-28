@@ -1233,7 +1233,7 @@ fun SettingsModalDrawer(
                     } else {
                         val section = selectedSection
                         SectionContentView(
-                            sectionName = section,
+                            sectionName = section ?: "",
                             onBackClick = { selectedSection = null },
                             config = config,
                             prefs = prefs,
