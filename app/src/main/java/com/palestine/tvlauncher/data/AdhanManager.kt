@@ -272,17 +272,6 @@ fun scheduleAdhanAlarms(context: Context, prayers: Map<String, String>) {
         }
     }
 
-    class AdhanAlarmReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val prayerName = intent.getStringExtra("prayerName") ?: "صلاة"
-            try {
-                AdhanManager.playAdhan(context, prayerName, "makkah_alimla", 0, 70)
-            } catch (e: Exception) {
-                Log.e(TAG, "AdhanAlarmReceiver failed", e)
-            }
-        }
-    }
-
     fun stop() {
         try {
             adhanCoroutine?.cancel()
@@ -321,5 +310,16 @@ fun scheduleAdhanAlarms(context: Context, prayers: Map<String, String>) {
             Log.e(TAG, "wakeLock release failed", e)
         }
         isPlaying = false
+    }
+}
+
+class AdhanAlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val prayerName = intent.getStringExtra("prayerName") ?: "صلاة"
+        try {
+            AdhanManager.playAdhan(context, prayerName, "makkah_alimla", 0, 70)
+        } catch (e: Exception) {
+            Log.e("AdhanAlarmReceiver", "AdhanAlarmReceiver failed", e)
+        }
     }
 }
