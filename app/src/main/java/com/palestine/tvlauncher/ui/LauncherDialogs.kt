@@ -590,6 +590,8 @@ fun InteractiveTabsCard(
                       }
                       "tasks" -> {
                           var taskInput by remember { mutableStateOf("") }
+                          var taskEditing by remember { mutableStateOf(false) }
+                          val taskFocusRequester = remember { FocusRequester() }
                          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                              Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                  OutlinedTextField(
@@ -598,8 +600,33 @@ fun InteractiveTabsCard(
                                      placeholder = { Text("أضف مهمة...", color = Color.Gray) },
                                      modifier = Modifier
                                          .weight(1f)
-                                         .onFocusChanged { textFieldFocused = it.isFocused },
-                                     singleLine = true
+                                         .focusRequester(taskFocusRequester)
+                                         .onFocusChanged { textFieldFocused = it.isFocused }
+                                         .onPreviewKeyEvent { event ->
+                                             if (event.type == KeyEventType.KeyDown) {
+                                                 when (event.key) {
+                                                     Key.DirectionCenter, Key.Enter -> {
+                                                         if (!taskEditing) {
+                                                             taskEditing = true
+                                                             true
+                                                         } else false
+                                                     }
+                                                     Key.Back -> {
+                                                         if (taskEditing) {
+                                                             taskEditing = false
+                                                             true
+                                                         } else false
+                                                     }
+                                                     else -> false
+                                                 }
+                                             } else false
+                                         },
+                                     singleLine = true,
+                                     keyboardOptions = KeyboardOptions(
+                                         imeAction = if (taskEditing) ImeAction.Done else ImeAction.None,
+                                         keyboardType = KeyboardType.Text
+                                     ),
+                                     visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
                                  )
                                  Button(onClick = {
                                      if (taskInput.isNotBlank()) { onAddTask(taskInput.trim()); taskInput = "" }
@@ -615,15 +642,45 @@ fun InteractiveTabsCard(
                              }
                          }
                       }
-                      "reminders" -> {
+"reminders" -> {
                           var nameIn by remember { mutableStateOf("") }
-                         var dayIn by remember { mutableStateOf("") }
-                         var monthIn by remember { mutableStateOf("") }
+                          var dayIn by remember { mutableStateOf("") }
+                          var monthIn by remember { mutableStateOf("") }
+                          var nameEditing by remember { mutableStateOf(false) }
+                          var dayEditing by remember { mutableStateOf(false) }
+                          var monthEditing by remember { mutableStateOf(false) }
+                          val nameFocusRequester = remember { FocusRequester() }
+                          val dayFocusRequester = remember { FocusRequester() }
+                          val monthFocusRequester = remember { FocusRequester() }
                          Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                              Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                 OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
-                                 OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
-                                 OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f).onFocusChanged { textFieldFocused = it.isFocused }, singleLine = true)
+                                 OutlinedTextField(value = nameIn, onValueChange = { nameIn = it }, placeholder = { Text("الاسم", color = Color.Gray) }, modifier = Modifier.weight(1.4f).focusRequester(nameFocusRequester).onFocusChanged { textFieldFocused = it.isFocused }.onPreviewKeyEvent { event ->
+                                     if (event.type == KeyEventType.KeyDown) {
+                                         when (event.key) {
+                                             Key.DirectionCenter, Key.Enter -> { if (!nameEditing) { nameEditing = true; true } else false }
+                                             Key.Back -> { if (nameEditing) { nameEditing = false; true } else false }
+                                             else -> false
+                                         }
+                                     } else false
+                                 }, singleLine = true, keyboardOptions = KeyboardOptions(imeAction = if (nameEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Text), visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) })
+                                 OutlinedTextField(value = dayIn, onValueChange = { dayIn = it }, placeholder = { Text("يوم", color = Color.Gray) }, modifier = Modifier.weight(0.6f).focusRequester(dayFocusRequester).onFocusChanged { textFieldFocused = it.isFocused }.onPreviewKeyEvent { event ->
+                                     if (event.type == KeyEventType.KeyDown) {
+                                         when (event.key) {
+                                             Key.DirectionCenter, Key.Enter -> { if (!dayEditing) { dayEditing = true; true } else false }
+                                             Key.Back -> { if (dayEditing) { dayEditing = false; true } else false }
+                                             else -> false
+                                         }
+                                     } else false
+                                 }, singleLine = true, keyboardOptions = KeyboardOptions(imeAction = if (dayEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Number), visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) })
+                                 OutlinedTextField(value = monthIn, onValueChange = { monthIn = it }, placeholder = { Text("شهر", color = Color.Gray) }, modifier = Modifier.weight(0.6f).focusRequester(monthFocusRequester).onFocusChanged { textFieldFocused = it.isFocused }.onPreviewKeyEvent { event ->
+                                     if (event.type == KeyEventType.KeyDown) {
+                                         when (event.key) {
+                                             Key.DirectionCenter, Key.Enter -> { if (!monthEditing) { monthEditing = true; true } else false }
+                                             Key.Back -> { if (monthEditing) { monthEditing = false; true } else false }
+                                             else -> false
+                                         }
+                                     } else false
+                                 }, singleLine = true, keyboardOptions = KeyboardOptions(imeAction = if (monthEditing) ImeAction.Done else ImeAction.None, keyboardType = KeyboardType.Number), visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) })
                                  Button(onClick = {
                                      val d = dayIn.toIntOrNull(); val m = monthIn.toIntOrNull()
                                      if (nameIn.isNotBlank() && d != null && m != null) {
@@ -2248,28 +2305,77 @@ fun BottomBarSection(
         val eventMonthName = eventMonth.toIntOrNull()?.let { hijriMonths.getOrElse(it - 1) { "" } } ?: ""
 
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            var eventNameFocused by remember { mutableStateOf(false) }
+            var eventNameEditing by remember { mutableStateOf(false) }
+            val eventNameFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = eventName,
                 onValueChange = { eventName = it },
                 placeholder = { Text("اسم المناسبة", color = Color.Gray) },
-                modifier = Modifier.weight(1.5f).onFocusChanged { },
-                singleLine = true
+                modifier = Modifier
+                    .weight(1.5f)
+                    .focusRequester(eventNameFocusRequester)
+                    .onFocusChanged { eventNameFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!eventNameEditing) { eventNameEditing = true; true } else false }
+                                Key.Back -> { if (eventNameEditing) { eventNameEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = if (eventNameEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Text),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
+            var eventMonthFocused by remember { mutableStateOf(false) }
+            var eventMonthEditing by remember { mutableStateOf(false) }
+            val eventMonthFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = eventMonth,
                 onValueChange = { eventMonth = it.filter { it.isDigit() } },
                 placeholder = { Text("الشهر (1-12)", color = Color.Gray) },
-                modifier = Modifier.width(80.dp).onFocusChanged { },
+                modifier = Modifier
+                    .width(80.dp)
+                    .focusRequester(eventMonthFocusRequester)
+                    .onFocusChanged { eventMonthFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!eventMonthEditing) { eventMonthEditing = true; true } else false }
+                                Key.Back -> { if (eventMonthEditing) { eventMonthEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(imeAction = if (eventMonthEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Number),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
+            var eventDayFocused by remember { mutableStateOf(false) }
+            var eventDayEditing by remember { mutableStateOf(false) }
+            val eventDayFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = eventDay,
                 onValueChange = { eventDay = it.filter { it.isDigit() } },
                 placeholder = { Text("اليوم (1-30)", color = Color.Gray) },
-                modifier = Modifier.width(80.dp).onFocusChanged { },
+                modifier = Modifier
+                    .width(80.dp)
+                    .focusRequester(eventDayFocusRequester)
+                    .onFocusChanged { eventDayFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!eventDayEditing) { eventDayEditing = true; true } else false }
+                                Key.Back -> { if (eventDayEditing) { eventDayEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(imeAction = if (eventDayEditing) ImeAction.Done else ImeAction.None, keyboardType = KeyboardType.Number),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
             if (editingEventId != null) {
                 SettingOptionPill("تعديل", true) {
@@ -2356,28 +2462,77 @@ fun BottomBarSection(
         var editingBirthId by remember { mutableStateOf<String?>(null) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            var birthNameFocused by remember { mutableStateOf(false) }
+            var birthNameEditing by remember { mutableStateOf(false) }
+            val birthNameFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = birthName,
                 onValueChange = { birthName = it },
                 placeholder = { Text("الاسم", color = Color.Gray) },
-                modifier = Modifier.weight(1.5f).onFocusChanged { },
-                singleLine = true
+                modifier = Modifier
+                    .weight(1.5f)
+                    .focusRequester(birthNameFocusRequester)
+                    .onFocusChanged { birthNameFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!birthNameEditing) { birthNameEditing = true; true } else false }
+                                Key.Back -> { if (birthNameEditing) { birthNameEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = if (birthNameEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Text),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
+            var birthMonthFocused by remember { mutableStateOf(false) }
+            var birthMonthEditing by remember { mutableStateOf(false) }
+            val birthMonthFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = birthMonth,
                 onValueChange = { birthMonth = it.filter { it.isDigit() } },
                 placeholder = { Text("الشهر (1-12)", color = Color.Gray) },
-                modifier = Modifier.width(80.dp).onFocusChanged { },
+                modifier = Modifier
+                    .width(80.dp)
+                    .focusRequester(birthMonthFocusRequester)
+                    .onFocusChanged { birthMonthFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!birthMonthEditing) { birthMonthEditing = true; true } else false }
+                                Key.Back -> { if (birthMonthEditing) { birthMonthEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(imeAction = if (birthMonthEditing) ImeAction.Next else ImeAction.None, keyboardType = KeyboardType.Number),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
+            var birthDayFocused by remember { mutableStateOf(false) }
+            var birthDayEditing by remember { mutableStateOf(false) }
+            val birthDayFocusRequester = remember { FocusRequester() }
             OutlinedTextField(
                 value = birthDay,
                 onValueChange = { birthDay = it.filter { it.isDigit() } },
                 placeholder = { Text("اليوم (1-31)", color = Color.Gray) },
-                modifier = Modifier.width(80.dp).onFocusChanged { },
+                modifier = Modifier
+                    .width(80.dp)
+                    .focusRequester(birthDayFocusRequester)
+                    .onFocusChanged { birthDayFocused = it.isFocused }
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionCenter, Key.Enter -> { if (!birthDayEditing) { birthDayEditing = true; true } else false }
+                                Key.Back -> { if (birthDayEditing) { birthDayEditing = false; true } else false }
+                                else -> false
+                            }
+                        } else false
+                    },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(imeAction = if (birthDayEditing) ImeAction.Done else ImeAction.None, keyboardType = KeyboardType.Number),
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
             if (editingBirthId != null) {
                 SettingOptionPill("تعديل", true) {
