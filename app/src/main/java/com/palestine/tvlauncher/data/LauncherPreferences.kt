@@ -457,7 +457,7 @@ class LauncherPreferences(private val context: Context) {
             bottomBarShowEventCounter = p[BOTTOM_BAR_SHOW_EVENT_COUNTER] ?: true,
             bottomBarShowBirthdayCounter = p[BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER] ?: true,
             bottomBarShowReligiousEvents = p[BOTTOM_BAR_SHOW_RELIGIOUS_EVENTS] ?: true,
-            bottomBarShowNationalEvents = p[BOTTOM_BAR_SHOW_NATIONAL_EVENTS] ?: true,"""
+            bottomBarShowNationalEvents = p[BOTTOM_BAR_SHOW_NATIONAL_EVENTS] ?: true,
             bottomBarShowNextPrayer = p[BOTTOM_BAR_SHOW_NEXT_PRAYER] ?: true,
             customEvents = customEventsFromRaw(p[CUSTOM_EVENTS_RAW]),
             birthdays = birthdaysFromRaw(p[BIRTHDAYS_RAW]),
