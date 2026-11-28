@@ -500,22 +500,22 @@ fun InteractiveTabsCard(
                      "verse" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                          Text(PalestineData.dailyVerses.first(), color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
                      }
-                     "hadith" -> val hadith = todaysHadith
+                     "hadith" -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                         val hadith = todaysHadith
                          if (hadith != null) {
-                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                 Text("حديث اليوم", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                 Text(hadith.text, color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
-                                 Spacer(modifier = Modifier.height(10.dp))
-                                 Text("الشرح: ${hadith.explanation.ifBlank { "غير متوفر" }}", color = Color(0xFFCBD5E1), fontSize = 14.sp)
-                                 Text("الفوائد: ${hadith.benefits.ifBlank { "غير متوفرة" }}", color = Color(0xFFE1BEE7), fontSize = 14.sp)
-                                 Spacer(modifier = Modifier.height(6.dp))
-                                 Text("المصدر: ${hadith.source.ifBlank { "مستنبط" }}", color = Color(0xFF94A3B8), fontSize = 13.sp)
-                             }
+                             Text("حديث اليوم", color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                             Text(hadith.text, color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center)
+                             Spacer(modifier = Modifier.height(10.dp))
+                             Text("الشرح: ${hadith.explanation.ifBlank { "غير متوفر" }}", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                             Text("الفوائد: ${hadith.benefits.ifBlank { "غير متوفرة" }}", color = Color(0xFFE1BEE7), fontSize = 14.sp)
+                             Spacer(modifier = Modifier.height(6.dp))
+                             Text("المصدر: ${hadith.source.ifBlank { "مستنبط" }}", color = Color(0xFF94A3B8), fontSize = 13.sp)
                          } else {
                              Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                  Text("جاري تحميل حديث اليوم...", color = Color(0xFF38BDF8), fontSize = 16.sp)
                              }
                          }
+                     }
                      "adhkar" -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                          items(PalestineData.adhkarList) { item -> Text("• $item", color = Color.White, fontSize = 14.sp) }
                      }
@@ -1129,7 +1129,7 @@ fun SettingOptionPill(
         border = BorderStroke(
             width = if (focused) 2.dp else if (selected) 1.5.dp else 1.dp,
             color = when {
-                focused -> Color(config.focusGlowColor)
+                focused -> Color(0xFF38BDF8)
                 selected -> Color(0xFF38BDF8)
                 else -> Color.White.copy(alpha = 0.12f)
             }
@@ -1231,8 +1231,9 @@ fun SettingsModalDrawer(
                     if (selectedSection == null) {
                         MainSectionsView(onSectionClick = { name -> selectedSection = name }, modifier = Modifier.weight(1f))
                     } else {
+                        val section = selectedSection
                         SectionContentView(
-                            sectionName = selectedSection,
+                            sectionName = section,
                             onBackClick = { selectedSection = null },
                             config = config,
                             prefs = prefs,
