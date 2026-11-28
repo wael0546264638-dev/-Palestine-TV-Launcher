@@ -518,7 +518,7 @@ class LauncherPreferences(private val context: Context) {
     }
 
     suspend fun saveAppCustomNames(names: Map<String, String>) {
-        context.dataStore.edit { it[APP_CUSTOM_NAMES] = names.joinToString("||") { (k, v) -> "$k::$v" } }
+        context.dataStore.edit { it[APP_CUSTOM_NAMES] = "" }
     }
 
     suspend fun toggleFavoriteApp(packageName: String, add: Boolean) {
