@@ -40,8 +40,8 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -1720,7 +1720,7 @@ fun CardFlipSection(
 fun TabOrderEditor(
     tabs: List<TabItem>,
     order: List<String>,
-    visible: Set<String>,
+    visible: MutableSet<String>,
     onVisibilityToggle: (String, Boolean) -> Unit,
     onOrderChange: (List<String>) -> Unit
 ) {
@@ -1782,7 +1782,7 @@ fun CardTabsSection(
         TabOrderEditor(
             tabs = cardTabs,
             order = config.cardTabOrder,
-            visible = config.cardTabVisible,
+            visible = config.cardTabVisible.toMutableSet(),
             onVisibilityToggle = { key, enabled ->
                 scope.launch {
                     val set = if (enabled) config.cardTabVisible + key else config.cardTabVisible - key
@@ -1806,7 +1806,7 @@ fun ExpansionTabsSection(
         TabOrderEditor(
             tabs = cardTabs,
             order = config.expansionTabOrder,
-            visible = config.expansionTabVisible,
+            visible = config.expansionTabVisible.toMutableSet(),
             onVisibilityToggle = { key, enabled ->
                 scope.launch {
                     val set = if (enabled) config.expansionTabVisible + key else config.expansionTabVisible - key
@@ -1881,8 +1881,8 @@ fun AppBarSection(
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(glowColors) { (label, color) ->
-                SettingOptionPill(label, config.appFocusGlowColor == color) {
-                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_COLOR] = color } }
+                SettingOptionPill(label, config.appFocusGlowColor.toInt() == color) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_COLOR] = color.toLong() } }
                 }
             }
         }
