@@ -43,7 +43,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -638,8 +639,7 @@ fun InteractiveTabsCard(
              }
          }
      }
- }
-}
+  }
 @Composable
 fun FullQuranDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -1229,7 +1229,7 @@ fun SettingsModalDrawer(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (selectedSection == null) {
-                        MainSectionsView(onSectionClick = { name -> selectedSection = name })
+                        MainSectionsView(onSectionClick = { name -> selectedSection = name }, modifier = Modifier.weight(1f))
                     } else {
                         SectionContentView(
                             sectionName = selectedSection,
@@ -1250,7 +1250,8 @@ fun SettingsModalDrawer(
                             onIsLoadingRadiosChange = { isLoadingRadios = it },
                             onPickDeviceImage = onPickDeviceImage,
                             onOpenLiveEditor = onOpenLiveEditor,
-                            onOpenScreensaverEditor = onOpenScreensaverEditor
+                            onOpenScreensaverEditor = onOpenScreensaverEditor,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -1260,7 +1261,7 @@ fun SettingsModalDrawer(
 }
 
 @Composable
-fun MainSectionsView(onSectionClick: (String) -> Unit) {
+fun MainSectionsView(onSectionClick: (String) -> Unit, modifier: Modifier = Modifier) {
     val sections = listOf(
         "عام والموقع" to Icons.Default.Settings,
         "المظهر والخلفيات" to Icons.Default.Palette,
@@ -1271,7 +1272,7 @@ fun MainSectionsView(onSectionClick: (String) -> Unit) {
         "الشريط السفلي" to Icons.Default.FormatListBulleted,
         "حالة الجهاز" to Icons.Default.Memory
     )
-    Column(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("اختر قسم الإعدادات", color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(20.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1330,9 +1331,10 @@ fun SectionContentView(
     onIsLoadingRadiosChange: (Boolean) -> Unit,
     onPickDeviceImage: () -> Unit,
     onOpenLiveEditor: () -> Unit,
-    onOpenScreensaverEditor: () -> Unit
+    onOpenScreensaverEditor: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -1465,7 +1467,7 @@ fun GeneralLocationSection(
                     imeAction = if (isEditing) ImeAction.Search else ImeAction.None,
                     keyboardType = KeyboardType.Text
                 ),
-                visualTransformation = VisualTransformation { TextFieldValue(it.text) }
+                visualTransformation = VisualTransformation { TransformedText(it, OffsetMapping.Identity) }
             )
             SettingOptionPill("بحث", false) {
                 if (searchQuery.isNotBlank()) {
@@ -1732,7 +1734,7 @@ fun TabOrderEditor(
         currentVisible = visible.toMutableSet()
     }
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(currentOrder.size) { i ->
+        currentOrder.forEachIndexed { i, _ ->
             val key = currentOrder[i]
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1742,7 +1744,7 @@ fun TabOrderEditor(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     SettingOptionPill("${i + 1}. ${labels[key] ?: key}", currentVisible.contains(key)) {
                         val next = if (currentVisible.contains(key)) currentVisible - key else currentVisible + key
-                        currentVisible = next
+                        currentVisible = next.toMutableSet()
                         onVisibilityToggle(key, next.contains(key))
                     }
                 }
@@ -1881,8 +1883,8 @@ fun AppBarSection(
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(glowColors) { (label, color) ->
-                SettingOptionPill(label, config.appFocusGlowColor.toInt() == color) {
-                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_COLOR] = color.toLong() } }
+                SettingOptionPill(label, config.appFocusGlowColor == color.toInt()) {
+                    scope.launch { prefs.updateConfig { it[LauncherPreferences.APP_FOCUS_GLOW_COLOR] = color.toInt() } }
                 }
             }
         }
