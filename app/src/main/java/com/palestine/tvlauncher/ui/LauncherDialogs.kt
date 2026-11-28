@@ -2074,8 +2074,8 @@ fun TickerElementsSection(
             n[j] = t
             order = n
         }
-        LazyColumn {
-            items(order.size) { i ->
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            order.forEachIndexed { i, _ ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2109,10 +2109,11 @@ fun FavoriteTeamSection(
 ) {
     SettingsCategoryBox("الفريق الرياضي المفضل") {
         Text("اختر فريقك المفضل لعرضه في شريط المباريات:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(config.favoriteTeams) { team ->
-                val selected = config.favoriteTeamId == team.id
-                SettingOptionPill("${team.name}  •  ${team.league}", selected) {
+        val teams = try { config.favoriteTeams } catch (_: Exception) { emptyList() }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            teams.forEach { team ->
+                val selected = try { config.favoriteTeamId == team.id } catch (_: Exception) { false }
+                SettingOptionPill("${team.name.ifBlank { "فريق" }}  •  ${team.league.ifBlank { "" }}", selected) {
                     scope.launch { prefs.updateConfig {
                         it[LauncherPreferences.FAVORITE_TEAM_ID] = team.id
                         it[LauncherPreferences.FAVORITE_TEAM_NAME] = team.name
@@ -2120,16 +2121,14 @@ fun FavoriteTeamSection(
                     } }
                 }
             }
-            item {
-                if (config.favoriteTeamId.isNotBlank()) {
-                    Text("المحدد: ${config.favoriteTeamName} (${config.favoriteTeamLeague})", color = Color(0xFF38BDF8), fontSize = 13.sp)
-                    SettingOptionPill("إلغاء التحديد", false) {
-                        scope.launch { prefs.updateConfig {
-                            it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
-                            it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
-                            it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
-                        } }
-                    }
+            if (config.favoriteTeamId.isNotBlank()) {
+                Text("المحدد: ${config.favoriteTeamName.ifBlank { "الفريق المفضل" }} (${config.favoriteTeamLeague.ifBlank { "" }})", color = Color(0xFF38BDF8), fontSize = 13.sp)
+                SettingOptionPill("إلغاء التحديد", false) {
+                    scope.launch { prefs.updateConfig {
+                        it[LauncherPreferences.FAVORITE_TEAM_ID] = ""
+                        it[LauncherPreferences.FAVORITE_TEAM_NAME] = ""
+                        it[LauncherPreferences.FAVORITE_TEAM_LEAGUE] = ""
+                    } }
                 }
             }
         }
@@ -2143,17 +2142,21 @@ fun NewsSourcesSection(
     scope: kotlinx.coroutines.CoroutineScope
 ) {
     SettingsCategoryBox("إدارة مصادر الأخبار والرياضة") {
-        val selectedCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "Palestine"
-        val allSources = (LiveRepository.countryNewsSources[selectedCountry] ?: emptyList()) + LiveRepository.worldNewsSources + LiveRepository.techNewsSources
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(allSources) { source ->
-                val enabled = source.id !in config.disabledNewsSources
+        val allSources = try {
+            val selectedCountry = (PalestineData.palestineCities + PalestineData.worldCapitals).firstOrNull { it.name == config.cityName }?.country ?: "Palestine"
+            (LiveRepository.countryNewsSources[selectedCountry] ?: emptyList()) + LiveRepository.worldNewsSources + LiveRepository.techNewsSources
+        } catch (_: Exception) {
+            emptyList()
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            allSources.forEach { source ->
+                val enabled = try { source.id !in (config.disabledNewsSources ?: emptySet()) } catch (_: Exception) { false }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("${source.name}  •  ${source.country}", color = Color.White, fontSize = 14.sp)
+                    Text("${source.name.ifBlank { "مصدر" }}  •  ${source.country.ifBlank { "" }}", color = Color.White, fontSize = 14.sp)
                     SettingOptionPill(if (enabled) "تشغيل" else "إيقاف", enabled) {
                         scope.launch { prefs.toggleNewsSource(source.id, !enabled) }
                     }
