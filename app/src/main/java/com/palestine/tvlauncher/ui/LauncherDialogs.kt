@@ -72,6 +72,11 @@ import kotlinx.coroutines.launch
 import java.util.*
 import java.util.UUID
 
+private val settingsMainBg = Color(0xFF0F172A)
+private val settingsCardBg = Color(0xFF1E293B)
+private val focusBorderWhite = Color(0xFFFFFFFF)
+private val focusBorderGold = Color(0xFFFBBF24)
+
 @Composable
 fun InteractiveTabsCard(
     modifier: Modifier = Modifier,
@@ -777,17 +782,25 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
                             val isSelected = s.number == selectedSurahNum
                             val interaction = remember { MutableInteractionSource() }
                             val focused by interaction.collectIsFocusedAsState()
+                            var surahItemFocused by remember { mutableStateOf(false) }
+                            val surahIsFocused = focused || surahItemFocused
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .focusable()
+                                    .onFocusChanged { surahItemFocused = it.isFocused }
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable(interactionSource = interaction, indication = null) { selectedSurahNum = s.number },
                                 shape = RoundedCornerShape(12.dp),
                                 color = when {
-                                    focused -> Color.White
+                                    surahIsFocused -> Color.White
                                     isSelected -> Color(0xFFFBBF24).copy(alpha = 0.25f)
                                     else -> Color.Transparent
-                                }
+                                },
+                                border = BorderStroke(
+                                    width = if (surahIsFocused) 2.dp else 0.dp,
+                                    color = if (surahIsFocused) focusBorderGold else Color.Transparent
+                                )
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
@@ -1090,11 +1103,11 @@ fun SettingsCategoryBox(title: String, content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.04f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+        color = settingsCardBg,
+        border = BorderStroke(1.dp, focusBorderWhite.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             content()
         }
@@ -1103,46 +1116,49 @@ fun SettingsCategoryBox(title: String, content: @Composable () -> Unit) {
 
 @Composable
 fun SettingOptionPill(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val focused by interaction.collectIsFocusedAsState()
-    Surface(
-        modifier = Modifier
-            .focusable()
-            .clickable(interactionSource = interaction, indication = null) { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .graphicsLayer {
-                if (focused) {
-                    scaleX = 1.05f
-                    scaleY = 1.05f
-                }
-            },
-        shape = RoundedCornerShape(10.dp),
-        color = when {
-            focused -> Color.White
-            selected -> Color(0xFF38BDF8).copy(alpha = 0.25f)
-            else -> Color.White.copy(alpha = 0.06f)
-        },
-        border = BorderStroke(
-            width = if (focused) 2.dp else if (selected) 1.5.dp else 1.dp,
-            color = when {
-                focused -> Color(0xFF38BDF8)
-                selected -> Color(0xFF38BDF8)
-                else -> Color.White.copy(alpha = 0.12f)
-            }
-        )
+        text: String,
+        selected: Boolean,
+        onClick: () -> Unit
     ) {
-        Text(
-            text = text,
-            color = if (focused) Color(0xFF0F172A) else if (selected) Color(0xFF38BDF8) else Color.White,
-            fontSize = 13.sp,
-            fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium
-        )
+        val interaction = remember { MutableInteractionSource() }
+        val focused by interaction.collectIsFocusedAsState()
+        var pillFocused by remember { mutableStateOf(false) }
+        val isFocused = focused || pillFocused
+        Surface(
+            modifier = Modifier
+                .focusable()
+                .onFocusChanged { pillFocused = it.isFocused }
+                .clickable(interactionSource = interaction, indication = null) { onClick() }
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .graphicsLayer {
+                    if (isFocused) {
+                        scaleX = 1.05f
+                        scaleY = 1.05f
+                    }
+                },
+            shape = RoundedCornerShape(10.dp),
+            color = when {
+                isFocused -> focusBorderWhite
+                selected -> Color(0xFF38BDF8).copy(alpha = 0.25f)
+                else -> settingsCardBg
+            },
+            border = BorderStroke(
+                width = if (isFocused) 2.dp else if (selected) 1.5.dp else 1.dp,
+                color = when {
+                    isFocused -> focusBorderWhite
+                    selected -> Color(0xFF38BDF8)
+                    else -> focusBorderWhite.copy(alpha = 0.12f)
+                }
+            )
+        ) {
+            Text(
+                text = text,
+                color = if (isFocused) Color(0xFF0F172A) else if (selected) Color(0xFF38BDF8) else Color.White,
+                fontSize = 13.sp,
+                fontWeight = if (selected || isFocused) FontWeight.Bold else FontWeight.Medium
+            )
+        }
     }
-}
 
 @Composable
 fun StepAdjustRow(
@@ -1204,15 +1220,15 @@ fun SettingsModalDrawer(
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true, dismissOnClickOutside = true)
     ) {
         BackHandler(onBack = { if (selectedSection != null) selectedSection = null else onDismiss() })
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f)),
-            contentAlignment = Alignment.CenterEnd
-        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(settingsMainBg),
+                contentAlignment = Alignment.CenterEnd
+            ) {
             Surface(
                 modifier = Modifier.fillMaxHeight().fillMaxWidth(0.56f),
                 shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
-                color = Color(0xFF0B1324),
-                border = BorderStroke(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.45f))
+                color = settingsCardBg,
+                border = BorderStroke(1.5.dp, focusBorderWhite.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                     Row(
@@ -1280,20 +1296,23 @@ fun MainSectionsView(onSectionClick: (String) -> Unit, modifier: Modifier = Modi
             items(sections) { (title, icon) ->
                 val interaction = remember { MutableInteractionSource() }
                 val focused by interaction.collectIsFocusedAsState()
-                val scale = if (focused) 1.08f else 1f
+                var sectionFocused by remember { mutableStateOf(false) }
+                val isSectionFocused = focused || sectionFocused
+                val scale = if (isSectionFocused) 1.08f else 1f
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(72.dp)
                         .focusable()
+                        .onFocusChanged { sectionFocused = it.isFocused }
                         .clickable(interactionSource = interaction, indication = null) { onSectionClick(title) }
                         .graphicsLayer { scaleX = scale; scaleY = scale },
                     shape = RoundedCornerShape(16.dp),
-                    color = when {
-                        focused -> Color.White.copy(alpha = 0.12f)
-                        else -> Color.White.copy(alpha = 0.05f)
-                    },
-                    border = BorderStroke(if (focused) 2.dp else 1.dp, if (focused) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.1f))
+                    color = settingsCardBg,
+                    border = BorderStroke(
+                        width = if (isSectionFocused) 2.dp else 1.dp,
+                        color = if (isSectionFocused) focusBorderGold else Color.White.copy(alpha = 0.1f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
@@ -1339,15 +1358,15 @@ fun SectionContentView(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            color = Color(0xFF38BDF8).copy(alpha = 0.1f),
-            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.3f))
+            color = settingsCardBg,
+            border = BorderStroke(1.dp, focusBorderWhite.copy(alpha = 0.2f))
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(sectionName, color = Color(0xFF38BDF8), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(sectionName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 SettingOptionPill("◀ رجوع للأقسام الرئيسية", false, onClick = onBackClick)
             }
         }
@@ -1769,7 +1788,10 @@ fun TabOrderEditor(
                 }
             }
         }
-        Button(onClick = { onOrderChange(currentOrder) }) {
+        Button(
+            onClick = { onOrderChange(currentOrder) },
+            colors = ButtonDefaults.buttonColors(containerColor = settingsCardBg)
+        ) {
             Text("حفظ الترتيب", color = Color(0xFF34D399))
         }
     }
@@ -2093,9 +2115,12 @@ fun TickerElementsSection(
                 }
             }
         }
-        Button(onClick = {
-            scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
-        }) {
+        Button(
+            onClick = {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_ELEMENT_ORDER] = order.joinToString("::") } }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = settingsCardBg)
+        ) {
             Text("حفظ الترتيب", color = Color(0xFF34D399))
         }
     }
