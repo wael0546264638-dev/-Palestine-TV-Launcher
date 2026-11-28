@@ -30,6 +30,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -200,6 +202,16 @@ fun LauncherScreen() {
     var tabCardExpanded by remember { mutableStateOf(false) }
     var showAppMenu by remember { mutableStateOf(false) }
     var menuApp by remember { mutableStateOf<TvAppInfo?>(null) }
+
+    // FocusRequesters للواجهة الرئيسية
+    val mainFocusRequester = remember { FocusRequester() }
+    val dockFocusRequester = remember { FocusRequester() }
+    val gridFocusRequester = remember { FocusRequester() }
+
+    // طلب التركيز على الواجهة الرئيسية عند فتح اللانشر
+    LaunchedEffect(Unit) {
+        mainFocusRequester.requestFocus()
+    }
 
     // تذكير الأذان المرئي قبل الوقت
     var showAdhanReminder by remember { mutableStateOf(false) }
@@ -652,7 +664,9 @@ val mediaPlayer = remember { MediaPlayer() }
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 10.dp)
+                        .focusRequester(mainFocusRequester)
+                        .focusable(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -740,10 +754,13 @@ val mediaPlayer = remember { MediaPlayer() }
                 AppDockRow(
                     apps = orderedApps,
                     config = config,
-                    modifier = Modifier.graphicsLayer {
-                        translationX = config.dockOffsetX
-                        translationY = config.dockOffsetY
-                    },
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = config.dockOffsetX
+                            translationY = config.dockOffsetY
+                        }
+                        .focusRequester(dockFocusRequester)
+                        .focusable(),
                     onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} },
                     onLongPress = { app -> menuApp = app; showAppMenu = true }
                 )
@@ -753,7 +770,8 @@ val mediaPlayer = remember { MediaPlayer() }
                         apps = orderedApps,
                         config = config,
                         onLaunchApp = { app -> try { AppManager.launchApp(context, app.packageName) } catch (_: Exception) {} },
-                        onLongPress = { app -> menuApp = app; showAppMenu = true }
+                        onLongPress = { app -> menuApp = app; showAppMenu = true },
+                        focusRequester = gridFocusRequester
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }

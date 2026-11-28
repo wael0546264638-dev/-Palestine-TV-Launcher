@@ -2,6 +2,8 @@ package com.palestine.tvlauncher.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.enterExit.slideInVertically
+import androidx.compose.animation.enterExit.slideOutVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -72,73 +74,156 @@ fun TopControlBar(
     onOpenSettings: () -> Unit,
     onTriggerUpdate: () -> Unit
 ) {
-    Row(
+    val context = LocalContext.current
+    Box(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        contentAlignment = Alignment.TopCenter
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // القائمة المنبثقة الأفقية للأدوات في رأس الصفحة
             var toolsExpanded by remember { mutableStateOf(false) }
-            Box {
-                TopPillButton(
-                    icon = Icons.Default.Apps,
-                    label = "الأدوات",
-                    activeColor = Color(0xFF38BDF8),
-                    isHighlighted = false,
-                    onClick = { toolsExpanded = true }
-                )
-                DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                    if (config.showTopWifi) {
-                        DropdownMenuItem(
-                            text = { Text(if (isWifiConnected) "متصل" else "غير متصل") },
-                            leadingIcon = { Icon(if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff, contentDescription = null) },
-                            onClick = { toolsExpanded = false; onOpenWifi() }
-                        )
-                    }
-                    if (config.showTopQuranRadio) {
-                        DropdownMenuItem(
-                            text = { Text(when { isQuranBuffering -> "جاري الاتصال..."; isQuranPlaying -> "إذاعة القرآن (يعمل)"; else -> "إذاعة القرآن" }) },
-                            leadingIcon = { Icon(if (isQuranPlaying) Icons.Default.GraphicEq else Icons.Default.Radio, contentDescription = null) },
-                            onClick = { toolsExpanded = false; onToggleQuran() }
-                        )
-                    }
-                    if (config.showTopQuranBook) {
-                        DropdownMenuItem(
-                            text = { Text("المصحف الشريف") },
-                            leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
-                            onClick = { toolsExpanded = false; onOpenQuranBook() }
-                        )
-                    }
-                    if (config.showTopScreensaver) {
-                        DropdownMenuItem(
-                            text = { Text("شاشة التوقف") },
-                            leadingIcon = { Icon(Icons.Default.Bedtime, contentDescription = null) },
-                            onClick = { toolsExpanded = false; onOpenScreensaver() }
-                        )
+            AnimatedVisibility(visible = toolsExpanded, enter = slideInVertically(initialOffsetY = { -it }), exit = slideOutVertically(targetOffsetY = { -it })) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 26.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
+                    elevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (config.showTopWifi) {
+                            ToolsMenuButton(
+                                icon = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                label = if (isWifiConnected) "متصل" else "غير متصل",
+                                activeColor = Color(0xFF34D399),
+                                onClick = { toolsExpanded = false; onOpenWifi() }
+                            )
+                        }
+                        if (config.showTopQuranRadio) {
+                            ToolsMenuButton(
+                                icon = if (isQuranPlaying) Icons.Default.GraphicEq else Icons.Default.Radio,
+                                label = when { isQuranBuffering -> "جاري الاتصال..."; isQuranPlaying -> "إذاعة القرآن"; else -> "إذاعة القرآن" },
+                                activeColor = Color(0xFF38BDF8),
+                                onClick = { toolsExpanded = false; onToggleQuran() }
+                            )
+                        }
+                        if (config.showTopQuranBook) {
+                            ToolsMenuButton(
+                                icon = Icons.Default.MenuBook,
+                                label = "المصحف الشريف",
+                                activeColor = Color(0xFF8B5CF6),
+                                onClick = { toolsExpanded = false; onOpenQuranBook() }
+                            )
+                        }
+                        if (config.showTopScreensaver) {
+                            ToolsMenuButton(
+                                icon = Icons.Default.Bedtime,
+                                label = "شاشة التوقف",
+                                activeColor = Color(0xFFF59E0B),
+                                onClick = { toolsExpanded = false; onOpenScreensaver() }
+                            )
+                        }
                     }
                 }
             }
-            if (updateInfo?.hasUpdate == true) {
-                TopPillButton(
-                    icon = Icons.Default.SystemUpdate,
-                    label = "تحديث ${updateInfo.latestVersion}",
-                    activeColor = Color(0xFFF59E0B),
-                    isHighlighted = true,
-                    onClick = onTriggerUpdate
-                )
+
+            // شريط التحكم العلوي
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (updateInfo?.hasUpdate == true) {
+                        TopPillButton(
+                            icon = Icons.Default.SystemUpdate,
+                            label = "تحديث ${updateInfo.latestVersion}",
+                            activeColor = Color(0xFFF59E0B),
+                            isHighlighted = true,
+                            onClick = onTriggerUpdate
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TopPillButton(
+                        icon = Icons.Default.Apps,
+                        label = "الأدوات",
+                        activeColor = Color(0xFF38BDF8),
+                        isHighlighted = false,
+                        onClick = { toolsExpanded = true }
+                    )
+                    TopPillButton(
+                        icon = Icons.Default.Settings,
+                        label = "الإعدادات",
+                        activeColor = Color.White,
+                        isHighlighted = false,
+                        onClick = onOpenSettings
+                    )
+                }
             }
         }
+    }
+}
 
-        TopPillButton(
-            icon = Icons.Default.Settings,
-            label = "الإعدادات",
-            activeColor = Color.White,
-            isHighlighted = false,
-            onClick = onOpenSettings
-        )
+@Composable
+fun ToolsMenuButton(
+    icon: ImageVector,
+    label: String,
+    activeColor: Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1f,
+        animationSpec = tween(70),
+        label = "tool_menu_scale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        shape = CircleShape,
+        color = if (isFocused) activeColor else Color.Black.copy(alpha = 0.6f),
+        border = BorderStroke(if (isFocused) 2.dp else 1.dp, if (isFocused) Color.White else activeColor.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isFocused) Color.Black else activeColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = label,
+                color = if (isFocused) Color.Black else Color.White,
+                fontSize = 13.sp,
+                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -367,11 +452,16 @@ fun DeviceAppsGrid(
     config: LauncherConfig,
     onLaunchApp: (TvAppInfo) -> Unit,
     onLongPress: (TvAppInfo) -> Unit,
-    columns: Int = 5
+    columns: Int = 5,
+    focusRequester: FocusRequester? = null
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
-        modifier = Modifier.fillMaxWidth().height(500.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(500.dp)
+            .focusRequester(focusRequester)
+            .focusable(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
