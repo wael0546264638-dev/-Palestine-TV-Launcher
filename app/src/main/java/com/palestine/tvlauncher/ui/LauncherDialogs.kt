@@ -89,6 +89,7 @@ fun InteractiveTabsCard(
     onRemoveTask: (String) -> Unit,
     onAddReminder: (FamilyReminder) -> Unit,
     onExpand: (Boolean) -> Unit = {},
+    onExpandTab: (Int) -> Unit = {},
     expanded: Boolean = false
 ) {
     val context = LocalContext.current
@@ -109,6 +110,8 @@ fun InteractiveTabsCard(
     var cardHasFocus by remember { mutableStateOf(false) }
     val cardFocusRequester = remember { FocusRequester() }
     var textFieldFocused by remember { mutableStateOf(false) }
+    var isCardEntered by remember { mutableStateOf(false) }
+    val tabFocusRequesters = remember { mutableMapOf<Int, FocusRequester>() }
 
     val scope = rememberCoroutineScope()
     var todaysHadith by remember { mutableStateOf<HadithItem?>(null) }
@@ -155,6 +158,13 @@ fun InteractiveTabsCard(
         BackHandler(onBack = { onExpand(false) })
     }
 
+    LaunchedEffect(isCardEntered) {
+        if (isCardEntered && effectiveTabs.isNotEmpty()) {
+            val idx = selectedTab.coerceIn(0, effectiveTabs.lastIndex)
+            tabFocusRequesters[idx]?.requestFocus()
+        }
+    }
+
     LaunchedEffect(effectiveTabs.size, config.customCardAllTabs) {
         if (effectiveTabs.isEmpty()) {
             selectedTab = 0
@@ -183,31 +193,39 @@ fun InteractiveTabsCard(
     Surface(
         modifier = modifier
             .onFocusChanged { cardHasFocus = it.hasFocus }
-            .then(
-                if (expanded) Modifier
-                    .focusRequester(cardFocusRequester)
-                    .focusable()
-                    .onPreviewKeyEvent { event ->
-                        if (expanded && !textFieldFocused && event.type == KeyEventType.KeyDown) {
-                                    when (event.key) {
-                                        Key.DirectionLeft -> {
-                                            if (effectiveTabs.isNotEmpty()) {
-                                                selectedTab = (selectedTab + 1) % effectiveTabs.size
-                                            }
-                                            true
-                                        }
-                                        Key.DirectionRight -> {
-                                            if (effectiveTabs.isNotEmpty()) {
-                                                selectedTab = (selectedTab - 1 + effectiveTabs.size) % effectiveTabs.size
-                                            }
-                                            true
-                                        }
-                                    else -> false
-                                }
+            .focusRequester(cardFocusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown || textFieldFocused) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionCenter, Key.Enter -> {
+                        if (!isCardEntered && !expanded && effectiveTabs.isNotEmpty()) {
+                            isCardEntered = true
+                            true
                         } else false
                     }
-                else Modifier
-            )
+                    Key.Back -> {
+                        if (isCardEntered) {
+                            isCardEntered = false
+                            cardFocusRequester.requestFocus()
+                            true
+                        } else false
+                    }
+                    Key.DirectionLeft -> {
+                        if (expanded && effectiveTabs.isNotEmpty()) {
+                            selectedTab = (selectedTab + 1) % effectiveTabs.size
+                            true
+                        } else false
+                    }
+                    Key.DirectionRight -> {
+                        if (expanded && effectiveTabs.isNotEmpty()) {
+                            selectedTab = (selectedTab - 1 + effectiveTabs.size) % effectiveTabs.size
+                            true
+                        } else false
+                    }
+                    else -> false
+                }
+            }
             .graphicsLayer {
                 if (cardHasFocus && config.focusGlowEnabled) {
                     shadowElevation = 12.dp.toPx()
@@ -272,21 +290,47 @@ fun InteractiveTabsCard(
                             else -> Color.White.copy(alpha = 0.10f)
                         }
                         val tabBorderColor = when {
-                            focused -> Color(config.focusGlowColor)
+                            focused -> focusBorderGold
                             active -> Color(config.focusBorderColor)
                             else -> Color.Transparent
                         }
                         val tabBorderWidth = when {
-                            focused -> maxOf(config.focusBorderWidth, 3f)
-                            active && config.focusBorderEnabled -> maxOf(config.focusBorderWidth, 3f)  // إطار بارز 3dp للتبويب المحدد
+                            focused -> 2f
+                            active && config.focusBorderEnabled -> maxOf(config.focusBorderWidth, 3f)
                             else -> 0f
                         }
+                        val tabFr = remember(idx) { FocusRequester() }
+                        tabFocusRequesters[idx] = tabFr
                         Surface(
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .focusable()
-                                .onFocusChanged { if (it.isFocused) selectedTab = idx }
-                                .clickable(interactionSource = interaction, indication = null) { selectedTab = idx }
+                                .then(
+                                    if (expanded || isCardEntered) Modifier
+                                        .focusRequester(tabFr)
+                                        .focusable()
+                                        .onPreviewKeyEvent { event ->
+                                            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                            when (event.key) {
+                                                Key.DirectionCenter, Key.Enter -> {
+                                                    if (isCardEntered) {
+                                                        onExpandTab(idx)
+                                                        true
+                                                    } else false
+                                                }
+                                                Key.Back -> {
+                                                    if (isCardEntered) {
+                                                        isCardEntered = false
+                                                        cardFocusRequester.requestFocus()
+                                                        true
+                                                    } else false
+                                                }
+                                                else -> false
+                                            }
+                                        }
+                                        .onFocusChanged { if (it.isFocused) selectedTab = idx }
+                                        .clickable(interactionSource = interaction, indication = null) { selectedTab = idx }
+                                    else Modifier
+                                )
                                 .graphicsLayer {
                                     scaleX = focusScale
                                     scaleY = focusScale
