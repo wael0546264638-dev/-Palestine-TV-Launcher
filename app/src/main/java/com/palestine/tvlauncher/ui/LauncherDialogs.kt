@@ -72,8 +72,8 @@ import kotlinx.coroutines.launch
 import java.util.*
 import java.util.UUID
 
-private val settingsMainBg = Color(0xFF0F172A)
-private val settingsCardBg = Color(0xFF1E293B)
+private val settingsMainBg = Color(0xFF0B1120)
+private val settingsCardBg = Color(0xFF0B1120)
 private val focusBorderWhite = Color(0xFFFFFFFF)
 private val focusBorderGold = Color(0xFFFBBF24)
 
@@ -796,7 +796,7 @@ fun FullQuranDialog(onDismiss: () -> Unit) {
         Surface(
             modifier = Modifier.fillMaxSize(0.92f),
             shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF0B1324),
+            color = Color(0xFF0B1120),
             border = BorderStroke(width = 1.5.dp, color = Color(0xFFFBBF24).copy(alpha = 0.5f))
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
@@ -1184,6 +1184,7 @@ fun SettingOptionPill(
         Surface(
             modifier = Modifier
                 .focusable()
+                .border(3.dp, Color(0xFFFACC15), RoundedCornerShape(12.dp))
                 .onFocusChanged { pillFocused = it.isFocused }
                 .clickable(interactionSource = interaction, indication = null) { onClick() }
                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1193,18 +1194,18 @@ fun SettingOptionPill(
                         scaleY = 1.05f
                     }
                 },
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             color = when {
-                isFocused -> focusBorderWhite
-                selected -> Color(0xFF38BDF8).copy(alpha = 0.25f)
+                isFocused -> Color(0xFF2563EB)
+                selected -> Color(0xFF334155)
                 else -> settingsCardBg
             },
             border = BorderStroke(
-                width = if (isFocused) 2.dp else if (selected) 1.5.dp else 1.dp,
+                width = if (isFocused) 3.dp else if (selected) 1.5.dp else 1.dp,
                 color = when {
-                    isFocused -> focusBorderWhite
-                    selected -> Color(0xFF38BDF8)
-                    else -> focusBorderWhite.copy(alpha = 0.12f)
+                    isFocused -> Color(0xFFFACC15)
+                    selected -> Color(0xFF2563EB)
+                    else -> Color(0xFFFACC15).copy(alpha = 0.12f)
                 }
             )
         ) {
