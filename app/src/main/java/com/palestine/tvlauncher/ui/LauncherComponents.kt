@@ -39,9 +39,12 @@ import com.palestine.tvlauncher.data.TabItem
 import com.palestine.tvlauncher.data.cardTabs
 import com.palestine.tvlauncher.data.PalestineData
 import com.palestine.tvlauncher.data.TvAppInfo
+import com.palestine.tvlauncher.data.CustomEvent
+import com.palestine.tvlauncher.data.Birthday
 import com.palestine.tvlauncher.network.GitHubUpdateInfo
 import com.palestine.tvlauncher.network.LiveFeedState
 import java.util.*
+import android.icu.util.IslamicCalendar
 
 @Composable
 fun TopControlBar(
@@ -504,6 +507,13 @@ fun BottomTickerBar(
         val d = calculateDaysUntilDate(it.month, it.day)
         "   •   مناسبة ${it.name} بعد $d يوم"
     } ?: ""
+    val nearestBirthday = remember(config.reminders) {
+        config.reminders.minByOrNull { calculateDaysUntilDate(it.month, it.day) }
+    }
+    val birthdayText = nearestBirthday?.let {
+        val d = calculateDaysUntilDate(it.month, it.day)
+        "   •   عيد ميلاد ${it.name} بعد $d يوم"
+    } ?: ""
 
     val tickerLine = remember(config.activeTickerPairs, liveFeed.prices) {
         buildString {
@@ -533,7 +543,7 @@ fun BottomTickerBar(
             ) {
                 Text(prayerInfo.remainingText, color = Color(0xFF38BDF8), fontSize = barFontSize, fontWeight = FontWeight.Bold)
                 Text(
-                    PalestineData.toArabicDigits("رمضان بعد $daysToRamadan يوم$familyText"),
+                    PalestineData.toArabicDigits("رمضان بعد $daysToRamadan يوم$familyText$birthdayText"),
                     color = Color.White,
                     fontSize = barFontSize
                 )
@@ -569,4 +579,175 @@ fun calculateDaysUntilDate(month: Int, day: Int): Int {
     }
     val diff = target.timeInMillis - today.timeInMillis
     return (diff / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+}
+
+data class IslamicEvent(
+    val name: String,
+    val hijriMonth: Int,
+    val hijriDay: Int,
+    val daysUntil: Int
+)
+
+data class NextEventInfo(
+    val event: IslamicEvent,
+    val isCustom: Boolean
+)
+
+fun getBuiltInIslamicEvents(): List<IslamicEvent> {
+    val today = Calendar.getInstance()
+    val hijri = IslamicCalendar().apply { timeZone = today.timeZone }
+    val currentHijriYear = hijri.get(IslamicCalendar.YEAR)
+    val currentHijriMonth = hijri.get(IslamicCalendar.MONTH)
+    val currentHijriDay = hijri.get(IslamicCalendar.DAY_OF_MONTH)
+
+    val builtInEvents = listOf(
+        "رأس السنة الهجرية" to (IslamicCalendar.MUHARRAM to 1),
+        "الإسراء والمعراج" to (IslamicCalendar.RAJAB to 27),
+        "رمضان المبارك" to (IslamicCalendar.RAMADAN to 1),
+        "عيد الفطر" to (IslamicCalendar.SHAWWAL to 1),
+        "عيد الأضحى" to (IslamicCalendar.DHU_AL_HIJJAH to 10)
+    )
+
+    return builtInEvents.map { (name, (month, day)) ->
+        val eventCal = IslamicCalendar().apply {
+            set(IslamicCalendar.YEAR, currentHijriYear)
+            set(IslamicCalendar.MONTH, month)
+            set(IslamicCalendar.DAY_OF_MONTH, day)
+        }
+        val currentCal = IslamicCalendar().apply { timeZone = today.timeZone }
+        val daysDiff = calculateHijriDaysDiff(currentCal, eventCal)
+        IslamicEvent(name, month, day, if (daysDiff < 0) daysDiff + 354 else daysDiff)
+    }
+}
+
+private fun calculateHijriDaysDiff(from: IslamicCalendar, to: IslamicCalendar): Int {
+    val fromCopy = from.clone() as IslamicCalendar
+    var days = 0
+    while (fromCopy.before(to) && days < 400) {
+        fromCopy.add(IslamicCalendar.DAY_OF_MONTH, 1)
+        days++
+    }
+    if (days >= 400) {
+        fromCopy.set(IslamicCalendar.YEAR, fromCopy.get(IslamicCalendar.YEAR) + 1)
+        while (fromCopy.before(to) && days < 700) {
+            fromCopy.add(IslamicCalendar.DAY_OF_MONTH, 1)
+            days++
+        }
+    }
+    return days
+}
+
+fun getNextIslamicEvent(customEvents: List<CustomEvent>): NextEventInfo? {
+    val builtIn = getBuiltInIslamicEvents()
+    val allEvents = mutableListOf<Pair<IslamicEvent, Boolean>>()
+    allEvents.addAll(builtIn.map { it to false })
+    allEvents.addAll(customEvents.filter { it.isRecurring }.map {
+        val today = Calendar.getInstance()
+        val hijri = IslamicCalendar().apply { timeZone = today.timeZone }
+        val currentHijriYear = hijri.get(IslamicCalendar.YEAR)
+        val eventCal = IslamicCalendar().apply {
+            set(IslamicCalendar.YEAR, currentHijriYear)
+            set(IslamicCalendar.MONTH, it.hijriMonth)
+            set(IslamicCalendar.DAY_OF_MONTH, it.hijriDay)
+        }
+        val currentCal = IslamicCalendar().apply { timeZone = today.timeZone }
+        val daysDiff = calculateHijriDaysDiff(currentCal, eventCal)
+        IslamicEvent(it.name, it.hijriMonth, it.hijriDay, if (daysDiff < 0) daysDiff + 354 else daysDiff) to true
+    })
+
+    return allEvents
+        .filter { it.first.daysUntil >= 0 }
+        .minByOrNull { it.first.daysUntil }
+        ?.let { NextEventInfo(it.first, it.second) }
+}
+
+fun getNextBirthday(birthdays: List<Birthday>): Pair<Birthday, Int>? {
+    return birthdays
+        .mapNotNull { b ->
+            val days = calculateDaysUntilDate(b.month, b.day)
+            if (days >= 0) b to days else null
+        }
+        .minByOrNull { it.second }
+}
+
+@Composable
+fun BottomEventsBar(
+    config: LauncherConfig,
+    prayerInfo: PalestineData.PrayerDisplay
+) {
+    if (!config.bottomBarEnabled) return
+
+    val nextEvent = remember(config.customEvents) {
+        getNextIslamicEvent(config.customEvents)
+    }
+    val nextBirthday = remember(config.birthdays) {
+        getNextBirthday(config.birthdays)
+    }
+
+    val barHeight = config.bottomBarHeight.dp
+    val barFontSize = config.bottomBarFontSize.sp
+    val barOpacity = config.bottomBarOpacity
+
+    val eventText = nextEvent?.let { info ->
+        val event = info.event
+        val label = if (info.isCustom) "📌 ${event.name}" else "🕌 ${event.name}"
+        PalestineData.toArabicDigits("$label: بعد ${event.daysUntil} يوم")
+    } ?: PalestineData.toArabicDigits("لا توجد مناسبات قادمة")
+
+    val birthdayText = nextBirthday?.let { (b, days) ->
+        PalestineData.toArabicDigits("🎂 ${b.name}: بعد $days يوم")
+    } ?: PalestineData.toArabicDigits("لا توجد أعياد ميلاد قادمة")
+
+    val prayerText = if (config.bottomBarShowNextPrayer) prayerInfo.remainingText else ""
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(barHeight),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Black.copy(alpha = barOpacity),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (config.bottomBarShowNextPrayer && prayerText.isNotBlank()) {
+                    Text(
+                        text = prayerText,
+                        color = Color(0xFF38BDF8),
+                        fontSize = barFontSize,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (config.bottomBarShowEventCounter) {
+                    Text(
+                        text = eventText,
+                        color = Color.White,
+                        fontSize = barFontSize,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(start = 16.dp)
+                    )
+                }
+                if (config.bottomBarShowBirthdayCounter) {
+                    Text(
+                        text = birthdayText,
+                        color = Color(0xFFFBBF24),
+                        fontSize = barFontSize,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+            }
+        }
+    }
 }

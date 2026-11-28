@@ -40,6 +40,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -58,6 +59,8 @@ import com.palestine.tvlauncher.data.LauncherPreferences
 import com.palestine.tvlauncher.data.PalestinianCity
 import com.palestine.tvlauncher.data.TabItem
 import com.palestine.tvlauncher.data.cardTabs
+import com.palestine.tvlauncher.data.CustomEvent
+import com.palestine.tvlauncher.data.Birthday
 import com.palestine.tvlauncher.network.LiveFeedState
 import com.palestine.tvlauncher.network.LiveRepository
 import com.palestine.tvlauncher.network.SurahHeader
@@ -66,6 +69,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+import java.util.UUID
 
 @Composable
 fun InteractiveTabsCard(
@@ -2162,33 +2166,257 @@ fun BottomBarSection(
     prefs: LauncherPreferences,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
-    SettingsCategoryBox("شريط التذكير (الأسفل/الأعلى)") {
+    SettingsCategoryBox("إعدادات الشريط السفلي") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingOptionPill("أسفل الشاشة", config.tickerBarPosition == 0) {
-                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 0 } }
-            }
-            SettingOptionPill("أعلى الشاشة", config.tickerBarPosition == 1) {
-                scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_POSITION] = 1 } }
+            SettingOptionPill("تفعيل الشريط السفلي", config.bottomBarEnabled) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_ENABLED] = !config.bottomBarEnabled } }
             }
         }
         StepAdjustRow(
-            title = "ارتفاع شريط التذكير",
-            valueLabel = PalestineData.toArabicDigits("${config.tickerBarHeight} dp"),
-            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight - 4).coerceAtLeast(24) } } },
-            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_HEIGHT] = (config.tickerBarHeight + 4).coerceAtMost(120) } } }
+            title = "ارتفاع الشريط",
+            valueLabel = PalestineData.toArabicDigits("${config.bottomBarHeight} dp"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_HEIGHT] = (config.bottomBarHeight - 4).coerceAtLeast(24) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_HEIGHT] = (config.bottomBarHeight + 4).coerceAtMost(120) } } }
         )
         StepAdjustRow(
-            title = "حجم خط شريط التذكير",
-            valueLabel = PalestineData.toArabicDigits("${config.tickerBarFontSize} sp"),
-            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize - 2).coerceAtLeast(10) } } },
-            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_BAR_FONT_SIZE] = (config.tickerBarFontSize + 2).coerceAtMost(22) } } }
+            title = "حجم الخط",
+            valueLabel = PalestineData.toArabicDigits("${config.bottomBarFontSize} sp"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_FONT_SIZE] = (config.bottomBarFontSize - 2).coerceAtLeast(10) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_FONT_SIZE] = (config.bottomBarFontSize + 2).coerceAtMost(22) } } }
         )
         StepAdjustRow(
-            title = "شفافية شريط التذكير",
-            valueLabel = PalestineData.toArabicDigits("${(config.tickerBgOpacity * 100).toInt()}%"),
-            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
-            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.TICKER_OPACITY] = (config.tickerBgOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
+            title = "شفافية الشريط",
+            valueLabel = PalestineData.toArabicDigits("${(config.bottomBarOpacity * 100).toInt()}%"),
+            onDecrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_OPACITY] = (config.bottomBarOpacity - 0.1f).coerceIn(0.1f, 1f) } } },
+            onIncrease = { scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_OPACITY] = (config.bottomBarOpacity + 0.1f).coerceIn(0.1f, 1f) } } }
         )
+        Text("إظهار/إخفاء خانات الشريط:", color = Color(0xFFCBD5E1), fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            SettingOptionPill("الصلاة القادمة", config.bottomBarShowNextPrayer) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_NEXT_PRAYER] = !config.bottomBarShowNextPrayer } }
+            }
+            SettingOptionPill("عداد المناسبات", config.bottomBarShowEventCounter) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_EVENT_COUNTER] = !config.bottomBarShowEventCounter } }
+            }
+            SettingOptionPill("عداد أعياد الميلاد", config.bottomBarShowBirthdayCounter) {
+                scope.launch { prefs.updateConfig { it[LauncherPreferences.BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER] = !config.bottomBarShowBirthdayCounter } }
+            }
+        }
+    }
+
+    // Custom Events Management
+    SettingsCategoryBox("المناسبات المخصصة (التاريخ الهجري)") {
+        var eventName by remember { mutableStateOf("") }
+        var eventMonth by remember { mutableStateOf("") }
+        var eventDay by remember { mutableStateOf("") }
+        var editingEventId by remember { mutableStateOf<String?>(null) }
+        val hijriMonths = listOf("محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة")
+        val eventMonthName = eventMonth.toIntOrNull()?.let { hijriMonths.getOrElse(it - 1) { "" } } ?: ""
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = eventName,
+                onValueChange = { eventName = it },
+                placeholder = { Text("اسم المناسبة", color = Color.Gray) },
+                modifier = Modifier.weight(1.5f).onFocusChanged { },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = eventMonth,
+                onValueChange = { eventMonth = it.filter { it.isDigit() } },
+                placeholder = { Text("الشهر (1-12)", color = Color.Gray) },
+                modifier = Modifier.width(80.dp).onFocusChanged { },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(
+                value = eventDay,
+                onValueChange = { eventDay = it.filter { it.isDigit() } },
+                placeholder = { Text("اليوم (1-30)", color = Color.Gray) },
+                modifier = Modifier.width(80.dp).onFocusChanged { },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            if (editingEventId != null) {
+                SettingOptionPill("تعديل", true) {
+                    val month = eventMonth.toIntOrNull()
+                    val day = eventDay.toIntOrNull()
+                    if (eventName.isNotBlank() && month != null && day != null && month in 1..12 && day in 1..30) {
+                        val updated = config.customEvents.map { if (it.id == editingEventId) it.copy(name = eventName.trim(), hijriMonth = month, hijriDay = day) else it }
+                        scope.launch { prefs.saveCustomEvents(updated) }
+                        eventName = ""; eventMonth = ""; eventDay = ""; editingEventId = null
+                    }
+                }
+                SettingOptionPill("إلغاء", false) { eventName = ""; eventMonth = ""; eventDay = ""; editingEventId = null }
+            } else {
+                SettingOptionPill("إضافة", false) {
+                    val month = eventMonth.toIntOrNull()
+                    val day = eventDay.toIntOrNull()
+                    if (eventName.isNotBlank() && month != null && day != null && month in 1..12 && day in 1..30) {
+                        val newEvent = CustomEvent(UUID.randomUUID().toString(), eventName.trim(), month, day, true)
+                        scope.launch { prefs.saveCustomEvents(config.customEvents + newEvent) }
+                        eventName = ""; eventMonth = ""; eventDay = ""
+                    }
+                }
+            }
+        }
+        if (eventMonthName.isNotBlank()) {
+            Text("الشهر المحدد: $eventMonthName", color = Color(0xFF38BDF8), fontSize = 12.sp)
+        }
+
+        if (config.customEvents.isNotEmpty()) {
+            Text("قائمة المناسبات المضافة:", color = Color(0xFFCBD5E1), fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(config.customEvents.size) { idx ->
+                    val event = config.customEvents[idx]
+                    val monthName = hijriMonths.getOrElse(event.hijriMonth - 1) { "" }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. ${event.name}  (${event.hijriDay} $monthName)", color = Color.White, fontSize = 14.sp)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (idx > 0) {
+                                SettingOptionPill("▲", false) {
+                                    val n = config.customEvents.toMutableList()
+                                    val t = n.removeAt(idx)
+                                    n.add(idx - 1, t)
+                                    scope.launch { prefs.saveCustomEvents(n) }
+                                }
+                            }
+                            if (idx < config.customEvents.size - 1) {
+                                SettingOptionPill("▼", false) {
+                                    val n = config.customEvents.toMutableList()
+                                    val t = n.removeAt(idx)
+                                    n.add(idx + 1, t)
+                                    scope.launch { prefs.saveCustomEvents(n) }
+                                }
+                            }
+                            SettingOptionPill("✎", false) {
+                                eventName = event.name
+                                eventMonth = event.hijriMonth.toString()
+                                eventDay = event.hijriDay.toString()
+                                editingEventId = event.id
+                            }
+                            SettingOptionPill("🗑", false) {
+                                val n = config.customEvents.filter { it.id != event.id }
+                                scope.launch { prefs.saveCustomEvents(n) }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Text("لا توجد مناسبات مخصصة مضافة", color = Color(0xFF94A3B8), fontSize = 13.sp)
+        }
+    }
+
+    // Birthdays Management
+    SettingsCategoryBox("أعياد الميلاد (التاريخ الميلادي)") {
+        var birthName by remember { mutableStateOf("") }
+        var birthMonth by remember { mutableStateOf("") }
+        var birthDay by remember { mutableStateOf("") }
+        var editingBirthId by remember { mutableStateOf<String?>(null) }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = birthName,
+                onValueChange = { birthName = it },
+                placeholder = { Text("الاسم", color = Color.Gray) },
+                modifier = Modifier.weight(1.5f).onFocusChanged { },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = birthMonth,
+                onValueChange = { birthMonth = it.filter { it.isDigit() } },
+                placeholder = { Text("الشهر (1-12)", color = Color.Gray) },
+                modifier = Modifier.width(80.dp).onFocusChanged { },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(
+                value = birthDay,
+                onValueChange = { birthDay = it.filter { it.isDigit() } },
+                placeholder = { Text("اليوم (1-31)", color = Color.Gray) },
+                modifier = Modifier.width(80.dp).onFocusChanged { },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            if (editingBirthId != null) {
+                SettingOptionPill("تعديل", true) {
+                    val month = birthMonth.toIntOrNull()
+                    val day = birthDay.toIntOrNull()
+                    if (birthName.isNotBlank() && month != null && day != null && month in 1..12 && day in 1..31) {
+                        val updated = config.birthdays.map { if (it.id == editingBirthId) it.copy(name = birthName.trim(), month = month, day = day) else it }
+                        scope.launch { prefs.saveBirthdays(updated) }
+                        birthName = ""; birthMonth = ""; birthDay = ""; editingBirthId = null
+                    }
+                }
+                SettingOptionPill("إلغاء", false) { birthName = ""; birthMonth = ""; birthDay = ""; editingBirthId = null }
+            } else {
+                SettingOptionPill("إضافة", false) {
+                    val month = birthMonth.toIntOrNull()
+                    val day = birthDay.toIntOrNull()
+                    if (birthName.isNotBlank() && month != null && day != null && month in 1..12 && day in 1..31) {
+                        val newBirth = Birthday(UUID.randomUUID().toString(), birthName.trim(), month, day)
+                        scope.launch { prefs.saveBirthdays(config.birthdays + newBirth) }
+                        birthName = ""; birthMonth = ""; birthDay = ""
+                    }
+                }
+            }
+        }
+
+        if (config.birthdays.isNotEmpty()) {
+            Text("قائمة أعياد الميلاد:", color = Color(0xFFCBD5E1), fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(config.birthdays.size) { idx ->
+                    val b = config.birthdays[idx]
+                    val daysLeft = calculateDaysUntilDate(b.month, b.day)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${idx + 1}. ${b.name}  (${b.day}/${b.month})  -  متبقي ${PalestineData.toArabicDigits("$daysLeft")} يوم", color = Color.White, fontSize = 14.sp)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (idx > 0) {
+                                SettingOptionPill("▲", false) {
+                                    val n = config.birthdays.toMutableList()
+                                    val t = n.removeAt(idx)
+                                    n.add(idx - 1, t)
+                                    scope.launch { prefs.saveBirthdays(n) }
+                                }
+                            }
+                            if (idx < config.birthdays.size - 1) {
+                                SettingOptionPill("▼", false) {
+                                    val n = config.birthdays.toMutableList()
+                                    val t = n.removeAt(idx)
+                                    n.add(idx + 1, t)
+                                    scope.launch { prefs.saveBirthdays(n) }
+                                }
+                            }
+                            SettingOptionPill("✎", false) {
+                                birthName = b.name
+                                birthMonth = b.month.toString()
+                                birthDay = b.day.toString()
+                                editingBirthId = b.id
+                            }
+                            SettingOptionPill("🗑", false) {
+                                val n = config.birthdays.filter { it.id != b.id }
+                                scope.launch { prefs.saveBirthdays(n) }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Text("لا توجد أعياد ميلاد مضافة", color = Color(0xFF94A3B8), fontSize = 13.sp)
+        }
     }
 }
 

@@ -41,6 +41,37 @@ private fun appCustomNamesFromRaw(raw: String?): Map<String, String> {
     }.toMap()
 }
 
+private fun customEventsFromRaw(raw: String?): List<CustomEvent> {
+    return if (raw?.isBlank() == true) emptyList()
+    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+        val parts = item.split("::")
+        if (parts.size >= 4) {
+            CustomEvent(
+                id = parts[0],
+                name = parts[1],
+                hijriMonth = parts[2].toIntOrNull() ?: 1,
+                hijriDay = parts[3].toIntOrNull() ?: 1,
+                isRecurring = parts.getOrNull(4)?.toBoolean() ?: true
+            )
+        } else null
+    }
+}
+
+private fun birthdaysFromRaw(raw: String?): List<Birthday> {
+    return if (raw?.isBlank() == true) emptyList()
+    else raw.split("||").filter { it.isNotBlank() }.mapNotNull { item ->
+        val parts = item.split("::")
+        if (parts.size >= 3) {
+            Birthday(
+                id = parts[0],
+                name = parts[1],
+                month = parts[2].toIntOrNull() ?: 1,
+                day = parts[3].toIntOrNull() ?: 1
+            )
+        } else null
+    }
+}
+
 data class LauncherConfig(
     val customCardAllTabs: Boolean = false,
     val cityName: String = "أريحا (الزبيدات)",
@@ -138,6 +169,17 @@ data class LauncherConfig(
     val liveWallpaperType: String = "none",
     val liveWallpaperCategory: String = "الكل المتنوع",
 
+    // Bottom Events Bar customization
+    val bottomBarEnabled: Boolean = true,
+    val bottomBarHeight: Int = 56,
+    val bottomBarFontSize: Int = 13,
+    val bottomBarOpacity: Float = 0.65f,
+    val bottomBarShowEventCounter: Boolean = true,
+    val bottomBarShowBirthdayCounter: Boolean = true,
+    val bottomBarShowNextPrayer: Boolean = true,
+    val customEvents: List<CustomEvent> = emptyList(),
+    val birthdays: List<Birthday> = emptyList(),
+
     // Favorite team
     val favoriteTeamId: String = "",
     val favoriteTeamName: String = "",
@@ -163,6 +205,21 @@ data class FavoriteTeam(
     val id: String,
     val name: String,
     val league: String
+)
+
+data class CustomEvent(
+    val id: String,
+    val name: String,
+    val hijriMonth: Int,
+    val hijriDay: Int,
+    val isRecurring: Boolean = true
+)
+
+data class Birthday(
+    val id: String,
+    val name: String,
+    val month: Int,
+    val day: Int
 )
 
 class LauncherPreferences(private val context: Context) {
@@ -263,6 +320,17 @@ class LauncherPreferences(private val context: Context) {
         val LIVE_WALLPAPER_SOURCE = intPreferencesKey("live_wallpaper_source")
         val LIVE_WALLPAPER_TYPE = stringPreferencesKey("live_wallpaper_type")
         val LIVE_WALLPAPER_CATEGORY = stringPreferencesKey("live_wallpaper_category")
+
+        // Bottom Events Bar
+        val BOTTOM_BAR_ENABLED = booleanPreferencesKey("bottom_bar_enabled")
+        val BOTTOM_BAR_HEIGHT = intPreferencesKey("bottom_bar_height")
+        val BOTTOM_BAR_FONT_SIZE = intPreferencesKey("bottom_bar_font_size")
+        val BOTTOM_BAR_OPACITY = floatPreferencesKey("bottom_bar_opacity")
+        val BOTTOM_BAR_SHOW_EVENT_COUNTER = booleanPreferencesKey("bottom_bar_show_event_counter")
+        val BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER = booleanPreferencesKey("bottom_bar_show_birthday_counter")
+        val BOTTOM_BAR_SHOW_NEXT_PRAYER = booleanPreferencesKey("bottom_bar_show_next_prayer")
+        val CUSTOM_EVENTS_RAW = stringPreferencesKey("custom_events_raw")
+        val BIRTHDAYS_RAW = stringPreferencesKey("birthdays_raw")
 
         // Favorite team
         val FAVORITE_TEAM_ID = stringPreferencesKey("favorite_team_id")
@@ -378,6 +446,16 @@ class LauncherPreferences(private val context: Context) {
             liveWallpaperType = p[LIVE_WALLPAPER_TYPE] ?: "none",
             liveWallpaperCategory = p[LIVE_WALLPAPER_CATEGORY] ?: "الكل المتنوع",
 
+            bottomBarEnabled = p[BOTTOM_BAR_ENABLED] ?: true,
+            bottomBarHeight = p[BOTTOM_BAR_HEIGHT] ?: 56,
+            bottomBarFontSize = p[BOTTOM_BAR_FONT_SIZE] ?: 13,
+            bottomBarOpacity = p[BOTTOM_BAR_OPACITY] ?: 0.65f,
+            bottomBarShowEventCounter = p[BOTTOM_BAR_SHOW_EVENT_COUNTER] ?: true,
+            bottomBarShowBirthdayCounter = p[BOTTOM_BAR_SHOW_BIRTHDAY_COUNTER] ?: true,
+            bottomBarShowNextPrayer = p[BOTTOM_BAR_SHOW_NEXT_PRAYER] ?: true,
+            customEvents = customEventsFromRaw(p[CUSTOM_EVENTS_RAW]),
+            birthdays = birthdaysFromRaw(p[BIRTHDAYS_RAW]),
+
             favoriteTeamId = p[FAVORITE_TEAM_ID] ?: "",
             favoriteTeamName = p[FAVORITE_TEAM_NAME] ?: "",
             favoriteTeamLeague = p[FAVORITE_TEAM_LEAGUE] ?: "",
@@ -447,5 +525,17 @@ class LauncherPreferences(private val context: Context) {
 
     suspend fun saveAppOrder(order: List<String>) {
         context.dataStore.edit { it[APP_ORDER_RAW] = order.joinToString("||") }
+    }
+
+    suspend fun saveCustomEvents(events: List<CustomEvent>) {
+        context.dataStore.edit {
+            it[CUSTOM_EVENTS_RAW] = events.joinToString("||") { e -> "${e.id}::${e.name}::${e.hijriMonth}::${e.hijriDay}::${e.isRecurring}" }
+        }
+    }
+
+    suspend fun saveBirthdays(birthdays: List<Birthday>) {
+        context.dataStore.edit {
+            it[BIRTHDAYS_RAW] = birthdays.joinToString("||") { b -> "${b.id}::${b.name}::${b.month}::${b.day}" }
+        }
     }
 }
